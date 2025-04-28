@@ -12,39 +12,45 @@ This agreement outlines the expectations, responsibilities, and processes for th
 
 ### Expectations
 
-The majority of project work will commence from Tuesday to Saturday 11:59 a.m., with exceptions to work on Sunday during quiz week as necessary. While exact minimum/maximum working hours are not enforced, group members are committed to honestly ensuring an equal workload amongst each other. If a group member feels they have been designated too much work for any reason, they are within their right to request support, and other group members are expected to assist.
+The majority of project work will commence from Monday to Friday 9am to 5pm, with exceptions to work on Sunday. While exact minimum/maximum working hours are not enforced, group members are committed to honestly ensuring an equal workload amongst each other. If a group member feels they have been designated too much work for any reason, they are within their right to request support, and other group members are expected to assist.
 
-All submissions must meet the milestone criteria outlined in the instructions, including the following:
+All submitted work must meet the proffesional criteria, as per the following:
 
-- Ensure that scripts run correctly and all functions are covered by tests.
+- Ensure that scripts and other implementations run correctly and all functions are covered by tests when added to the project.
 - Maintain proper grammar, clarity, and professionalism in all written submissions.
 - Follow project-specific submission guidelines, including creating GitHub repositories with appropriate naming conventions and versioned releases.
 - Collaborate effectively on GitHub by using feature branches, writing meaningful commit messages as well as pull request names, and reviewing code before merging.
-- Provide clear release notes summarizing key updates for each milestone.
+- Pull requests comments should be descriptive and helpful
+- Pull requests should be reviewed by at least two team members (not including the requester).
+- Pull requests can be merged by reviewer unless communicated otherwise.
+- Provide clear release notes summarizing key updates for each submission.
 - Submit required deliverables according to the instructions, ensuring completeness and accuracy.
+- Include appropriate comments and docstrings for code readability
+- Add all tasks to the project board for accountability and keeping track of project progress
+- Adhere to the schedule in the project board.
+- Main communication would be on slack and github issues.
 
 ---
 
 ### Meetings
 
-**Location:** Lab Classroom, Virtually via Slack Huddle
+**Location:** ICCS 204, UBC Robson Square, Virtually via Slack Huddle
 
 **Panoramic Timetable:**
 
-- **Tuesday (Lab):** 2–4 PM
-- **Wednesday:** Online if needed
-- **Thursday:** Online if needed
-- **Friday:** Online if needed
+- **Monday:** 3-4 PM
+- **Thursday:** 4-5
+- **Friday:** After Capstone Seminar
 
 **Attendance:**  
-All members are expected to attend meetings. If a member is unable to attend a meeting, written notice must be given **at least 12 hours in advance** to discuss alternative arrangements.
+All members are expected to attend meetings. If a member is unable to attend a meeting, it should be communicated to the group in advance.
 
 ---
 
 ### Communication
 
-- **GitHub:** Primary discussion regarding project development, ideas, review, etc.  
-- **Slack:** Secondary or informal discussion  
+- **GitHub:** Official discussion regarding project development, progress, ideas, review, etc.  
+- **Slack:** Other discussions  
 
 Always communicate with the team if there's a risk of delay or encountering a blocker. If this happens, other teammates can step in and provide support.
 
@@ -52,7 +58,7 @@ Always communicate with the team if there's a risk of delay or encountering a bl
 
 ### Reviews
 
-All members are expected to submit a **Pull Request (PR)** for their work on the repository for the group project on [GitHub](http://github.com/). All PRs must be reviewed by teammates within **24 hours** of submission. Team members must be assigned as reviewers in GitHub.  
+All members are expected to submit a **Pull Request (PR)** for their work on the repository for the group project on [GitHub](http://github.com/). All PRs must be reviewed by teammates within timely manner. At least two team members must be assigned as reviewers in GitHub.  
 
 Efforts should be made to distribute review opportunities evenly among all group members, aiming for an equal number of reviews per person. The team will review all work to ensure it meets the required quality before merging to the main branch.
 
@@ -62,28 +68,30 @@ Efforts should be made to distribute review opportunities evenly among all group
 
 There is one role team members will be responsible for each week:
 
-#### **Proofreader:**
+#### **Project Manager (Sepehr):**
 
-- Responsible for doing a final check of the submission before the deadline to make sure all requirements are satisfied.  
-- Review the work and ensure the final version is ready for submission, create the required version tag, and submit the files on behalf of the team to Gradescope adhering to MDS groupwork submission policy.  
+ - Maintain the project board (adding and allocating tasks)
+ - Keep track of deadlines and progress
+ - Review progress with teammembers during meetings and other times.
 
-|  **Week**  |          **Proofreader**        |
-|------------|---------------------------------|
-|   Week 1   |       Abeba Nigussie Turi       |
-|   Week 2   |     Alexandra (Yining) Zhou     |
-|   Week 3   |           Archer Liu            |
-|   Week 4   |           Essie Zhang           |
+#### **Note Taker (Tien):**
+
+ - Take notes during meetings with mentor and partner
+ - Share notes with team after each meeting
+
+
+#### **Presenter (All):**
+
+ - Present during meetings with partner
+ - This role is shared among all team members.
 
 ---
 
 ### Deadlines
 
-- **Interim Deadline:** 11:59 PM on Friday for respective individual parts.
-- **Final Interim Deadline:** 11:59 AM on Saturday to ensure sufficient time for proofreading and finalization.
-
-During quiz week (Week 3), interim deadlines may shift by half a day to accommodate heavier workloads.
-
-Interim deadlines must be respected and followed as final deadlines to maintain project progress. In the event of any delays due to unforeseen circumstances, team members must **immediately communicate** with the rest of the group **via Slack** for alternative plans and an updated timeline for delivery.
+- Work should be finalized a day before the deadline
+- Team members should communicate as soon as possible if the deadline cannot be met.
+- Deadlines are availble on github project board and google calendar.
 
 ---
 
@@ -93,8 +101,6 @@ Failure to adhere to the terms outlined in this contract will result in the foll
 
 1. **First Warning:** A written notice will be sent via **Slack**, explaining the concern and reminding the team member of the contract's terms.  
 2. **Second Warning:** A meeting will be scheduled to discuss the issue, and the team member will be required to agree to follow the team contract going forward.  
-3. **Third Warning:** If the issue persists, the team will escalate the matter to the **lab instructor** or **teaching assistants** to address the concerns with the team member.  
+3. **Third Warning:** If the issue persists, the team will escalate the matter to the **Project mentorr** to address the concerns with the team member.  
 
 ---
-
-By submitting this contract to Gradescope, each team member agrees to abide by the terms outlined in this contract and to contribute to the team's success.
