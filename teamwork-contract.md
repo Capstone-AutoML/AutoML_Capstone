@@ -70,20 +70,19 @@ There is one role team members will be responsible for each week:
 
 #### **Project Manager (Sepehr):**
 
- - Maintain the project board (adding and allocating tasks)
- - Keep track of deadlines and progress
- - Review progress with teammembers during meetings and other times.
+- Maintain the project board (adding and allocating tasks)
+- Keep track of deadlines and progress
+- Review progress with team members during meetings and other times.
 
 #### **Note Taker (Tien):**
 
- - Take notes during meetings with mentor and partner
- - Share notes with team after each meeting
-
+- Take notes during meetings with mentor and partner
+- Share notes with team after each meeting
 
 #### **Presenter (All):**
 
- - Present during meetings with partner
- - This role is shared among all team members.
+- Present during meetings with partner
+- This role is shared among all team members.
 
 ---
 
@@ -101,6 +100,6 @@ Failure to adhere to the terms outlined in this contract will result in the foll
 
 1. **First Warning:** A written notice will be sent via **Slack**, explaining the concern and reminding the team member of the contract's terms.  
 2. **Second Warning:** A meeting will be scheduled to discuss the issue, and the team member will be required to agree to follow the team contract going forward.  
-3. **Third Warning:** If the issue persists, the team will escalate the matter to the **Project mentorr** to address the concerns with the team member.  
+3. **Third Warning:** If the issue persists, the team will escalate the matter to the **Project mentor** to address the concerns with the team member.  
 
 ---
