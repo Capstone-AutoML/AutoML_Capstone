@@ -79,6 +79,12 @@ There is one role team members will be responsible for each week:
 - Take notes during meetings with mentor and partner
 - Share notes with team after each meeting
 
+#### **Agenda Maker (Archer):**
+
+- Create agenda for weekly meetings with mentor and partner
+- Communicate and distribute agenda to team members before the meeting
+- Ensure all agenda items are covered during the meeting
+
 #### **Presenter (All):**
 
 - Present during meetings with partner
