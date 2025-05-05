@@ -1,0 +1,12 @@
+name: capstone_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - quarto
+  - tectonic
+  - jupyter
+  - pandas
+  - matplotlib
+  - seaborn
+  - numpy
