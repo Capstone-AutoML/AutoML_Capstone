@@ -1,0 +1,41 @@
+### Data Augmentation
+
+To improve generalization and robustness, we will apply data augmentation techniques to the labeled images. This will increase the size and diversity of our dataset, reducing model overfitting. Planned augmentations may include:
+
+- Horizontal flipping  
+- Brightness and contrast adjustment  
+- Random cropping and noise injection  
+
+### Model Training and Retraining
+
+Once we generate augmented images from the labeled dataset, we will use them to train a full base model. The training process will take as input:
+
+**Input**:
+
+- Augmented images  
+- A training configuration file specifying hyperparameters, model architecture, etc.  
+
+**Output**:  
+
+- A fully trained model file (`.pt`)  
+
+The fully trained model will be registered for future use: updating the pre-labeling model in the next iteration and serving as input to the distillation stage. We will repeat this training loop regularly as new labeled data becomes available, enabling continuous training across iterations.
+
+### Model Distillation and Quantization
+
+After model training, we will apply distillation using a subset of the original dataset. The distillation module will take the fully trained model and the configured distillation dataset to produce a distilled model that is smaller and faster, while preserving accuracy.
+
+Following distillation, we will apply quantization to further reduce model size and enhance deployment efficiency, enabling deployment on lightweight platforms.
+
+**Input**:
+
+- Full trained model (`.pt`)  
+- Distillation dataset  
+- A distillation configuration file specifying hyperparameters, model architecture, etc.  
+
+**Output**:
+
+- Distilled model (`.pt`)  
+- Quantized model (`.pt`)  
+
+Both the distilled and quantized models will be stored in the model registry, with the latest quantized model pushed to Vertex AI as the deployable version.
