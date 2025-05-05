@@ -1,4 +1,4 @@
-## Labeling Pipeline
+## 3. Labeling Pipeline
 
 We propose to develop a semi-automated image labeling pipeline to efficiently annotate a large volume of unlabeled wildfire imagery. This pipeline integrates object detection, image segmentation, and human-in-the-loop validation to improve annotation accuracy while reducing manual effort.
 
