@@ -1,0 +1,34 @@
+---
+title: "Proposal Report"
+author: "Sepehr Heydarian, Archer Liu, Elshaday Yoseph, Tien Nguyen"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+bibliography: ../references.bib
+execute:
+  echo: false
+  warning: false
+---
+
+## Abstract
+Hello
+{{< include _executive-summary.qmd >}}
+
+## Introduction
+
+{{< include _introduction.qmd >}}
+
+## Proposed Pipeline
+
+{{< include _eda-pipeline.qmd >}}
+
+{{< include _pre-labelling.qmd >}}
+
+{{< include _augmentation-training.qmd >}}
+
+## Timeline
+
+{{< include _timeline.qmd >}}
+
+## References
