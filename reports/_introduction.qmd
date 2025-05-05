@@ -1,0 +1,14 @@
+Wildfires are tragic environmental disasters that pose a threat to ecosystems and communities.
+Our Capstone partner, Bayes Studio, a Vancouver-based startup utilize advanced AI tools for environmental monitoring and early detection of wildfires using computer vision.
+The problem our partner is faced with is keeping detection models up to date as new data becomes available. 
+The current workflow involves manual labeling of incoming images using existing `YOLO` object labeling model, followed by retraining and redeployment. 
+As new data becomes available frequently, this manual and repetitive approach results in delays, bottlenecks in model improvement, and ultimately slower response times in wildfire detection.
+This has real-world consequences as early detection of fire ignitions is crucial in mitigation efforts to limit damages of wildfires to nearby communities [@drdc2022].
+
+
+Our objective is to automate and streamline this update process through a reproducible data science pipeline. 
+When new images arrive, the pipeline will initiate automated pre-labelling using the partner's `YOLO` model. 
+To ensure reliability, a secondary model - Meta's Segment Anything Model (`SAM`) - will be utilized to verify YOLO's predictions.
+If the labels from both models agree, the image is accepted. Otherwise, it is routed to a human-in-the-loop labelling interface built with open-source tools such as `Label Studio`. We will also ensure that the model is edge-deployable by introducing distillation and quantization steps when model has undergone retraining.
+
+The final product delivered to our partner will be an end-to-end automated pipeline, deployed via Github Actions, which takes new images and outputs and updated YOLO model file (`.pt`). This approach reduces human efforts, shortens turnaround time for model updates, and increases labelling accuracy. 
