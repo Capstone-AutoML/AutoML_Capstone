@@ -1,5 +1,3 @@
-### Timeline
-
 With our proposed data pipeline, we've laid out our timeline across 7 tasks:
 
 | **Task**  | **Description**                                                       | **Date**           |
