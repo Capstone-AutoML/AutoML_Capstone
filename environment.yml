@@ -10,3 +10,6 @@ dependencies:
   - matplotlib
   - seaborn
   - numpy
+  - pip
+  - pip:
+      - label-studio
