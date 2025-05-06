@@ -20,7 +20,7 @@ To address the current bottleneck, we propose an intelligent, iterative data pip
    Techniques like **distillation** and **quantization** compress the model, making it suitable for deployment on edge devices.
 
 The pipeline is implemented through six modular scripts:
-`fetch_data.py`, `labelling.py`, `augmentation.py`, `train.py`, `distill_and_quantize.py`, and `save_model.py`. These modules may evolve during development.
+`fetch_data.py`, `labelling.py`, `augmentation.py`, `train.py`, `distill_quantize.py`, and `save_model.py`. These modules may evolve during development.
 
 ### Fetch the Data
 
