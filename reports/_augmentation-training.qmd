@@ -1,45 +1,40 @@
-### Data Augmentation
+### Model Optimization Pipeline
+
+The model optimization pipeline consists of 4 core stages that follow the labeling phase: data augmentation, model training, distillation and quantization, and final model saving. These stages are implemented through a series of Python scripts that prepare the model for production use.
+
+#### Input
+
+The input to this pipeline will be the labeled images from the labeling pipeline, distillation images, and configuration files for augmentation, training, and distillation.
+
+#### Process
+
+**1. Data Augmentation (`augmentation.py`)**
 
 ![Overview of the augmentation pipeline](img/augmentation.png){width=20%}
 
-To improve generalization and robustness, we will apply data augmentation techniques to the labeled images. This will increase the size and diversity of our dataset, reducing model overfitting. Planned augmentations may include:
+This script increases the size and diversity of our dataset through common augmentation techniques (e.g., flipping, brightness/contrast adjustment, noise injection), as specified in the configuration file. These augmentations help reduce overfitting and improve generalization during model training.
 
-- Horizontal flipping  
-- Brightness and contrast adjustment  
-- Random cropping and noise injection  
-
-### Model Training and Retraining
+**2. Model Training and Retraining (`train.py`)**
 
 ![Overview of the model training, distillation, and quantization pipeline](img/train-distill-quantize.png){width=40%}
 
-Once we generate augmented images from the labeled dataset, we will use them to train a full base model. The training process will take as input:
+This script fine-tunes the YOLOv8 base model using the augmented dataset and a configuration file, and produce a full trained model file (`.pt`). The full trained model will be registered for use in future labeling iterations and passed on to the distillation stage for optimization.
 
-**Input**:
+This training process will be repeated as new labeled data becomes available, enabling continuous model improvement over time.
 
-- Augmented images  
-- A training configuration file specifying hyperparameters, model architecture, etc.  
+**3. Model Distillation and Quantization (`distill_quantize.py`)**
 
-**Output**:  
+This script optimizes the trained model in two stages. First, it performs **distillation** using the distillation images to produce a distilled model that is smaller and faster, while preserving accuracy. Then it applies **quantization** to further reduce model size and enhance deployment efficiency, enabling deployment on lightweight platforms.
 
-- A fully trained model file (`.pt`)  
+**4. Deployment (`save_model.py`)**
 
-The fully trained model will be registered for future use: updating the pre-labeling model in the next iteration and serving as input to the distillation stage. We will repeat this training loop regularly as new labeled data becomes available, enabling continuous training across iterations.
+This script finalizes the pipeline by registering all three model versions in the model registry. The quantized model will be marked as the current production version for deployment.
 
-### Model Distillation and Quantization
+#### Output
 
-After model training, we will apply distillation using a subset of the original dataset. The distillation module will take the fully trained model and the configured distillation dataset to produce a distilled model that is smaller and faster, while preserving accuracy.
+The optimization pipeline will produce the following outputs:
 
-Following distillation, we will apply quantization to further reduce model size and enhance deployment efficiency, enabling deployment on lightweight platforms.
-
-**Input**:
-
-- Full trained model (`.pt`)  
-- Distillation dataset  
-- A distillation configuration file specifying hyperparameters, model architecture, etc.  
-
-**Output**:
-
-- Distilled model (`.pt`)  
-- Quantized model (`.pt`)  
-
-Both the distilled and quantized models will be stored in the model registry, with the latest quantized model pushed to Vertex AI as the deployable version.
+- Full trained model (`full_trained_model.pt`)
+- Distilled model (`distilled_model.pt`)
+- Quantized model (`quantized_model.pt`)
+- Updated configuration files for training and distillation
