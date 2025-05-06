@@ -3,20 +3,15 @@ Main script to orchestrate the entire wildfire detection pipeline.
 """
 
 import os
-from typing import Dict
 
-from fetch_data import fetch_images
-from labelling import detect_objects, generate_segmentation
-from augmentation import augment_dataset
-from train import train_model
-from distill_quantize import distill_model, quantize_model
-from save_model import register_models
+from pipeline.fetch_data import fetch_images
+from pipeline.labelling import detect_objects, generate_segmentation
+from pipeline.augmentation import augment_dataset
+from pipeline.train import train_model
+from pipeline.distill_quantize import distill_model, quantize_model
+from pipeline.save_model import register_models
+from utils import load_config
 
-def load_config() -> Dict:
-    """
-    TODO: Load configuration parameters from config file.
-    """
-    return {}
 
 def main():
     # Load configuration
