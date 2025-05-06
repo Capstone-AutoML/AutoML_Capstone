@@ -4,7 +4,7 @@ author: "Sepehr Heydarian, Archer Liu, Elshaday Yoseph, Tien Nguyen"
 format:
   pdf:
     toc: true
-    toc-depth: 4
+    toc-depth: 2
     number-sections: true
     embed-resources: true
 bibliography: ../references.bib
@@ -14,7 +14,6 @@ execute:
 ---
 
 ## Abstract
-Hello
 {{< include _executive-summary.qmd >}}
 
 ## Introduction
