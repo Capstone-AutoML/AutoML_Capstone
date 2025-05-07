@@ -2,7 +2,7 @@
 
 To address the current bottleneck, we propose an intelligent, iterative data pipeline that integrates automation, human feedback, and model optimization for continuous improvement.
 
-![High-level overview of the data pipeline](img/pipeline-high-level.png){width="60%" height="60%"}
+![High-level overview of the data pipeline](img/pipeline-high-level.png){width="50%" height="25%"}
 
 1. **Unlabelled Image Ingestion**  
    The pipeline begins by collecting raw, unlabelled images from the client’s data sources.
