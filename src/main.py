@@ -1,10 +1,9 @@
 """
-Main script to orchestrate the entire wildfire detection pipeline.
+Main script to orchestrate the wildfire detection pipeline.
 """
 
-import os
-
-from pipeline.fetch_data import fetch_images
+from pathlib import Path
+from pipeline.fetch_data import fetch_and_organize_images
 from pipeline.labelling import detect_objects, generate_segmentation
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
@@ -14,13 +13,25 @@ from utils import load_config
 
 
 def main():
+    """
+    Main function to orchestrate the entire pipeline.
+    """
     # Load configuration
     config = load_config()
     
-    # 1. Fetch and organize images
-    fetch_images(
-        source_path=config.get('source_path', 'data/raw'),
-        output_dir=config.get('output_dir', 'data/processed')
+    # Define paths
+    base_dir = Path("mock_io/data")
+    source_dir = base_dir / "sampled_dataset" / "images"
+    raw_dir = base_dir / "raw" / "images"
+    distilled_dir = base_dir / "raw" / "distilled_images"
+    
+    # Fetch and organize images
+    fetch_and_organize_images(
+        source_dir=source_dir,
+        raw_dir=raw_dir,
+        distilled_dir=distilled_dir,
+        sample_size=config.get('sample_size', 100),
+        seed=config.get('random_seed', 42)
     )
     
     # 2. Pre-labelling with YOLO and SAM
