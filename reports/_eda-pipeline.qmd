@@ -22,15 +22,19 @@ To address the current bottleneck, we propose an intelligent, iterative data pip
 The pipeline is implemented through six modular scripts:
 `fetch_data.py`, `labelling.py`, `augmentation.py`, `train.py`, `distill_quantize.py`, and `save_model.py`. These modules may evolve during development.
 
-### Fetch the Data
+### Data Ingestion
 
-#### Data description
+#### Challenge
 
-The pipeline processes image data with bounding box annotations. For prototyping, we assume local storage, though the full dataset resides on GCS. It includes over 2 million unlabelled images, with 500 added monthly. The images contain five classes: `Fire`, `Smoke`, `Lightning`, `Vehicle`, and `Person`.
+Efficiently handling a growing stream of unlabelled images requires a standardized ingestion process that supports local prototyping and future cloud integration.
 
 #### Process
 
 `fetch_data.py` loads data locally (for dev/test purposes) but can later fetch from cloud storages.
+
+#### Input
+
+This step will ingest unlabelled image data, which serves as the input for the entire system. Around 500 new images are added each month, containing five object classes: `Fire`, `Smoke`, `Lightning`, `Vehicle`, and `Person`.
 
 #### Output
 
