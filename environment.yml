@@ -15,4 +15,6 @@ dependencies:
   - ultralytics
   - pip
   - pip:
+      - dotenv
       - label-studio
+      - label-studio-sdk

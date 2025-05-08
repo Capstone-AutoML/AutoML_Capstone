@@ -1,6 +1,7 @@
 """
 Script for human review of the unmatched YOLO and SAM results.
 """
+from dotenv import load_dotenv
 
 
 def setup_label_studio(project_name: str, output_dir: str) -> dict:
@@ -67,4 +68,11 @@ def run_human_review(images_dir: str, yolo_results: dict, sam_results: dict, out
     Returns:
         dict: Dictionary containing the results of the human review process.
     """
+    pass
+
+
+if __name__ == "__main__":
+    # Example usage of the functions defined above
+    # The label studio API key should be set in .env file
+    load_dotenv()
     pass
