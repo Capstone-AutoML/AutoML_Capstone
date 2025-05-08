@@ -5,36 +5,33 @@ To address the current bottleneck, we propose an intelligent, iterative data pip
 ![High-level overview of the data pipeline](img/pipeline-high-level.png){width="50%" height="25%"}
 
 1. **Unlabelled Image Ingestion**  
-   The pipeline begins by collecting raw, unlabelled images from the client’s data sources.
+   The pipeline begins by collecting raw, unlabelled images from the client’s data sources (`fetch_data.py`).
 
 2. **Automated Pre-Labelling**  
-   AI models generate initial labels for key objects (e.g `Fire`, `Smoke`, etc), reducing the need for manual annotation.
+   AI models generate initial labels for key objects (e.g `Fire`, `Smoke`, etc), reducing the need for manual annotation (`labelling.py`).
 
 3. **Human-in-the-Loop Review**  
-   Experts review and correct the pre-labels to ensure high-quality annotations with minimal manual effort.
+   Experts review and correct the pre-labels to ensure high-quality annotations with minimal manual effort (`human_intervention.py`).
 
 4. **Model Retraining with Verified Labels**  
-  Verified labelled images are used to retrain the wildfire detection model, improving its accuracy and adaptability over time.
+  Verified labelled images are used to retrain the wildfire detection model, improving its accuracy and adaptability over time (`augmentation.py` and `train.py`).
 
 1. **Model Optimization for Deployment**  
-   Techniques like **distillation** and **quantization** compress the model, making it suitable for deployment on edge devices.
+   Techniques like **distillation** and **quantization** compress the model, making it suitable for deployment on edge devices (`distill_quantize.py`).
 
-The pipeline is implemented through six modular scripts:
-`fetch_data.py`, `labelling.py`, `augmentation.py`, `train.py`, `distill_quantize.py`, and `save_model.py`. These modules may evolve during development.
+Note that the names and implementations of the Python scripts will evolve throughout the course of development.
 
-### Data Ingestion
+### Unlabelled Images Ingestion
 
-#### Challenge
-
-Efficiently handling a growing stream of unlabelled images requires a standardized ingestion process that supports local prototyping and future cloud integration.
-
-#### Process
-
-`fetch_data.py` loads data locally (for dev/test purposes) but can later fetch from cloud storages.
+Efficiently handling a growing stream of unlabelled images requires a standardized ingestion process that supports local prototyping and future cloud integration. We will implement this step in `fetch_data.py`.
 
 #### Input
 
 This step will ingest unlabelled image data, which serves as the input for the entire system. Around 500 new images are added each month, containing five object classes: `Fire`, `Smoke`, `Lightning`, `Vehicle`, and `Person`.
+
+#### Process
+
+`fetch_data.py` loads data locally (for dev/test purposes) but can later fetch from cloud storages.
 
 #### Output
 
