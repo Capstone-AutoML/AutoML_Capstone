@@ -1,10 +1,14 @@
-### Model Optimization Pipeline
+### Model Training
 
-The model optimization pipeline consists of 4 core stages that follow the labeling phase: data augmentation, model training, distillation and quantization, and final model saving. These stages are implemented through a series of Python scripts that prepare the model for production use.
+As new labeled images are added, the model may become outdated if not retrained. The pipeline should track data volume and trigger retraining once it exceeds a defined threshold.
 
 #### Input
 
-The input to this pipeline will be the labeled images from the labeling pipeline, distillation images, and configuration files for augmentation, training, and distillation.
+The input includes:
+
+- Labeled images (stored in the `processed/labeled_images/` directory)
+- Augmentation configuration file
+- Training configuration file
 
 #### Process
 
@@ -12,29 +16,43 @@ The input to this pipeline will be the labeled images from the labeling pipeline
 
 ![Overview of the augmentation pipeline](img/augmentation.png){width=20%}
 
-This script increases the size and diversity of our dataset through common augmentation techniques (e.g., flipping, brightness/contrast adjustment, noise injection), as specified in the configuration file. These augmentations help reduce overfitting and improve generalization during model training.
+This script increases the size and diversity of our dataset through common augmentation techniques (e.g., flipping, brightness/contrast adjustment, noise injection), as specified in the configuration file. These augmentations help reduce overfitting and improve generalization.
 
 **2. Model Training and Retraining (`train.py`)**
 
 ![Overview of the model training, distillation, and quantization pipeline](img/train-distill-quantize.png){width=40%}
 
-This script fine-tunes the YOLOv8 base model using the augmented dataset and a configuration file, and produce a full trained model file (`.pt`). The full trained model will be registered for use in future labeling iterations and passed on to the distillation stage for optimization.
-
-This training process will be repeated as new labeled data becomes available, enabling continuous model improvement over time.
-
-**3. Model Distillation and Quantization (`distill_quantize.py`)**
-
-This script optimizes the trained model in two stages. First, it performs **distillation** using the distillation images to produce a distilled model that is smaller and faster, while preserving accuracy. Then it applies **quantization** to further reduce model size and enhance deployment efficiency, enabling deployment on lightweight platforms.
-
-**4. Deployment (`save_model.py`)**
-
-This script finalizes the pipeline by registering all three model versions in the model registry. The quantized model will be marked as the current production version for deployment.
+This script fine-tunes the YOLOv8 base model using the augmented dataset and a configuration file, and produces a full trained model file (`.pt`), which is reused in future labeling iterations as the updated pre-labeling model, and passed to the next stage for optimization. Retraining is triggered when new data exceeds a predefined threshold.
 
 #### Output
 
-The optimization pipeline will produce the following outputs:
+- Full trained model (`full_trained_model.pt`)
+- Updated training configuration file
+
+### Model Optimization for Deployment
+
+Updating optimized models in production can interrupt downstream processes if not managed carefully. To address this, we automate distillation, quantization, and version-controlled registration to ensure seamless integration.
+
+#### Input
+
+The input to this stage includes:
 
 - Full trained model (`full_trained_model.pt`)
+- Distillation images (stored in the `raw/distilled_images` directory)
+- Distillation and quantization configuration files
+
+#### Process
+
+**1. Model Distillation and Quantization (`distill_quantize.py`)**
+
+This script optimizes the trained model in two stages. First, it performs **distillation** using the distillation images to produce a distilled model that is smaller and faster. Then it applies **quantization** to further reduce model size, enabling deployment on lightweight platforms.
+
+**2. Deployment (`save_model.py`)**
+
+This script finalizes the pipeline by registering all model versions in the model registry, with the quantized model marked as the production version for deployment.
+
+#### Output
+
 - Distilled model (`distilled_model.pt`)
 - Quantized model (`quantized_model.pt`)
-- Updated configuration files for training and distillation
+- Updated distillation configuration file
