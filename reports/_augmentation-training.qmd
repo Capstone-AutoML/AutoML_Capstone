@@ -1,4 +1,4 @@
-### Model Training
+### Model Retraining with Verified Labels
 
 As new labeled images are added, the model may become outdated if not retrained. The pipeline should track data volume and trigger retraining once it exceeds a defined threshold.
 
