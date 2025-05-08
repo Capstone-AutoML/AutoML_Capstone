@@ -6,10 +6,13 @@ dependencies:
   - quarto
   - tectonic
   - jupyter
+  - ipykernel
   - pandas
   - matplotlib
   - seaborn
   - numpy
+  - pytorch
+  - ultralytics
   - pip
   - pip:
       - label-studio
