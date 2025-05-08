@@ -1,32 +1,40 @@
-### Labeling Pipeline
+### Automated Pre-Labeling
 
-The proposed semi-automated image labeling pipeline aims to efficiently annotate a large volume of unlabeled wildfire imagery. It integrates object detection, image segmentation, and human-in-the-loop validation to improve annotation accuracy while reducing manual effort.
+Manual labeling is expensive and time-consuming. To reduce annotation effort, we implement an automated pre-labeling system in `labeling.py` that leverages both object detection and image segmentation.
 
 #### Input
-The input to the pipeline will be a collection of unlabeled images obtained from the project’s dataset.
+The input consists of unlabeled wildfire-related images from the project dataset.
 
 #### Process
-The pipeline consists of three main stages implemented in three corresponding Python scripts.
 
-**1. Object Detection and Segmentation (`labeling.py`)**
+**Object Detection and Segmentation (`labeling.py`)**
 
-A function in this script first applies **You Only Look Once (YOLO)**, a real-time object detection model, to generate initial bounding boxes and class labels (e.g., fire, smoke, vehicle) for each image [@yolo2020]. These predictions, including the class labels, are then passed to a second function that uses the **Segment Anything Model (SAM)**. SAM generates pixel-level segmentation masks for each labeled object using the corresponding bounding boxes as prompts [@sam2023].
+A YOLOv8 model [@yolo2020] is applied to each image to generate bounding boxes, class labels (e.g., fire, smoke, vehicle), and confidence scores. These predictions are then passed to the Segment Anything Model (SAM) [@sam2023], which generates pixel-level segmentation masks using the YOLO-generated bounding boxes and labels as prompts.
 
 ![Overview of the proposed labeling pipeline combining YOLO for object detection, SAM for segmentation, and a matching process.](img/prelabelling_1.png){width=50%}
 
-**2. Matching and Filtering (`matching.py`)**
+**Matching and Filtering (`matching.py`)**
 
-A key challenge is reconciling the outputs from YOLO (bounding boxes) and SAM (segmentation masks). A matching function in the script evaluates each pair using either **Intersection over Union (IoU)**, which measures the overlap between bounding box and segmentation mask, or **mask containment**, which assesses how much of the segmentation area lies within the predicted bounding box. If the match score falls below a defined threshold, the case is flagged for manual review.
+To reconcile YOLO’s bounding boxes with SAM’s segmentation masks, the `matching.py` script implements a function that compares the predicted masks and boxes using either Intersection over Union (IoU) or mask containment. If the overlap is below a predefined threshold, the annotation is flagged as uncertain.
 
 ![Visual comparison of YOLO's bounding box and SAM's segmentation mask, highlighting the need for a matching criterion.](img/prelabelling_2.png){width=100%}
 
-**3. Human-in-the-Loop Review (`human_intervention.py`)**
+#### Output
+Images with high-confidence matches are automatically labeled. Those with low-confidence results are passed to human annotators for validation in the next stage.
 
-Flagged cases will be passed to **Label Studio**, an open-source annotation tool, for human verification [@labelstudio]. Reviewers will inspect and correct mismatches or low-confidence predictions, ensuring high labeling quality. This hybrid approach balances automation with manual oversight.
+### Human-in-the-Loop Review
+
+Some predictions from the pre-labeling stage may be ambiguous or inaccurate. These cases are handled in `human_intervention.py`, which integrates with **Label Studio**, an open-source annotation platform [@labelstudio].
+
+#### Input
+The input includes uncertain or low-confidence image annotations from the matching stage.
+
+#### Process
+Human annotators review and correct the predicted bounding boxes and segmentation masks using a customized Label Studio interface that displays both YOLO and SAM outputs. This manual verification ensures that the final annotations are of high quality and suitable for training.
 
 ![Human-in-the-loop flow using Label Studio to validate flagged predictions.](img/prelabelling_3.png){width=70%}
 
 ![Label Studio interface displaying pre-labeled objects for reviewer validation.](img/prelabelling_4.png){width=70%}
 
 #### Output
-The final output of the labeling pipeline will be a set of high-quality annotated images. These will either be auto-labeled with high confidence or validated through human review and used to train downstream models.
+The output is a validated dataset of labeled wildfire images ready for training a downstream YOLOv8 model.
