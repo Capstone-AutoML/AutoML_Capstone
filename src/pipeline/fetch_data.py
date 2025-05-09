@@ -5,7 +5,12 @@ Script for fetching and organizing raw image data from local storage or cloud so
 import shutil
 import random
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Union, Dict
+import sys
+import os
+
+# Add parent directory to path to import utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def _create_directory_structure(raw_dir: Path, distilled_dir: Path) -> None:
     """
@@ -43,23 +48,35 @@ def _save_images_to_raw(images: List[Path], raw_dir: Path) -> None:
         dest_path = raw_dir / img_path.name
         shutil.copy2(img_path, dest_path)
 
-def _sample_and_save_distilled(images: List[Path], distilled_dir: Path, sample_size: int = 100, seed: int = 42) -> None:
+def _sample_and_save_distilled(images: List[Path], distilled_dir: Path, sample_size: Union[int, float], seed: Optional[int] = 42) -> int:
     """
     Samples a subset of images and saves them to the distilled directory.
     
     Args:
         images (List[Path]): List of image paths to sample from
         distilled_dir (Path): Destination directory for distilled images
-        sample_size (int): Number of images to sample
-        seed (int, optional): Random seed for reproducibility
+        sample_size (Union[int, float]): Number of images to sample (int) or proportion (float)
+        seed (Optional[int]): Random seed for reproducibility
+        
+    Returns:
+        int: Number of images actually sampled and saved
     """
     random.seed(seed)
-    sampled_images = random.sample(images, min(sample_size, len(images)))
+    
+    # Calculate actual sample size based on type
+    if isinstance(sample_size, float):
+        actual_sample_size = int(len(images) * sample_size)
+    else:
+        actual_sample_size = min(sample_size, len(images))
+        
+    sampled_images = random.sample(images, actual_sample_size)
     for img_path in sampled_images:
         dest_path = distilled_dir / img_path.name
         shutil.copy2(img_path, dest_path)
+        
+    return actual_sample_size
 
-def fetch_and_organize_images(source_dir: Path, raw_dir: Path, distilled_dir: Path, sample_size: int = 100, seed: int = None) -> None:
+def fetch_and_organize_images(source_dir: Path, raw_dir: Path, distilled_dir: Path, config: Dict, seed: Optional[int] = None) -> None:
     """
     Main function to fetch images from source, save to raw directory, and create a distilled subset.
     
@@ -67,8 +84,8 @@ def fetch_and_organize_images(source_dir: Path, raw_dir: Path, distilled_dir: Pa
         source_dir (Path): Path to source directory containing images
         raw_dir (Path): Path to save all raw images
         distilled_dir (Path): Path to save sampled distilled images
-        sample_size (int): Number of images to sample for distilled set
-        seed (int, optional): Random seed for reproducibility
+        config (Dict): Configuration dictionary containing pipeline parameters
+        seed (Optional[int]): Random seed for reproducibility
     """
     # Create necessary directories
     _create_directory_structure(raw_dir, distilled_dir)
@@ -81,6 +98,9 @@ def fetch_and_organize_images(source_dir: Path, raw_dir: Path, distilled_dir: Pa
     _save_images_to_raw(images, raw_dir)
     print(f"Saved {len(images)} images to raw directory")
     
-    # Sample and save to distilled directory
-    _sample_and_save_distilled(images, distilled_dir, sample_size, seed)
-    print(f"Sampled and saved {sample_size} images to distilled directory") 
+    # Sample and save to distilled directory if distillation is enabled
+    if config.get("distillation_image_prop", 0) > 0:
+        num_sampled = _sample_and_save_distilled(images, distilled_dir, config["distillation_image_prop"], seed)
+        print(f"Sampled and saved {num_sampled} images to distilled directory")
+    else:
+        print("Skipping distillation set creation as per configuration") 
