@@ -131,12 +131,13 @@ def generate_yolo_prelabelling(raw_dir: Path, output_dir: Path, model_path: Path
     successful = 0
     failed = 0
     
+    # iterate over each image in the raw directory
     for image_path in tqdm(image_files, desc="Processing images"):
         try:
             # Run inference and process results
             results = model(str(image_path), verbose=verbose)
             predictions = []
-            for result in results:
+            for result in results: # iterate over each object detected in the image
                 predictions.extend(_process_prediction(result))
             
             # Save predictions
