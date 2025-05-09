@@ -8,7 +8,8 @@ import argparse
 from pathlib import Path
 
 from pipeline.fetch_data import fetch_and_organize_images
-from pipeline.labelling import detect_objects, generate_segmentation
+from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
+from pipeline.prelabelling.sam_prelabelling import generate_segmentation
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
 from pipeline.distill_quantize import distill_model, quantize_model
@@ -48,13 +49,31 @@ def main():
     
     config = load_config(pipeline_config_path)
     
-    # Define paths
-    base_dir = Path("mock_io/data")
-    source_dir = base_dir / "sampled_dataset" / "images"
-    raw_dir = base_dir / "raw" / "images"
-    distilled_dir = base_dir / "raw" / "distilled_images"
+    # Define all paths
+    base_dir = Path("mock_io")
+    data_dir = base_dir / "data"
+    model_dir = base_dir / "model_registry"
     
-    # Fetch and organize images
+    # Data paths
+    source_dir = data_dir / "sampled_dataset" / "images"
+    raw_dir = data_dir / "raw" / "images"
+    distilled_dir = data_dir / "raw" / "distilled_images"
+    prelabelled_dir = data_dir / "prelabelled"
+    processed_dir = data_dir / "processed"
+    augmented_dir = data_dir / "augmented"
+    training_dir = data_dir / "training"
+    distillation_dir = data_dir / "distillation"
+    
+    # Model paths
+    model_path = model_dir / "model" / "nano_trained_model.pt"
+    
+    # Create necessary directories
+    for dir_path in [raw_dir, distilled_dir, prelabelled_dir, processed_dir, 
+                    augmented_dir, training_dir, distillation_dir]:
+        dir_path.mkdir(parents=True, exist_ok=True)
+    
+    print(" --- Step 1: Fetching and organizing images --- ")
+    # 1. Fetch and organize images
     fetch_and_organize_images(
         source_dir=source_dir,
         raw_dir=raw_dir,
@@ -63,38 +82,59 @@ def main():
         seed=config.get('random_seed', 42)
     )
     
-    # 2. Pre-labelling with YOLO and SAM
-    # TODO: Implement batch processing of images
-    image_path = "path/to/image.jpg"
-    bounding_boxes = detect_objects(image_path)
-    segmentation_masks = generate_segmentation(image_path, bounding_boxes)
+    print("-----------------------------------------------\n")
+    print(" --- Step 2: Generating YOLO prelabelling --- ")
+    
+    # 2. Generate predictions for raw images
+    generate_yolo_prelabelling(
+        raw_dir=raw_dir,
+        output_dir=prelabelled_dir / "yolo",
+        model_path=model_path,
+        config=config
+    )
+    
+    print("-----------------------------------------------\n")
+    print(" --- Step 3: Data augmentation --- ")
     
     # 3. Data augmentation
     augment_dataset(
-        image_dir=config.get('image_dir', 'data/processed'),
-        output_dir=config.get('augmented_dir', 'data/augmented'),
+        image_dir=processed_dir,
+        output_dir=augmented_dir,
         config=config.get('augmentation_config', {})
     )
     
+    print("-----------------------------------------------\n")
+    print(" --- Step 4: Model training --- ")
+    
     # 4. Model training
     model_path = train_model(
-        data_dir=config.get('training_dir', 'data/augmented'),
+        data_dir=training_dir,
         config=config.get('training_config', {})
     )
+    
+    print("-----------------------------------------------\n")
+    print(" --- Step 5: Model optimization --- ")
     
     # 5. Model optimization
     distilled_model = distill_model(
         model_path=model_path,
-        distillation_images=config.get('distillation_images', 'data/distillation'),
+        distillation_images=distillation_dir,
         config=config.get('distillation_config', {})
     )
     
+    print("-----------------------------------------------\n")
+    print(" --- Step 6: Model quantization --- ")
+    
+    # 6. Model quantization
     quantized_model = quantize_model(
         model_path=distilled_model,
         config=config.get('quantization_config', {})
     )
     
-    # 6. Model registration
+    print("-----------------------------------------------\n")
+    print(" --- Step 7: Model registration --- ")
+    
+    # 7. Model registration
     register_models(
         full_model=model_path,
         distilled_model=distilled_model,
