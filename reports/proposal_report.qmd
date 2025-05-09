@@ -1,10 +1,10 @@
 ---
-title: "Proposal Report"
+title: "AutoML CI/CD/CT Capstone Project Proposal Report"
 author: "Sepehr Heydarian, Archer Liu, Elshaday Yoseph, Tien Nguyen"
 format:
   pdf:
     toc: true
-    toc-depth: 3
+    toc-depth: 2
     number-sections: true
     embed-resources: true
 bibliography: ../references.bib
@@ -12,7 +12,7 @@ execute:
   echo: false
   warning: false
 ---
-
+\newpage
 ## Executive Summary
 
 {{< include _executive-summary.qmd >}}
@@ -32,5 +32,5 @@ execute:
 ## Timeline
 
 {{< include _timeline.qmd >}}
-
+\newpage
 ## References

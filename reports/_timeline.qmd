@@ -2,10 +2,10 @@ With our proposed data pipeline, we've laid out our timeline across 7 tasks:
 
 | **Task**  | **Description**                                                       | **Date**           |
 |:---------:|-----------------------------------------------------------------------|--------------------|
-|     1     | Project setup and creation of the overall pipeline.                   | May 5 - May 9      |
-|     2     | Add pre-labeling + SAM check; implement human review interface.       | May 12 - May 15    |
-|     3     | Apply data augmentation; integrate model training into the pipeline.  | May 19 - May 23    |
-|     4     | Integrate distillation and quantization for deployment.               | May 26 - May 30    |
-|     5     | Run full pipeline test to ensure end-to-end functionality.            | June 2 - June 6    |
-|     6     | Submit runnable data product.                                         | June 9 - June 11   |
-|     7     | Finalize data product and written report based on partner feedback.   | June 14 - June 25  |
+|     1     | Set up project structure; define pipeline architecture.               | May 5 - May 9      |
+|     2     | Implement pre-labeling and SAM verification; build human review UI .  | May 12 - May 15    |
+|     3     | Apply data augmentation and integrate model training.                 | May 19 - May 23    |
+|     4     | Add model distillation and quantization for deployment.               | May 26 - May 30    |
+|     5     | Conduct end-to-end testing of the full pipeline.                      | June 2 - June 6    |
+|     6     | Submit runnable data product and supporting documentation             | June 9 - June 11   |
+|     7     | Refine finalize product and written report based on partner feedback. | June 14 - June 25  |

@@ -1,0 +1,5 @@
+Bayes Studio, a Vancouver-based startup focused on wildfire detection, 
+faces challenges updating their computer vision models as new image data becomes available.
+Their current manual labeling workflow delays model improvement and deployment. Our Capstone product is an automated,
+reproducible pipeline that begins with pre-labeling using `YOLOv8`, verified with Meta's Segment Anything Model (`SAM`).
+Ambiguous cases are routed to a human-in-the-loop system via Label Studio. The verified data is then used to retrain and update the model. The model undergoes distillation and quantization for edge-device utilization. The final deliverable is a fully automated CI/CD pipeline that continuously updates an edge-deployable YOLO model.

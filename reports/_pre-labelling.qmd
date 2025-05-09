@@ -15,12 +15,13 @@ A YOLOv8 model [@yolo2020] is applied to each image to generate bounding boxes, 
 
 **Matching and Filtering (`matching.py`)**
 
-To reconcile YOLO’s bounding boxes with SAM’s segmentation masks, the `matching.py` script implements a function that compares the predicted masks and boxes using either Intersection over Union (IoU) or mask containment. If the overlap is below a predefined threshold, the annotation is flagged as uncertain.
+To reconcile YOLO’s bounding boxes with SAM’s segmentation masks, the `matching.py` script computes the Intersection over Union (IoU) between each box and corresponding mask. If IoU falls below a predefined threshold, the annotation is flagged as uncertain and passed to the manual review stage.
 
 ![Visual comparison of YOLO's bounding box and SAM's segmentation mask, highlighting the need for a matching criterion.](img/prelabelling_2.png){width=100%}
 
 #### Output
-Images with high-confidence matches are automatically labeled. Those with low-confidence results are passed to human annotators for validation in the next stage.
+Images with high-confidence matches are automatically labeled. Low-confidence matches are routed to a manual review step,
+described in the following section.
 
 ### Human-in-the-Loop Review
 

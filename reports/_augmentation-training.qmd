@@ -18,6 +18,7 @@ The input includes:
 
 This script increases the size and diversity of our dataset through common augmentation techniques (e.g., flipping, brightness/contrast adjustment, noise injection), as specified in the configuration file. These augmentations help reduce overfitting and improve generalization.
 
+\newpage
 **2. Model Training and Retraining (`train.py`)**
 
 ![Overview of the model training, distillation, and quantization pipeline](img/train-distill-quantize.png){width=40%}
@@ -49,7 +50,7 @@ This script optimizes the trained model in two stages. First, it performs **dist
 
 **2. Deployment (`save_model.py`)**
 
-This script finalizes the pipeline by registering all model versions in the model registry, with the quantized model marked as the production version for deployment.
+This script finalizes the pipeline by registering all model versions in the model registry, with the quantized model marked as the production-ready version for deployment.
 
 #### Output
 

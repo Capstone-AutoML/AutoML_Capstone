@@ -1,22 +1,22 @@
 ### High-Level Overview of the Proposed Data Product
 
-To address the current bottleneck, we propose an intelligent, iterative data pipeline that integrates automation, human feedback, and model optimization for continuous improvement.
+To address the current bottleneck, we propose an iterative data pipeline that integrates automation, human feedback, and model optimization for continuous improvement.
 
 ![High-level overview of the data pipeline](img/pipeline-high-level.png){width="50%" height="25%"}
 
 1. **Unlabelled Image Ingestion**  
-   The pipeline begins by collecting raw, unlabelled images from the client’s data sources (`fetch_data.py`).
+   The pipeline begins by collecting raw, unlabelled images from the partner’s data sources (`fetch_data.py`).
 
 2. **Automated Pre-Labelling**  
-   AI models generate initial labels for key objects (e.g `Fire`, `Smoke`, etc), reducing the need for manual annotation (`labelling.py`).
+   AI models generate initial labels for key objects (e.g., `Fire`, `Smoke`, etc), reducing the need for manual annotation (`labelling.py`).
 
 3. **Human-in-the-Loop Review**  
-   Experts review and correct the pre-labels to ensure high-quality annotations with minimal manual effort (`human_intervention.py`).
+   Experts review and correct the ambiguous pre-labels to ensure high-quality annotations with minimal manual effort (`human_intervention.py`).
 
 4. **Model Retraining with Verified Labels**  
   Verified labelled images are used to retrain the wildfire detection model, improving its accuracy and adaptability over time (`augmentation.py` and `train.py`).
 
-1. **Model Optimization for Deployment**  
+5. **Model Optimization for Deployment**  
    Techniques like **distillation** and **quantization** compress the model, making it suitable for deployment on edge devices (`distill_quantize.py`).
 
 Note that the names and implementations of the Python scripts will evolve throughout the course of development.
@@ -31,7 +31,7 @@ This step will ingest unlabelled image data, which serves as the input for the e
 
 #### Process
 
-`fetch_data.py` loads data locally (for dev/test purposes) but can later fetch from cloud storages.
+`fetch_data.py` loads data locally (for dev/test purposes) but can later fetch from cloud storage.
 
 #### Output
 
