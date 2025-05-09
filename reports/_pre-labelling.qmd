@@ -9,7 +9,7 @@ The input consists of unlabeled wildfire-related images from the project dataset
 
 **Object Detection and Segmentation (`labeling.py`)**
 
-A YOLOv8 model [@Ultralytics_2025] is applied to each image to generate bounding boxes, class labels (e.g., fire, smoke, vehicle), and confidence scores. These predictions are then passed to the Segment Anything Model (SAM) [@sam2023], which generates pixel-level segmentation masks using the YOLO-generated bounding boxes and labels as prompts.
+A YOLOv8 model [@yolov8_ultralytics] is applied to each image to generate bounding boxes, class labels (e.g., fire, smoke, vehicle), and confidence scores. These predictions are then passed to the Segment Anything Model (SAM) [@sam2023], which generates pixel-level segmentation masks using the YOLO-generated bounding boxes and labels as prompts.
 
 ![Overview of the proposed labeling pipeline combining YOLO for object detection, SAM for segmentation, and a matching process.](img/prelabelling_1.png){width=50%}
 
