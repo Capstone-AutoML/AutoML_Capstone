@@ -1,5 +1,5 @@
 """
-Script for automated pre-labelling using YOLO and SAM models.
+Script for automated pre-labelling using YOLO
 """
 from pathlib import Path
 from typing import Dict, List, Tuple, Union, Optional
