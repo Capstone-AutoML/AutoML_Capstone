@@ -1,0 +1,4 @@
+{
+    "distillation_image_prop": 0.2,
+    "torch_device": "cpu"
+}

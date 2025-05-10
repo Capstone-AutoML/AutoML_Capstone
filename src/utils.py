@@ -7,13 +7,54 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from pathlib import Path
 import pandas as pd
-from typing import Dict
+from typing import Dict, Union, Optional
+import json
+import os
 
-def load_config() -> Dict:
+def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict:
+    """Load configuration parameters from a JSON config file.
+    
+    Parameters
+    ----------
+    config_path : Optional[Union[str, Path]], default=None
+        Path to the configuration JSON file. If None, looks for 'config.json' in the current directory.
+        
+    Returns
+    -------
+    Dict
+        Dictionary containing configuration parameters
+        
+    Raises
+    ------
+    FileNotFoundError
+        If the config file doesn't exist
+    ValueError
+        If distillation_image_prop is invalid (negative or > 1 when ratio)
     """
-    TODO: Load configuration parameters from config file.
-    """
-    return {}
+    if config_path is None:
+        config_path = Path("config.json")
+    else:
+        config_path = Path(config_path)
+        
+    if not config_path.exists():
+        raise FileNotFoundError(f"Configuration file not found at {config_path}")
+        
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    
+    # Validate distillation_image_prop if present
+    if "distillation_image_prop" in config:
+        prop = config["distillation_image_prop"]
+        if isinstance(prop, (int, float)):
+            if prop < 0:
+                raise ValueError("distillation_image_prop cannot be negative")
+            if 0 < prop < 1:  # Ratio
+                if prop > 1:
+                    raise ValueError("distillation_image_prop ratio cannot be greater than 1")
+        else:
+            raise ValueError("distillation_image_prop must be a number")
+            
+    return config
 
 
 def draw_yolo_bboxes(img_path, label_path, label_map=None):

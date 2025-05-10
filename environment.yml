@@ -12,6 +12,7 @@ dependencies:
   - seaborn
   - numpy
   - pytorch
+  - torchvision
   - ultralytics
   - pip
   - pip:
