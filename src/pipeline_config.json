@@ -1,4 +1,6 @@
 {
     "distillation_image_prop": 0.2,
-    "torch_device": "cpu"
-}
+    "torch_device": "cpu",
+    "low_conf_threshold": 0.1
+  }
+  

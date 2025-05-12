@@ -94,47 +94,59 @@ def main():
     )
     
     print("-----------------------------------------------\n")
-    print(" --- Step 3: Data augmentation --- ")
-    
-    # 3. Data augmentation
+    print(" --- Step 3: Generating SAM prelabelling --- ")
+
+    generate_segmentation(
+        raw_dir=raw_dir,
+        yolo_json_dir=prelabelled_dir / "yolo",
+        mask_output_dir=prelabelled_dir / "sam" / "masks",
+        metadata_output_dir=prelabelled_dir / "sam" / "metadata",
+        model_path=model_dir / "model" / "mobile_sam.pt",
+        config=config
+    )
+
+    print("-----------------------------------------------\n")
+    print(" --- Step 4: Data augmentation --- ")
+
+    # 4. Data augmentation
     augment_dataset(
         image_dir=processed_dir,
         output_dir=augmented_dir,
         config=config.get('augmentation_config', {})
     )
-    
+
     print("-----------------------------------------------\n")
-    print(" --- Step 4: Model training --- ")
-    
-    # 4. Model training
+    print(" --- Step 5: Model training --- ")
+
+    # 5. Model training
     model_path = train_model(
         data_dir=training_dir,
         config=config.get('training_config', {})
     )
-    
+
     print("-----------------------------------------------\n")
-    print(" --- Step 5: Model optimization --- ")
-    
-    # 5. Model optimization
+    print(" --- Step 6: Model optimization --- ")
+
+    # 6. Model optimization
     distilled_model = distill_model(
         model_path=model_path,
         distillation_images=distillation_dir,
         config=config.get('distillation_config', {})
     )
-    
+
     print("-----------------------------------------------\n")
-    print(" --- Step 6: Model quantization --- ")
-    
-    # 6. Model quantization
+    print(" --- Step 7: Model quantization --- ")
+
+    # 7. Model quantization
     quantized_model = quantize_model(
         model_path=distilled_model,
         config=config.get('quantization_config', {})
     )
-    
+
     print("-----------------------------------------------\n")
-    print(" --- Step 7: Model registration --- ")
-    
-    # 7. Model registration
+    print(" --- Step 8: Model registration --- ")
+
+    # 8. Model registration
     register_models(
         full_model=model_path,
         distilled_model=distilled_model,
@@ -142,4 +154,4 @@ def main():
     )
 
 if __name__ == "__main__":
-    main() 
+    main()
