@@ -52,26 +52,34 @@ def generate_segmentation(
     Saves one binary mask image per detected object,
     and JSON metadata per image.
     """
+    # Ensure output directories exist
     mask_output_dir.mkdir(parents=True, exist_ok=True)
     metadata_output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Ensure output directories exist
     sam_model = _load_model(model_path)
     print(f"Loaded SAM model from {model_path}")
 
+    # Load confidence threshold from config
     low_thresh = config.get("low_conf_threshold", 0.1)
+
+    # List all images to process
     image_files = _get_image_files(raw_dir)
     print(f"Found {len(image_files)} images to process")
 
     successful, failed = 0, 0
 
+    # Iterate over each image
     for image_path in tqdm(image_files, desc="Processing SAM masks"):
         image_name = image_path.stem
         json_path = yolo_json_dir / f"{image_name}.json"
 
+        # Skip if no YOLO prediction file found
         if not json_path.exists():
             failed += 1
             continue
 
+        # Load image
         image = cv2.imread(str(image_path))
         if image is None:
             print(f"Could not load image: {image_path}")
@@ -80,40 +88,49 @@ def generate_segmentation(
 
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+        # Load YOLO predictions
         with open(json_path) as f:
             predictions = json.load(f).get("predictions", [])
 
         metadata = []
         counter = 0
 
+        # For each YOLO-predicted object
         for pred in predictions:
             conf = pred["confidence"]
             if conf < low_thresh:
-                continue
+                continue # Skip low-confidence predictions
 
             label = pred["class"]
             box = pred["bbox"]
 
             try:
+                # Use the YOLO bounding box to prompt SAM
                 results = sam_model(image_rgb, bboxes=[box])
                 masks = results[0].masks
 
                 if masks is None or masks.data is None:
-                    continue
+                    continue 
 
+                # Iterate over mask(s) returned by SAM
                 for mask_tensor in masks.data:
                     mask = mask_tensor.cpu().numpy()
                     if mask.ndim != 2 or mask.sum() == 0:
-                        continue
-
+                        continue # Skip empty or invalid masks
+                    
+                    # Convert binary mask to 8-bit image
                     mask_uint8 = (mask * 255).astype(np.uint8)
+
+                    # Construct mask filename
                     mask_name = f"{image_name}_mask_{counter}.png"
                     mask_path = mask_output_dir / mask_name
 
+                    # Save mask as PNG
                     if not cv2.imwrite(str(mask_path), mask_uint8):
                         print(f"Failed to save mask: {mask_path}")
                         continue
 
+                    # Add object metadata entry
                     metadata.append({
                         "image": image_name,
                         "bbox": box,
@@ -126,7 +143,8 @@ def generate_segmentation(
 
             except Exception as e:
                 print(f"Error processing {image_name} box {box}: {e}")
-
+                
+        # Save JSON metadata file for the image
         if metadata:
             out_path = metadata_output_dir / f"{image_name}.json"
             _save_metadata(metadata, out_path)
@@ -134,6 +152,7 @@ def generate_segmentation(
         else:
             failed += 1
 
+    # Final summary
     print(f"\nSAM Prelabelling Summary:")
     print(f"Successfully processed: {successful} images")
     print(f"Failed to process: {failed} images")
