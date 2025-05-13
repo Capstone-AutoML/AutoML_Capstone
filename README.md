@@ -2,6 +2,8 @@
 
 ## Wildfire Detection Data Pipeline
 
+[![Python code coverage testing with pytest](https://github.com/sep-he/AutoML_Capstone/actions/workflows/test.yml/badge.svg)](https://github.com/sep-he/AutoML_Capstone/actions/workflows/test.yml)
+
 ### Author: Sepehr Heydarian, Archer Liu, Elshaday Yoseph, Tien Nguyen
 
 ### Description
