@@ -28,11 +28,12 @@ jobs:
         channels: conda-forge,defaults
     
     - name: Install dependencies
-      run: |
-        which python
+      run: 
+        conda list
+        python --version
         conda env update -n test-env -f environment.yml
     
     - name: Test with pytest
       run: |
-        which python
+        pip install pytest pytest-cov
         pytest tests/ --cov=src --cov-report=xml
