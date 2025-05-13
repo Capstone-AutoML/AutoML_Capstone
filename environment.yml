@@ -17,6 +17,6 @@ dependencies:
   - ultralytics=8.3.133
   - pip
   - pip:
-      - dotenv=0.9.9
-      - label-studio=1.17.0
-      - label-studio-sdk=1.0.11
+      - dotenv==0.9.9
+      - label-studio==1.17.0
+      - label-studio-sdk==1.0.11
