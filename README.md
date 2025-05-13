@@ -2,6 +2,7 @@
 
 ## Wildfire Detection Data Pipeline
 
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-31112/)
 [![Python code coverage testing with pytest](https://github.com/sep-he/AutoML_Capstone/actions/workflows/test.yml/badge.svg)](https://github.com/sep-he/AutoML_Capstone/actions/workflows/test.yml)
 
 ### Author: Sepehr Heydarian, Archer Liu, Elshaday Yoseph, Tien Nguyen
