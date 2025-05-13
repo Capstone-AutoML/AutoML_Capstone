@@ -3,19 +3,20 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - quarto
-  - tectonic
-  - jupyter
-  - ipykernel
-  - pandas
-  - matplotlib
-  - seaborn
-  - numpy
-  - pytorch
-  - torchvision
-  - ultralytics
+  - quarto=1.7.31
+  - tectonic=0.15.0
+  - ipykernel=6.29.5
+  - pandas=2.2.3
+  - matplotlib=3.10.3
+  - seaborn=0.13.2
+  - numpy=1.26.4
+  - pytorch=2.6.0
+  - pytest=8.3.5
+  - pytest-cov=6.1.1
+  - torchvision=0.21.0
+  - ultralytics=8.3.133
   - pip
   - pip:
-      - dotenv
-      - label-studio
-      - label-studio-sdk
+      - dotenv==0.9.9
+      - label-studio==1.17.0
+      - label-studio-sdk==1.0.11
