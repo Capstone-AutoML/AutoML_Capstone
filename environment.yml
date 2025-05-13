@@ -12,6 +12,8 @@ dependencies:
   - seaborn
   - numpy
   - pytorch
+  - pytest
+  - pytest-cov
   - torchvision
   - ultralytics
   - pip
