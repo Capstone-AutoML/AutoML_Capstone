@@ -29,9 +29,8 @@ jobs:
     
     - name: Install dependencies
       run: |
+        which python
         conda env update -n test-env -f environment.yml
-        conda init bash
-        conda activate test-env
     
     - name: Lint with flake8
       run: |
