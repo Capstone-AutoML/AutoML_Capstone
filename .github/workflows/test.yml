@@ -34,6 +34,5 @@ jobs:
     
     - name: Test with pytest
       run: |
-        source activate base
-        conda activate test-env
+        which python
         pytest tests/ --cov=src --cov-report=xml
