@@ -9,6 +9,7 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         python-version: ['3.11']
@@ -16,26 +17,28 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v3
+    
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v2
       with:
-        python-version: '3.11'
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
+        miniconda-version: "latest"
+        python-version: "3.11"
+        activate-environment: "test-env"
+        auto-activate-base: false
+        channels: conda-forge,defaults
+    
     - name: Install dependencies
       run: |
-        conda env update --file environment.yml --name base
+        conda env update -f environment.yml
+        conda activate test-env
+    
     - name: Lint with flake8
       run: |
-        conda install flake8
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
     - name: Test with pytest
       run: |
-        conda install pytest
-        conda install pytest-cov
         pytest tests/ --cov=src --cov-report=xml
