@@ -11,7 +11,6 @@ from pipeline.fetch_data import fetch_and_organize_images
 from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
 #from pipeline.prelabelling.sam_prelabelling import generate_segmentation
 from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelabelling
-from pipeline.prelabelling.matching import match_and_filter
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
 from pipeline.distill_quantize import distill_model, quantize_model
