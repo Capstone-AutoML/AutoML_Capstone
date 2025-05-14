@@ -11,6 +11,7 @@ from pipeline.fetch_data import fetch_and_organize_images
 from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
 #from pipeline.prelabelling.sam_prelabelling import generate_segmentation
 from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelabelling
+from pipeline.prelabelling.matching import match_and_filter
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
 from pipeline.distill_quantize import distill_model, quantize_model
@@ -94,7 +95,7 @@ def main():
         config=config
     )
     
-    print("-----------------------------------------------\n")
+    # print("-----------------------------------------------\n")
     # print(" --- Step 3: Generating SAM prelabelling --- ")
 
     # generate_segmentation(
@@ -105,7 +106,8 @@ def main():
     #     model_path=model_dir / "model" / "mobile_sam.pt",
     #     config=config
     # )
-
+    
+    print("-----------------------------------------------\n")
     print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
 
     
@@ -114,7 +116,9 @@ def main():
         output_dir=prelabelled_dir / "gdino",
         config=config,
         model_weights=model_dir / "model" / "groundingdino_swint_ogc.pth",
-        config_path=model_dir / "model" / "GroundingDINO_SwinT_OGC.py"
+        config_path=model_dir / "model" / "GroundingDINO_SwinT_OGC.py",
+        box_threshold=config.get("dino_box_threshold", 0.3),
+        text_threshold=config.get("dino_text_threshold", 0.25)
     )
 
 

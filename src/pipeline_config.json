@@ -1,4 +1,10 @@
 {
-    "distillation_image_prop": 0.2,
-    "torch_device": "cpu"
+  "distillation_image_prop": 0.2,
+  "torch_device": "cpu",
+  "dino_box_threshold": 0.3,
+  "dino_text_threshold": 0.25,
+  "iou_threshold": 0.5,
+  "low_conf_threshold": 0.3,
+  "mid_conf_threshold": 0.6,
+  "dino_false_negative_threshold": 0.5
 }

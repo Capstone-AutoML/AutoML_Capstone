@@ -32,8 +32,8 @@ def generate_gd_prelabelling(
     model_weights: Path,
     config_path: Path,
     text_prompts: List[str] = TEXT_PROMPTS,
-    box_threshold: float = BOX_THRESHOLD,
-    text_threshold: float = TEXT_THRESHOLD
+    box_threshold: float = None,
+    text_threshold: float = None
 ) -> None:
     """
     Run Grounding DINO to detect objects from images using text prompts.
@@ -41,6 +41,10 @@ def generate_gd_prelabelling(
     This version runs sequentially (no multiprocessing).
     """
     print(f"Using device: {config.get('torch_device', 'cpu')}")
+
+    # Get thresholds from config or fallback to defaults
+    box_threshold = config.get("dino_box_threshold", BOX_THRESHOLD)
+    text_threshold = config.get("dino_text_threshold", TEXT_THRESHOLD)
 
     # Get list of all images to process
     image_files = _get_image_files(raw_dir)
