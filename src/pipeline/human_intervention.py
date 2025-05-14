@@ -6,7 +6,6 @@ import json
 import time
 import sys
 import base64
-import shutil
 import requests
 import subprocess
 from typing import Dict, Optional
@@ -18,13 +17,13 @@ from dotenv import load_dotenv
 
 mismatch_dir = Path("mock_io/data/mismatched")
 mismatch_pending_dir = mismatch_dir / "pending"
-mismatch_imported_dir = mismatch_dir / "imported"
+# mismatch_imported_dir = mismatch_dir / "imported"
 reviewed_dir = mismatch_dir / "reviewed_results"
 image_dir = Path("mock_io/data/raw/images")
 output_dir = Path("mock_io/data/ls_tasks")
 mismatch_dir.mkdir(exist_ok=True)
 mismatch_pending_dir.mkdir(exist_ok=True)
-mismatch_imported_dir.mkdir(exist_ok=True)
+# mismatch_imported_dir.mkdir(exist_ok=True)
 reviewed_dir.mkdir(exist_ok=True)
 output_dir.mkdir(exist_ok=True)
 
@@ -45,6 +44,56 @@ def _find_image_path(stem: str, image_dir: Path) -> Path:
         if img_path.is_file():
             return img_path
     return None
+
+
+def _update_label_status(file_path: Path, status: int):
+    """
+    Update the label_status field in a JSON file.
+
+    Args:
+        file_path (Path): Path to the JSON file.
+        status (int): Label status value.
+            - 0: Unimported
+            - 1: Imported & Unlabeled
+            - 2: Imported & Labeled
+    """
+    try:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+        data["label_status"] = status
+        with open(file_path, "w") as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"[Error] Failed to update label status for {file_path.name}: {e}")
+        return False
+
+
+def _initialize_json_files(json_dir: Path):
+    """
+    Initialize all JSON files label_status=0 if they don't have one yet.
+
+    Args:
+        json_dir (Path): Directory containing JSON files to initialize
+
+    Returns:
+        int: Number of files initialized
+    """
+    count = 0
+    for json_file in json_dir.glob("*.json"):
+        try:
+            with open(json_file, "r") as f:
+                data = json.load(f)
+            if "label_status" not in data:
+                data["label_status"] = 0
+                with open(json_file, "w") as f:
+                    json.dump(data, f, indent=2)
+                count += 1
+        except Exception as e:
+            print(f"[Error] Failed to initialize status for {json_file.name}: {e}")
+    if count > 0:
+        print(f"[✓] Initialized {count} files with status = 0")
+    return count
 
 
 def _convert_bbox_to_percent(bbox, img_width, img_height):
@@ -78,7 +127,7 @@ def _generate_ls_tasks(json_dir: Path, image_dir: Path, output_dir: Path):
     Converts mismatched YOLOv8 prediction JSON files into a single
     Label Studio import file for human review, using base64 encoding.
 
-    This function only processes files from the 'pending' directory.
+    This function only processes files with label_status = 0 (unimported).
 
     Args:
         json_dir (Path): Directory containing pending YOLO prediction `.json` files.
@@ -91,38 +140,40 @@ def _generate_ls_tasks(json_dir: Path, image_dir: Path, output_dir: Path):
     processed_files = []
 
     for json_file in json_dir.glob("*.json"):
-        stem = json_file.stem
-        image_path = _find_image_path(stem, image_dir)
-
-        if not image_path:
-            print(f"[Skip] Image not found for: {stem}")
-            continue
-
         try:
             with open(json_file, "r") as f:
                 original = json.load(f)
-        except Exception as e:
-            print(f"[Error] Failed to read {json_file.name}: {e}")
-            continue
 
-        with Image.open(image_path) as img:
-            width, height = img.size
+            # Skip files that are already imported (status > 0)
+            label_status = original.get("label_status", 0)
+            if label_status > 0:
+                continue
 
-        prediction_data = []
-        for item in original.get("predictions", []):
-            box = _convert_bbox_to_percent(item["bbox"], width, height)
-            box.update({
-                "rectanglelabels": [item["class"]]
-            })
-            prediction_data.append({
-                "from_name": "bbox",
-                "to_name": "image",
-                "type": "rectanglelabels",
-                "value": box
-            })
+            stem = json_file.stem
+            image_path = _find_image_path(stem, image_dir)
 
-        # Encode image to base64
-        try:
+            if not image_path:
+                print(f"[Skip] Image not found for: {stem}")
+                continue
+
+            with Image.open(image_path) as img:
+                width, height = img.size
+
+            # Convert YOLOv8 predictions to Label Studio task format
+            prediction_data = []
+            for item in original.get("predictions", []):
+                box = _convert_bbox_to_percent(item["bbox"], width, height)
+                box.update({
+                    "rectanglelabels": [item["class"]]
+                })
+                prediction_data.append({
+                    "from_name": "bbox",
+                    "to_name": "image",
+                    "type": "rectanglelabels",
+                    "value": box
+                })
+
+            # Encode image to base64
             with open(image_path, "rb") as img_file:
                 img_data = img_file.read()
                 img_base64 = base64.b64encode(img_data).decode('utf-8')
@@ -136,8 +187,9 @@ def _generate_ls_tasks(json_dir: Path, image_dir: Path, output_dir: Path):
             task = {
                 "data": {
                     "image": f"data:image/{img_format};base64,{img_base64}",
-                    "filename": image_path.name,  # Store filename for reference
-                    "import_timestamp": datetime.now().isoformat()
+                    "filename": image_path.name,
+                    "import_timestamp": datetime.now().isoformat(),
+                    "original_filename": json_file.name
                 }
             }
 
@@ -153,8 +205,12 @@ def _generate_ls_tasks(json_dir: Path, image_dir: Path, output_dir: Path):
             processed_files.append(json_file)
 
         except Exception as e:
-            print(f"[Error] Failed to encode image {image_path.name}: {e}")
+            print(f"[Error] Failed to process {json_file.name}: {e}")
             continue
+
+    if not tasks:
+        print("[Info] No new files to process (all files have label_status > 0)")
+        return None, []
 
     # Save the task file with version ID
     versioned_file = output_dir / f"tasks_{version_id}.json"
@@ -166,23 +222,40 @@ def _generate_ls_tasks(json_dir: Path, image_dir: Path, output_dir: Path):
     return versioned_file, processed_files
 
 
-def _move_files_to_imported(files_to_move: list):
+def _update_processed_files_status(files_to_update: list):
     """
-    Move successfully processed JSON files
-    from 'pending' directory to 'imported' directory.
+    Update successfully processed JSON files to label_status = 1 (imported).
 
-    This helps track which files have already been imported into Label Studio
-    and prevents processing the same files twice.
+    This tracks processing status in the JSON files.
 
     Args:
-        files_to_move: List of Path objects representing JSON files to move
+        files_to_update: List of Path objects representing JSON files to update
     """
-    for file_path in files_to_move:
-        dest_path = mismatch_imported_dir / file_path.name
-        try:
-            shutil.move(str(file_path), str(dest_path))
-        except Exception as e:
-            print(f"[Error] Failed to move {file_path.name}: {e}")
+    updated_count = 0
+    for file_path in files_to_update:
+        if _update_label_status(file_path, 1):
+            updated_count += 1
+
+    print(f"[✓] Imported {updated_count}/{len(files_to_update)} files")
+
+
+# def _move_files_to_imported(files_to_move: list):
+#     """
+#     Move successfully processed JSON files
+#     from 'pending' directory to 'imported' directory.
+
+#     This helps track which files have already been imported into Label Studio
+#     and prevents processing the same files twice.
+
+#     Args:
+#         files_to_move: List of Path objects representing JSON files to move
+#     """
+#     for file_path in files_to_move:
+#         dest_path = mismatch_imported_dir / file_path.name
+#         try:
+#             shutil.move(str(file_path), str(dest_path))
+#         except Exception as e:
+#             print(f"[Error] Failed to move {file_path.name}: {e}")
 
 
 def _ensure_label_studio_running():
@@ -235,7 +308,7 @@ def _ensure_label_studio_running():
 
 
 def _find_or_create_project(base_url: str, headers: Dict[str, str],
-                           project_name: str) -> Optional[int]:
+                            project_name: str) -> Optional[int]:
     """
     Find an existing Label Studio project by name or create a new one.
 
@@ -480,7 +553,30 @@ def export_versioned_results(project_id: str, output_dir: Path, version: str = N
         if version is None:
             version = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # Export results from Label Studio
+        # Get the list of tasks that have been labeled
+        tasks_response = requests.get(
+            f"{base_url}/api/projects/{project_id}/tasks",
+            headers=headers
+        )
+        tasks_response.raise_for_status()
+        tasks = tasks_response.json()
+
+        # Tasks that have been labeled (for status updating)
+        labeled_task_ids = {
+            task["id"] for task in tasks 
+            if task.get("annotations") and len(task["annotations"]) > 0
+        }
+
+        # Update status for labeled files
+        for task in tasks:
+            if task["id"] in labeled_task_ids:
+                original_filename = task.get("data", {}).get("original_filename")
+                if original_filename:
+                    for json_file in mismatch_pending_dir.glob(f"*{original_filename}*"):
+                        if _update_label_status(json_file, 2):
+                            break
+
+        # Export all results
         response = requests.get(
             f"{base_url}/api/projects/{project_id}/export?exportType=JSON",
             headers=headers
@@ -489,12 +585,22 @@ def export_versioned_results(project_id: str, output_dir: Path, version: str = N
 
         results = response.json()
 
-        # Create versioned filename and save results to file
-        output_path = output_dir / f"human_review_results_{version}.json"
-        with open(output_path, "w") as f:
+        # Remove base64 image data
+        for result in results:
+            if "data" in result and "image" in result["data"]:
+                result["data"].pop("image", None)
+
+        # Save results with version in filename
+        results_path = output_dir / f"review_results_{version}.json"
+        with open(results_path, "w") as f:
             json.dump(results, f, indent=2)
 
-        print(f"[✓] Exported human review results to {output_path}")
+        # Count how many of the results are labeled
+        labeled_results_count = sum(1 for r in results if r.get("id") in labeled_task_ids)
+
+        print("[✓] Exported results:")
+        print(f"    - {len(results)} tasks ({labeled_results_count} labeled): {results_path}")
+
         return results
 
     except requests.exceptions.RequestException as e:
@@ -551,25 +657,15 @@ def run_human_review(project_name: str = "AutoML-Human-Intervention",
     Returns:
         dict: Dictionary containing the results of the human review process.
     """
+    # Initialize JSON files in the pending folder
+    _initialize_json_files(mismatch_pending_dir)
+
     # Make sure Label Studio is running
     if not _ensure_label_studio_running():
         print("[Error] Could not start Label Studio")
         return {}
 
-    # Check if there are files in the pending folder
-    if not any(mismatch_pending_dir.glob("*.json")):
-        print(f"[Error] No JSON files found in {mismatch_pending_dir}")
-        print("Please add JSON files to this folder before running")
-        return {}
-
-    # 1. Generate tasks from pending files
-    versioned_file, processed_files = _generate_ls_tasks(mismatch_pending_dir, image_dir, output_dir)
-
-    if not processed_files:
-        print("[Error] No tasks were generated")
-        return {}
-
-    # 2. Setup Label Studio project
+    # 1. Setup Label Studio project regardless of new files
     print("\nSetting up Label Studio project...")
     project_details = setup_label_studio(project_name, str(output_dir))
 
@@ -577,23 +673,29 @@ def run_human_review(project_name: str = "AutoML-Human-Intervention",
         print("[Error] Failed to set up Label Studio project")
         return {}
 
-    # 3. Import tasks into the project
-    api_key = os.getenv("LABEL_STUDIO_API_KEY")
-    base_url = "http://localhost:8080"  
-    headers = {
-        "Authorization": f"Token {api_key}",
-        "Content-Type": "application/json"
-    }
+    # Check if there are files in the pending folder
+    has_pending_files = any(mismatch_pending_dir.glob("*.json"))
+    if not has_pending_files:
+        print(f"[Warning] No JSON files found in {mismatch_pending_dir}")
 
-    import_success = import_tasks_to_project(base_url, headers, project_details["project_id"], versioned_file)
+    # 2. Generate tasks from pending files (with status=0)
+    versioned_file, processed_files = _generate_ls_tasks(mismatch_pending_dir, image_dir, output_dir)
 
-    if import_success:
-        # Move processed files from 'pending' to 'imported'
-        _move_files_to_imported(processed_files)
-        print("[✓] Files moved from 'pending' to 'imported' folder")
-    else:
-        print("[Error] Task import failed")
-        return {}
+    # 3. Import new tasks if we have any
+    if versioned_file and processed_files:
+        api_key = os.getenv("LABEL_STUDIO_API_KEY")
+        base_url = "http://localhost:8080"  
+        headers = {
+            "Authorization": f"Token {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        import_success = import_tasks_to_project(base_url, headers, project_details["project_id"], versioned_file)
+
+        if import_success:
+            _update_processed_files_status(processed_files)
+        else:
+            print("[Error] Task import failed")
 
     # 4. Notify user to complete review
     print("\n===== Label Studio Project Ready =====")
