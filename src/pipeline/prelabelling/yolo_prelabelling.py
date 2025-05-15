@@ -6,25 +6,10 @@ from typing import Dict, List, Tuple, Union, Optional
 import torch
 from ultralytics import YOLO
 import json
-import sys
 import os
 from tqdm import tqdm
+from utils import detect_device
 
-# Add parent directory to path to import utils
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-def _detect_device() -> str:
-    """
-    Detect and return the best available device for model inference.
-    
-    Returns:
-        str: Device name ('cuda', 'mps', or 'cpu')
-    """
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
 
 def _load_model(model_path: Path, device: str) -> YOLO:
     """
@@ -115,7 +100,7 @@ def generate_yolo_prelabelling(raw_dir: Path, output_dir: Path, model_path: Path
     # Detect and set device
     device = config.get("torch_device", "auto")
     if device == "auto":
-        device = _detect_device()
+        device = detect_device()
     print(f"Using device: {device}")
     os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
     

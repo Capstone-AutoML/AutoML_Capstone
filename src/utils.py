@@ -10,6 +10,20 @@ import pandas as pd
 from typing import Dict, Union, Optional
 import json
 import os
+import torch
+
+def detect_device() -> str:
+    """
+    Detect and return the best available device for model inference.
+    
+    Returns:
+        str: Device name ('cuda', 'mps', or 'cpu')
+    """
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
 
 def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict:
     """Load configuration parameters from a JSON config file.

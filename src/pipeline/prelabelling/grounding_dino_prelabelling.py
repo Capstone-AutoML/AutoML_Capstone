@@ -56,12 +56,16 @@ def generate_gd_prelabelling(
     # Import Grounding DINO model here to keep top-level clean
     from groundingdino.util.inference import Model
 
+    device = config.get("torch_device", "auto")
+    if device == "auto":
+        device == detect_device()
+    
     # Load the model once
     with contextlib.redirect_stdout(io.StringIO()):  # Suppress internal model logs
         model = Model(
             model_config_path=str(config_path),
             model_checkpoint_path=str(model_weights),
-            device=config.get("torch_device", "cpu")
+            device=device
         )
 
     # Track results for summary
