@@ -11,6 +11,7 @@ from pipeline.fetch_data import fetch_and_organize_images
 from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
 #from pipeline.prelabelling.sam_prelabelling import generate_segmentation
 from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelabelling
+from pipeline.prelabelling.matching import match_and_filter
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
 from pipeline.distill_quantize import distill_model, quantize_model
@@ -122,7 +123,19 @@ def main():
 
 
     print("-----------------------------------------------\n")
-    print(" --- Step 4: Data augmentation --- ")
+    print(" --- Step 4: Matching YOLO and GDINO predictions --- ")
+
+    match_and_filter(
+        yolo_dir=prelabelled_dir / "yolo",
+        dino_dir=prelabelled_dir / "gdino",
+        labeled_dir=Path("mock_io/data/labeled"),
+        pending_dir=Path("mock_io/data/mismatched/pending"),
+        config=config
+    )
+
+
+    print("-----------------------------------------------\n")
+    print(" --- Step 5: Data augmentation --- ")
 
     # 4. Data augmentation
     augment_dataset(
@@ -132,7 +145,7 @@ def main():
     )
 
     print("-----------------------------------------------\n")
-    print(" --- Step 5: Model training --- ")
+    print(" --- Step 6: Model training --- ")
 
     # 5. Model training
     model_path = train_model(
@@ -141,7 +154,7 @@ def main():
     )
 
     print("-----------------------------------------------\n")
-    print(" --- Step 6: Model optimization --- ")
+    print(" --- Step 7: Model optimization --- ")
 
     # 6. Model optimization
     distilled_model = distill_model(
@@ -151,7 +164,7 @@ def main():
     )
 
     print("-----------------------------------------------\n")
-    print(" --- Step 7: Model quantization --- ")
+    print(" --- Step 8: Model quantization --- ")
 
     # 7. Model quantization
     quantized_model = quantize_model(
@@ -160,7 +173,7 @@ def main():
     )
 
     print("-----------------------------------------------\n")
-    print(" --- Step 8: Model registration --- ")
+    print(" --- Step 9: Model registration --- ")
 
     # 8. Model registration
     register_models(
