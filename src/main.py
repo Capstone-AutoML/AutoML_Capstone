@@ -137,9 +137,9 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 5: Data augmentation --- ")
 
-    # 4. Data augmentation
+    # 5. Data augmentation
     augment_dataset(
-        image_dir=processed_dir,
+        image_dir=raw_dir,
         output_dir=augmented_dir,
         config=config.get('augmentation_config', {})
     )
@@ -147,7 +147,7 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 6: Model training --- ")
 
-    # 5. Model training
+    # 6. Model training
     model_path = train_model(
         data_dir=training_dir,
         config=config.get('training_config', {})
@@ -156,7 +156,7 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 7: Model optimization --- ")
 
-    # 6. Model optimization
+    # 7. Model optimization
     distilled_model = distill_model(
         model_path=model_path,
         distillation_images=distillation_dir,
@@ -166,7 +166,7 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 8: Model quantization --- ")
 
-    # 7. Model quantization
+    # 8. Model quantization
     quantized_model = quantize_model(
         model_path=distilled_model,
         config=config.get('quantization_config', {})
@@ -175,7 +175,7 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 9: Model registration --- ")
 
-    # 8. Model registration
+    # 9. Model registration
     register_models(
         full_model=model_path,
         distilled_model=distilled_model,
