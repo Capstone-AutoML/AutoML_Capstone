@@ -1,4 +1,3 @@
-# import libraries
 import cv2
 import json
 from pathlib import Path
@@ -21,20 +20,28 @@ def build_augmentation_transform(config: dict) -> A.Compose:
         A.GaussNoise(var_limit=(10.0, 50.0), p=config.get("gauss_noise_prob", 0.3)),
         # Converts image to grayscale
         A.ToGray(p=config.get("grayscale_prob", 0.2)),
-        # Rotates image up to 15 degrees, fille empty borders with black
+        # Rotates image up to 15 degrees, fills empty borders with black
         A.Rotate(limit=15, border_mode=cv2.BORDER_CONSTANT, p=config.get("rotate_prob", 0.4)),
-    # Transform bounding boxes
     ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels']))
 
 
-def augment_images(matched_pairs: list, transform: A.Compose, output_img_dir: Path, output_json_dir: Path, num_augmentations: int) -> None:
-    """Applies augmentations to each image N times and saves results."""
+def augment_images(
+    matched_pairs: list,
+    transform: A.Compose,
+    output_img_dir: Path,
+    output_json_dir: Path,
+    num_augmentations: int
+) -> None:
+    """Applies augmentations to each image N times and saves results.
+    Also saves unaugmented images with no predictions into separate folders.
+    """
+    # Separate folder for unaugmented no-prediction images and labels
+    no_pred_img_dir = output_img_dir.parent / "no_prediction_images"
 
-    # Create folders if they don't exist
     output_img_dir.mkdir(parents=True, exist_ok=True)
     output_json_dir.mkdir(parents=True, exist_ok=True)
+    no_pred_img_dir.mkdir(parents=True, exist_ok=True)
 
-    # Read images and json label file
     for json_path, image_path in matched_pairs:
         image = cv2.imread(str(image_path))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -46,18 +53,19 @@ def augment_images(matched_pairs: list, transform: A.Compose, output_img_dir: Pa
         class_labels = [obj["class"] for obj in data["predictions"]]
         confidences = [obj["confidence"] for obj in data["predictions"]]
 
-        # Skip images with no bounding box
         if not bboxes:
+            # Save original image to the no_prediction_images folder
+            no_aug_image_path = no_pred_img_dir / image_path.name
+            Image.fromarray(image).save(no_aug_image_path)
+
             continue
 
-        # Apply augmentation and update bounding box
         for i in range(num_augmentations):
             augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
             aug_image = augmented["image"]
             aug_bboxes = augmented["bboxes"]
             aug_classes = augmented["class_labels"]
 
-            # Save augmented image
             aug_id = f"{image_path.stem}_aug{i+1}"
             aug_image_path = output_img_dir / f"{aug_id}.jpg"
             Image.fromarray(aug_image).save(aug_image_path)
@@ -70,13 +78,14 @@ def augment_images(matched_pairs: list, transform: A.Compose, output_img_dir: Pa
                     "class": cls
                 })
 
-            # Save json labels
             aug_json = {"predictions": aug_predictions}
             aug_json_path = output_json_dir / f"{aug_id}.json"
             with open(aug_json_path, "w") as f:
                 json.dump(aug_json, f, indent=2)
 
-    print(f"Augmented data saved to: {output_img_dir} and {output_json_dir}")
+    print(f"Augmented images saved to: {output_img_dir}")
+    print(f"No-prediction images saved to: {no_pred_img_dir}")
+    print(f"Augmented labels saved to: {output_json_dir}")
 
 
 def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
@@ -102,7 +111,6 @@ def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
         if json_file.stem.lower() in image_lookup
     ]   
 
-    # Apply augmentation
     transform = build_augmentation_transform(config)
     augment_images(matched_pairs, transform, output_img_dir, output_json_dir, num_augmentations)
 
