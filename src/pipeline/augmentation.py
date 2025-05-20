@@ -46,6 +46,10 @@ def augment_images(matched_pairs: list, transform: A.Compose, output_img_dir: Pa
         class_labels = [obj["class"] for obj in data["predictions"]]
         confidences = [obj["confidence"] for obj in data["predictions"]]
 
+        # Skip images with no bounding box
+        if not bboxes:
+            continue
+
         # Apply augmentation and update bounding box
         for i in range(num_augmentations):
             augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
