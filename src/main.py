@@ -17,7 +17,7 @@ from pipeline.train import train_model
 from pipeline.distillation import distill_model
 from pipeline.quantization import quantize_model
 from pipeline.save_model import register_models
-from utils import load_config
+from utils import load_config, prepare_training_data
 
 # Get the directory containing this script
 SCRIPT_DIR = Path(__file__).parent
@@ -133,7 +133,7 @@ def main():
     match_and_filter(
         yolo_dir=prelabelled_dir / "yolo",
         dino_dir=prelabelled_dir / "gdino",
-        labeled_dir=Path("mock_io/data/labeled"),
+       labeled_dir=Path("mock_io/data/labeled"),
         pending_dir=Path("mock_io/data/mismatched/pending"),
         config=config
     )
@@ -153,10 +153,8 @@ def main():
     print(" --- Step 6: Model training --- ")
 
     # 6. Model training
-    model_path = train_model(
-        data_dir=training_dir,
-        config=config.get('training_config', {})
-    )
+    prepare_training_data(config)
+    model_path = train_model(config)
 
     print("-----------------------------------------------\n")
     print(" --- Step 7: Model optimization --- ")
