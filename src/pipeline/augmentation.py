@@ -7,7 +7,8 @@ import albumentations as A
 # Create augmentation pipeline
 def build_augmentation_transform(config: dict) -> A.Compose:
     """Build the augmentation transform pipeline from config."""
-    return A.Compose([
+    return A.Compose(
+        [
         # Flips image horizontally, applied 50% of the time by default
         A.HorizontalFlip(p=config.get("horizontal_flip_prob", 0.5)),
         # Alters brightness and contrast, applied 50% of the time by default 
@@ -15,27 +16,32 @@ def build_augmentation_transform(config: dict) -> A.Compose:
         # Distorts colors in image
         A.HueSaturationValue(p=config.get("hue_saturation_prob", 0.5)),
         # Blurs image, kernel size (blur_limit=3) is 3x3
-        A.Blur(blur_limit=3, p=config.get("blur_prob", 0.3)),
+        A.Blur(blur_limit=config.get("blur_limit", 3), 
+               p=config.get("blur_prob", 0.3)),
         # Adds noise to image, intensity ranges from 10-50
-        A.GaussNoise(var_limit=(10.0, 50.0), p=config.get("gauss_noise_prob", 0.3)),
+        A.GaussNoise(var_limit=(config.get("gauss_noise_var_min", 10.0), config.get("gauss_noise_var_max", 50.0)),
+                      p=config.get("gauss_noise_prob", 0.3)),
         # Converts image to grayscale
         A.ToGray(p=config.get("grayscale_prob", 0.2)),
         # Rotates image up to 15 degrees, fills empty borders with black
-        A.Rotate(limit=15, border_mode=cv2.BORDER_CONSTANT, p=config.get("rotate_prob", 0.4)),
-    ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels']))
+        A.Rotate(limit=config.get("rotate_limit", 15), 
+                 border_mode=cv2.BORDER_CONSTANT, 
+                 p=config.get("rotate_prob", 0.4)),
+    ], 
+    bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
+    )
 
 
-def augment_images(
-    matched_pairs: list,
-    transform: A.Compose,
-    output_img_dir: Path,
-    output_json_dir: Path,
-    num_augmentations: int
-) -> None:
+def augment_images(matched_pairs: list, 
+                   transform: A.Compose, 
+                   output_img_dir: Path, 
+                   output_json_dir: Path, 
+                   num_augmentations: int
+    ) -> None:
     """Applies augmentations to each image N times and saves results.
-    Also saves unaugmented images with no predictions into separate folders.
+    Also saves un-augmented images with no predictions into separate folders.
     """
-    # Separate folder for unaugmented no-prediction images and labels
+    # Separate folder for un-augmented no-prediction images and labels
     no_pred_img_dir = output_img_dir.parent / "no_prediction_images"
 
     output_img_dir.mkdir(parents=True, exist_ok=True)
