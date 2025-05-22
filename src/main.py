@@ -175,12 +175,11 @@ def main():
     # 8. Model quantization
     # Replace with distilled_model, this is for testing using the full model
     distilled_model_path = model_dir / "model" / "nano_trained_model.pt"
-    quantized_model_dir = model_dir / "model"
     quantized_model = quantize_model(
         model_path=distilled_model_path,
         config={
             'method': config.get('quantization_method'),
-            'output_dir': str(quantized_model_dir)
+            'output_dir': str(quantized_output_dir)
         }
     )
 
