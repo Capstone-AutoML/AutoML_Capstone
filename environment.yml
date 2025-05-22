@@ -25,3 +25,4 @@ dependencies:
       - onnxslim==0.1.53
       - label-studio==1.17.0
       - label-studio-sdk==1.0.11
+      - albumentations==1.4.3

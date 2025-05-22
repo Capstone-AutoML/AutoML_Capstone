@@ -14,7 +14,7 @@ from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelab
 from pipeline.prelabelling.matching import match_and_filter
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
-from pipeline.distill_quantize import distill_model
+from pipeline.distillation import distill_model
 from pipeline.quantization import quantize_model
 from pipeline.save_model import register_models
 from utils import load_config
@@ -56,6 +56,7 @@ def main():
     base_dir = Path("mock_io")
     data_dir = base_dir / "data"
     model_dir = base_dir / "model_registry"
+    config_dir = base_dir / "config_registry"
     
     # Data paths
     source_dir = data_dir / "sampled_dataset" / "images"
@@ -69,10 +70,13 @@ def main():
     
     # Model paths
     model_path = model_dir / "model" / "nano_trained_model.pt"
+    distilled_output_dir = model_dir / "distilled"
+    quantized_output_dir = model_dir / "quantized"
     
     # Create necessary directories
     for dir_path in [raw_dir, distilled_dir, prelabelled_dir, processed_dir, 
-                    augmented_dir, training_dir, distillation_dir]:
+                    augmented_dir, training_dir, distillation_dir,
+                    distilled_output_dir, quantized_output_dir, config_dir]:
         dir_path.mkdir(parents=True, exist_ok=True)
     
     print(" --- Step 1: Fetching and organizing images --- ")
@@ -138,9 +142,9 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 5: Data augmentation --- ")
 
-    # 4. Data augmentation
+    # 5. Data augmentation
     augment_dataset(
-        image_dir=processed_dir,
+        image_dir=raw_dir,
         output_dir=augmented_dir,
         config=config.get('augmentation_config', {})
     )
@@ -148,7 +152,7 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 6: Model training --- ")
 
-    # 5. Model training
+    # 6. Model training
     model_path = train_model(
         data_dir=training_dir,
         config=config.get('training_config', {})
@@ -157,17 +161,18 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 7: Model optimization --- ")
 
-    # 6. Model optimization
-    distilled_model = distill_model(
+    # 7. Model optimization
+    distilled_model_path, distill_config_path = distill_model(
         model_path=model_path,
         distillation_images=distillation_dir,
-        config=config.get('distillation_config', {})
+        config=config,
+        output_dir=distilled_output_dir,
+        config_registry_path=config_dir
     )
 
     print("-----------------------------------------------\n")
     print(" --- Step 8: Model quantization --- ")
-
-    # 7. Model quantization
+    # 8. Model quantization
     # Replace with distilled_model, this is for testing using the full model
     distilled_model_path = model_dir / "model" / "nano_trained_model.pt"
     quantized_model_dir = model_dir / "model"
@@ -182,11 +187,11 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 9: Model registration --- ")
 
-    # 8. Model registration
+    # 9. Model registration
     register_models(
         full_model=model_path,
-        distilled_model=distilled_model,
-        quantized_model=quantized_model
+        distilled_model=distilled_model_path,
+        quantized_model=quantized_model_path
     )
 
 if __name__ == "__main__":
