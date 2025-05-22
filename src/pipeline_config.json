@@ -47,5 +47,6 @@
     "distillation_loss_weight": 0.5,
     "temperature": 2.0,
     "student_model": "yolov8n.yaml"
-  }
+  },
+  "quantization_method": "ONNX"
 }
