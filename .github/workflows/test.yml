@@ -31,6 +31,14 @@ jobs:
       run: |
         conda env list
         conda env update -n test-env -f environment.yml
+        
+    - name: Install Grounding DINO
+      shell: bash -l {0}
+      run: |
+        conda activate test-env
+        git clone https://github.com/IDEA-Research/GroundingDINO.git
+        cd GroundingDINO
+        pip install -e .
     
     - name: Run tests with pytest in conda env
       shell: bash -l {0}
