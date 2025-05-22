@@ -6,5 +6,6 @@
   "iou_threshold": 0.5,
   "low_conf_threshold": 0.3,
   "mid_conf_threshold": 0.6,
-  "dino_false_negative_threshold": 0.5
+  "dino_false_negative_threshold": 0.5,
+  "quantization_method": "ONNX"
 }

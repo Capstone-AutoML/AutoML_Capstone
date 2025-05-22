@@ -19,5 +19,9 @@ dependencies:
   - pip
   - pip:
       - dotenv==0.9.9
+      - onnx==1.18.0
+      - onnxruntime==1.22.0
+      - onnxruntime-gpu==1.22.0
+      - onnxslim==0.1.53
       - label-studio==1.17.0
       - label-studio-sdk==1.0.11

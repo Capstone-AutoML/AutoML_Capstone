@@ -14,7 +14,8 @@ from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelab
 from pipeline.prelabelling.matching import match_and_filter
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
-from pipeline.distill_quantize import distill_model, quantize_model
+from pipeline.distill_quantize import distill_model
+from pipeline.quantization import quantize_model
 from pipeline.save_model import register_models
 from utils import load_config
 
@@ -167,9 +168,15 @@ def main():
     print(" --- Step 8: Model quantization --- ")
 
     # 7. Model quantization
+    # Replace with distilled_model, this is for testing using the full model
+    distilled_model_path = model_dir / "model" / "nano_trained_model.pt"
+    quantized_model_dir = model_dir / "model"
     quantized_model = quantize_model(
-        model_path=distilled_model,
-        config=config.get('quantization_config', {})
+        model_path=distilled_model_path,
+        config={
+            'method': config.get('quantization_method'),
+            'output_dir': str(quantized_model_dir)
+        }
     )
 
     print("-----------------------------------------------\n")
