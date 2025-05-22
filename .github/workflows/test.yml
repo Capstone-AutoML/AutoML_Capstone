@@ -32,7 +32,9 @@ jobs:
         conda env list
         conda env update -n test-env -f environment.yml
     
-    - name: Test with pytest
+    - name: Run tests with pytest in conda env
+      shell: bash -l {0}
       run: |
-        pip install pytest pytest-cov
+        conda activate test-env
         pytest tests/ --cov=src --cov-report=xml
+
