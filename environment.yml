@@ -16,6 +16,7 @@ dependencies:
   - torchvision=0.21.0
   - ultralytics=8.3.133
   - shapely=2.1.0
+  - pillow=11.1.0
   - pip
   - pip:
       - dotenv==0.9.9
