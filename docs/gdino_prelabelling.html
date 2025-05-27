@@ -49,10 +49,24 @@
 <li class="toctree-l1"><a class="reference internal" href="setup_guide.html">Setup Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Grounding DINO Prelabeling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#constants">Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#get-image-files-directory"><code class="docutils literal notranslate"><span class="pre">_get_image_files(directory)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generate-gd-prelabelling-raw-dir-output-dir-config-model-weights-config-path-text-prompts-text-prompts-box-threshold-none-text-threshold-none"><code class="docutils literal notranslate"><span class="pre">generate_gd_prelabelling(raw_dir,</span> <span class="pre">output_dir,</span> <span class="pre">config,</span> <span class="pre">model_weights,</span> <span class="pre">config_path,</span> <span class="pre">text_prompts=TEXT_PROMPTS,</span> <span class="pre">box_threshold=None,</span> <span class="pre">text_threshold=None)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#output-per-image">Output per image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#summary-output">Summary Output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
-<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human in the Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
@@ -85,6 +99,88 @@
              
   <section id="grounding-dino-prelabeling">
 <h1>Grounding DINO Prelabeling<a class="headerlink" href="#grounding-dino-prelabeling" title="Link to this heading"></a></h1>
+<p>This script performs object detection using a Grounding DINO model guided by text prompts. It processes a folder of raw images and outputs structured JSON files for each image containing detected object metadata.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Input</strong>: Directory of raw images</p></li>
+<li><p><strong>Output</strong>: JSON files with bounding boxes, confidence scores, and class labels</p></li>
+<li><p><strong>Model</strong>: Grounding DINO</p></li>
+<li><p><strong>Prompts</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;fire&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;smoke&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;person&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;vehicle&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lightning&quot;</span></code></p></li>
+<li><p><strong>Thresholds</strong>: Box confidence and text match thresholds</p></li>
+<li><p><strong>Execution</strong>: Runs sequentially on a specified device</p></li>
+</ul>
+</section>
+<section id="constants">
+<h2>Constants<a class="headerlink" href="#constants" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TEXT_PROMPTS</span></code>: Default object classes to detect</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BOX_THRESHOLD</span></code>: Minimum bounding box confidence (default: <code class="docutils literal notranslate"><span class="pre">0.3</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TEXT_THRESHOLD</span></code>: Minimum text-prompt alignment confidence (default: <code class="docutils literal notranslate"><span class="pre">0.25</span></code>)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="get-image-files-directory">
+<h3><code class="docutils literal notranslate"><span class="pre">_get_image_files(directory)</span></code><a class="headerlink" href="#get-image-files-directory" title="Link to this heading"></a></h3>
+<p>Scans a directory for <code class="docutils literal notranslate"><span class="pre">.jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">.jpeg</span></code>, and <code class="docutils literal notranslate"><span class="pre">.png</span></code> files.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">directory</span> <span class="pre">(Path)</span></code>: Path to image directory</p></li>
+<li><p><strong>Returns</strong>: <code class="docutils literal notranslate"><span class="pre">List[Path]</span></code> of image files</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="generate-gd-prelabelling-raw-dir-output-dir-config-model-weights-config-path-text-prompts-text-prompts-box-threshold-none-text-threshold-none">
+<h3><code class="docutils literal notranslate"><span class="pre">generate_gd_prelabelling(raw_dir,</span> <span class="pre">output_dir,</span> <span class="pre">config,</span> <span class="pre">model_weights,</span> <span class="pre">config_path,</span> <span class="pre">text_prompts=TEXT_PROMPTS,</span> <span class="pre">box_threshold=None,</span> <span class="pre">text_threshold=None)</span></code><a class="headerlink" href="#generate-gd-prelabelling-raw-dir-output-dir-config-model-weights-config-path-text-prompts-text-prompts-box-threshold-none-text-threshold-none" title="Link to this heading"></a></h3>
+<p>Main function that runs Grounding DINO to detect prompted classes in images.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">raw_dir</span> <span class="pre">(Path)</span></code>: Directory containing input images</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_dir</span> <span class="pre">(Path)</span></code>: Output folder for predictions</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config</span> <span class="pre">(Dict)</span></code>: Dictionary with device and threshold options</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model_weights</span> <span class="pre">(Path)</span></code>: Path to DINO model checkpoint</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config_path</span> <span class="pre">(Path)</span></code>: Path to DINO config file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">text_prompts</span> <span class="pre">(List[str])</span></code>: List of classes to detect (default: predefined)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">box_threshold</span> <span class="pre">(float)</span></code>: Detection threshold (can be overridden via config)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">text_threshold</span> <span class="pre">(float)</span></code>: Text alignment threshold (can be overridden via config)</p></li>
+</ul>
+<section id="output-per-image">
+<h4>Output per image<a class="headerlink" href="#output-per-image" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Image name</p></li>
+<li><p>Class label</p></li>
+<li><p>Bounding box: <code class="docutils literal notranslate"><span class="pre">[x1,</span> <span class="pre">y1,</span> <span class="pre">x2,</span> <span class="pre">y2]</span></code></p></li>
+<li><p>Confidence score</p></li>
+<li><p>Source tag: <code class="docutils literal notranslate"><span class="pre">&quot;grounding_dino&quot;</span></code></p></li>
+</ul>
+</section>
+<section id="summary-output">
+<h4>Summary Output<a class="headerlink" href="#summary-output" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Number of successful detections</p></li>
+<li><p>Number of skipped files (unreadable)</p></li>
+<li><p>Number of failed detections</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">generate_gd_prelabelling</span><span class="p">(</span>
+    <span class="n">raw_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/raw/images&quot;</span><span class="p">),</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/predictions/dino&quot;</span><span class="p">),</span>
+    <span class="n">config</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;torch_device&quot;</span><span class="p">:</span> <span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dino_box_threshold&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s2">&quot;dino_text_threshold&quot;</span><span class="p">:</span> <span class="mf">0.25</span>
+    <span class="p">},</span>
+    <span class="n">model_weights</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;weights/groundingdino.pth&quot;</span><span class="p">),</span>
+    <span class="n">config_path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;configs/GroundingDINO_SwinT_config.py&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 

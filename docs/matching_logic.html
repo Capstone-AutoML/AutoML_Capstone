@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Human in the Loop" href="human_in_loop.html" />
+    <link rel="next" title="Human-in-the-Loop" href="human_in_loop.html" />
     <link rel="prev" title="Grounding DINO Prelabeling" href="gdino_prelabelling.html" /> 
 </head>
 
@@ -50,9 +50,25 @@
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Matching Logic</a></li>
-<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human in the Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Matching Logic</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#compute-iou-box1-box2"><code class="docutils literal notranslate"><span class="pre">compute_iou(box1,</span> <span class="pre">box2)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#normalize-class-c"><code class="docutils literal notranslate"><span class="pre">normalize_class(c)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#match-predictions-yolo-preds-dino-preds-iou-thresh"><code class="docutils literal notranslate"><span class="pre">match_predictions(yolo_preds,</span> <span class="pre">dino_preds,</span> <span class="pre">iou_thresh)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#match-and-filter-yolo-dir-dino-dir-labeled-dir-pending-dir-config"><code class="docutils literal notranslate"><span class="pre">match_and_filter(yolo_dir,</span> <span class="pre">dino_dir,</span> <span class="pre">labeled_dir,</span> <span class="pre">pending_dir,</span> <span class="pre">config)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#output-actions">Output Actions:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#config-example">Config Example:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#summary-output">Summary Output:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
@@ -85,6 +101,121 @@
              
   <section id="matching-logic">
 <h1>Matching Logic<a class="headerlink" href="#matching-logic" title="Link to this heading"></a></h1>
+<p>This script compares YOLO and Grounding DINO predictions for the same image and flags mismatches for human review. It evaluates object matches based on class name and Intersection-over-Union (IoU) and applies configurable thresholds to determine the confidence of each detection.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Input</strong>:</p>
+<ul>
+<li><p>YOLO-generated JSON files</p></li>
+<li><p>DINO-generated JSON files</p></li>
+</ul>
+</li>
+<li><p><strong>Output</strong>:</p>
+<ul>
+<li><p>Matched files → saved to <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code></p></li>
+<li><p>Mismatched files → saved to <code class="docutils literal notranslate"><span class="pre">pending_dir</span></code> with <code class="docutils literal notranslate"><span class="pre">label_status:</span> <span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Configurable Thresholds</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">iou_threshold</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">low_conf_threshold</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mid_conf_threshold</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dino_false_negative_threshold</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="compute-iou-box1-box2">
+<h3><code class="docutils literal notranslate"><span class="pre">compute_iou(box1,</span> <span class="pre">box2)</span></code><a class="headerlink" href="#compute-iou-box1-box2" title="Link to this heading"></a></h3>
+<p>Computes the Intersection-over-Union between two bounding boxes.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">box1</span></code>, <code class="docutils literal notranslate"><span class="pre">box2</span></code>: Lists of <code class="docutils literal notranslate"><span class="pre">[x1,</span> <span class="pre">y1,</span> <span class="pre">x2,</span> <span class="pre">y2]</span></code> format</p></li>
+<li><p><strong>Returns</strong>: <code class="docutils literal notranslate"><span class="pre">float</span></code> IoU score</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="normalize-class-c">
+<h3><code class="docutils literal notranslate"><span class="pre">normalize_class(c)</span></code><a class="headerlink" href="#normalize-class-c" title="Link to this heading"></a></h3>
+<p>Cleans up class names for matching purposes.</p>
+<ul class="simple">
+<li><p>Removes <code class="docutils literal notranslate"><span class="pre">&quot;BSI&quot;</span></code> suffixes and lowercases</p></li>
+<li><p><strong>Returns</strong>: normalized class name</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="match-predictions-yolo-preds-dino-preds-iou-thresh">
+<h3><code class="docutils literal notranslate"><span class="pre">match_predictions(yolo_preds,</span> <span class="pre">dino_preds,</span> <span class="pre">iou_thresh)</span></code><a class="headerlink" href="#match-predictions-yolo-preds-dino-preds-iou-thresh" title="Link to this heading"></a></h3>
+<p>Matches YOLO predictions to DINO predictions by class name and IoU.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">yolo_preds</span></code>, <code class="docutils literal notranslate"><span class="pre">dino_preds</span></code>: Lists of prediction dictionaries</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iou_thresh</span></code>: Minimum IoU to consider a match</p></li>
+<li><p><strong>Returns</strong>: <code class="docutils literal notranslate"><span class="pre">List[bool]</span></code> indicating which YOLO predictions matched</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="match-and-filter-yolo-dir-dino-dir-labeled-dir-pending-dir-config">
+<h3><code class="docutils literal notranslate"><span class="pre">match_and_filter(yolo_dir,</span> <span class="pre">dino_dir,</span> <span class="pre">labeled_dir,</span> <span class="pre">pending_dir,</span> <span class="pre">config)</span></code><a class="headerlink" href="#match-and-filter-yolo-dir-dino-dir-labeled-dir-pending-dir-config" title="Link to this heading"></a></h3>
+<p>Main function to match predictions and split into labeled or pending sets.</p>
+<ul class="simple">
+<li><p>Loads predictions from YOLO and DINO</p></li>
+<li><p>Flags mismatches based on:</p>
+<ul>
+<li><p>Low/medium YOLO confidence</p></li>
+<li><p>High-confidence DINO detections missed by YOLO</p></li>
+</ul>
+</li>
+</ul>
+<section id="output-actions">
+<h4>Output Actions:<a class="headerlink" href="#output-actions" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Adds <code class="docutils literal notranslate"><span class="pre">label_status:</span> <span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">confidence_flag</span></code> to flagged predictions</p></li>
+<li><p>Saves:</p>
+<ul>
+<li><p>Confident matches to <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code></p></li>
+<li><p>Mismatches to <code class="docutils literal notranslate"><span class="pre">pending_dir</span></code> for human review</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="config-example">
+<h4>Config Example:<a class="headerlink" href="#config-example" title="Link to this heading"></a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;iou_threshold&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="s2">&quot;low_conf_threshold&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="s2">&quot;mid_conf_threshold&quot;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>
+    <span class="s2">&quot;dino_false_negative_threshold&quot;</span><span class="p">:</span> <span class="mf">0.5</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="summary-output">
+<h4>Summary Output:<a class="headerlink" href="#summary-output" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Total successfully processed files</p></li>
+<li><p>Skipped/unmatched files</p></li>
+<li><p>Files that failed to process due to error</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">match_and_filter</span><span class="p">(</span>
+    <span class="n">yolo_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/predictions/yolo&quot;</span><span class="p">),</span>
+    <span class="n">dino_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/predictions/dino&quot;</span><span class="p">),</span>
+    <span class="n">labeled_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/labeled&quot;</span><span class="p">),</span>
+    <span class="n">pending_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/mismatched/pending&quot;</span><span class="p">),</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">config</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 
@@ -92,7 +223,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="gdino_prelabelling.html" class="btn btn-neutral float-left" title="Grounding DINO Prelabeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="human_in_loop.html" class="btn btn-neutral float-right" title="Human in the Loop" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="human_in_loop.html" class="btn btn-neutral float-right" title="Human-in-the-Loop" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
