@@ -23,8 +23,9 @@ def fp16_quantization(model, output_path):
     # Apply FP16 quantization
     print("Applying FP16 quantization...")
     model.model = model.model.half()
-
-    torch.save(model.model.state_dict(), output_path)
+    
+    # Save the quantized model
+    model.save(output_path)
 
     print(f"FP16 quantized model saved to {output_path}")
     return output_path
