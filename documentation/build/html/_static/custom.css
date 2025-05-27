@@ -1,0 +1,14 @@
+/* Expand main content area */
+.wy-nav-content {
+    max-width: 100%;         /* Take full available width */
+    padding: 2em 4em;         /* Optional: adjust horizontal padding */
+    box-sizing: border-box;
+}
+
+
+/* Make page content scroll properly on smaller screens */
+@media screen and (max-width: 768px) {
+    .wy-nav-content {
+        padding: 1em;
+    }
+}
