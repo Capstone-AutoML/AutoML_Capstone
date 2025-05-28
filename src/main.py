@@ -162,20 +162,21 @@ def main():
     print(" --- Step 7: Model optimization --- ")
 
     # 7. Model optimization
-    distilled_model_path, distill_config_path = distill_model(
-        model_path=model_path,
-        distillation_images=distillation_dir,
-        config=config,
-        output_dir=distilled_output_dir,
-        config_registry_path=config_dir
-    )
+    # Commented out for now to ensure the pipeline runs without distillation
+    # distilled_model_path, distill_config_path = distill_model(
+    #     model_path=model_path,
+    #     distillation_images=distillation_dir,
+    #     config=config,
+    #     output_dir=distilled_output_dir,
+    #     config_registry_path=config_dir
+    # )
 
     print("-----------------------------------------------\n")
     print(" --- Step 8: Model quantization --- ")
     # 8. Model quantization
     # Replace with distilled_model, this is for testing using the full model
     distilled_model_path = model_dir / "model" / "nano_trained_model.pt"
-    quantized_model = quantize_model(
+    quantized_model_path = quantize_model(
         model_path=distilled_model_path,
         config={
             'method': config.get('quantization_method'),

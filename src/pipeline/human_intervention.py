@@ -21,11 +21,11 @@ mismatch_pending_dir = mismatch_dir / "pending"
 reviewed_dir = mismatch_dir / "reviewed_results"
 image_dir = Path("mock_io/data/raw/images")
 output_dir = Path("mock_io/data/ls_tasks")
-mismatch_dir.mkdir(exist_ok=True)
-mismatch_pending_dir.mkdir(exist_ok=True)
+mismatch_dir.mkdir(parents=True, exist_ok=True)
+mismatch_pending_dir.mkdir(parents=True, exist_ok=True)
 # mismatch_imported_dir.mkdir(exist_ok=True)
-reviewed_dir.mkdir(exist_ok=True)
-output_dir.mkdir(exist_ok=True)
+reviewed_dir.mkdir(parents=True, exist_ok=True)
+output_dir.mkdir(parents=True, exist_ok=True)
 
 
 def _find_image_path(stem: str, image_dir: Path) -> Path:
