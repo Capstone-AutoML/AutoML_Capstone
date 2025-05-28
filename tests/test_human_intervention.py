@@ -2,6 +2,7 @@
 Tests for the human_intervention module.
 """
 
+import os
 import pytest
 import json
 from pathlib import Path
@@ -27,21 +28,56 @@ from src.pipeline.human_intervention import (
 
 
 @pytest.fixture
+def tmp_path():
+    """Custom tmp_path fixture that doesn't rely on system temp directories."""
+    path = Path(os.getcwd()) / "test_temp"
+    if not path.exists():
+        path.mkdir(parents=True)
+    yield path
+    if path.exists():
+        shutil.rmtree(path, ignore_errors=True)
+
+
+@pytest.fixture(autouse=True)
+def mock_global_directories():
+    """Mock the global directory paths to prevent FileNotFoundError during import."""
+    with patch("src.pipeline.human_intervention.mismatch_dir") as mock_mismatch_dir, \
+         patch("src.pipeline.human_intervention.mismatch_pending_dir") as mock_pending_dir, \
+         patch("src.pipeline.human_intervention.reviewed_dir") as mock_reviewed_dir, \
+         patch("src.pipeline.human_intervention.image_dir") as mock_image_dir, \
+         patch("src.pipeline.human_intervention.output_dir") as mock_output_dir:
+
+        # Configure the mock paths
+        mock_mismatch_dir.mkdir.return_value = None
+        mock_pending_dir.mkdir.return_value = None
+        mock_reviewed_dir.mkdir.return_value = None
+        mock_image_dir.mkdir.return_value = None
+        mock_output_dir.mkdir.return_value = None
+        yield
+
+
+@pytest.fixture
 def temp_dirs(tmp_path):
     """Create temporary directories for testing."""
+    # Use absolute paths to avoid Windows path issues
     image_dir = tmp_path / "images"
     json_dir = tmp_path / "json"
     output_dir = tmp_path / "output"
 
-    # Create directories
-    image_dir.mkdir()
-    json_dir.mkdir()
-    output_dir.mkdir()
+    # Create directories with parents=True
+    image_dir.mkdir(parents=True, exist_ok=True)
+    json_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create test images
+    # Create test images - ensure the files exist by opening and writing
     for i in range(3):
-        (image_dir / f"image_{i}.jpg").touch()
-        (image_dir / f"image_{i+3}.png").touch()
+        img_jpg = image_dir / f"image_{i}.jpg"
+        img_png = image_dir / f"image_{i+3}.png"
+
+        with open(img_jpg, "wb") as f:
+            f.write(b"test image content")
+        with open(img_png, "wb") as f:
+            f.write(b"test image content")
 
     # Create test JSON files
     for i in range(5):
@@ -50,13 +86,11 @@ def temp_dirs(tmp_path):
                 {"bbox": [10, 20, 100, 200], "class": "FireBSI"}
             ]
         }
-        with open(json_dir / f"image_{i}.json", "w") as f:
+        json_file = json_dir / f"image_{i}.json"
+        with open(json_file, "w") as f:
             json.dump(json_content, f)
 
     yield image_dir, json_dir, output_dir
-
-    # Cleanup
-    shutil.rmtree(tmp_path)
 
 
 def test_find_image_path(temp_dirs):
@@ -138,7 +172,7 @@ def test_initialize_json_files_empty_dir(tmp_path):
 def test_initialize_json_files_invalid_json(tmp_path):
     """Test initializing files with invalid JSON content."""
     test_dir = tmp_path / "invalid"
-    test_dir.mkdir()
+    test_dir.mkdir(parents=True, exist_ok=True)
 
     # Create file with invalid JSON
     invalid_file = test_dir / "invalid.json"
@@ -165,10 +199,10 @@ def test_convert_bbox_to_percent():
     bbox = [10, 20, 60, 80]
     result = _convert_bbox_to_percent(bbox, 200, 400)
 
-    assert result["x"] == 5.0  # 10/200 * 100
-    assert result["y"] == 5.0  # 20/400 * 100
-    assert result["width"] == 25.0  # (60-10)/200 * 100
-    assert result["height"] == 15.0  # (80-20)/400 * 100
+    assert result["x"] == 5.0
+    assert result["y"] == 5.0
+    assert result["width"] == 25.0
+    assert result["height"] == 15.0
 
 
 @patch("PIL.Image.open")
@@ -337,7 +371,7 @@ def test_connect_local_storage(mock_post, mock_get):
     """Test connecting Label Studio to local storage."""
     # Mock responses
     mock_get_response = Mock()
-    mock_get_response.json.return_value = []  # No existing storage
+    mock_get_response.json.return_value = []
     mock_get_response.status_code = 200
     mock_get.return_value = mock_get_response
 
