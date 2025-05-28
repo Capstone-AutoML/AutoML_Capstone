@@ -7,6 +7,7 @@ from typing import List, Dict
 from tqdm import tqdm
 import contextlib
 import io
+from utils import detect_device
 
 # Suppress warnings for clean output
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -58,7 +59,7 @@ def generate_gd_prelabelling(
 
     device = config.get("torch_device", "auto")
     if device == "auto":
-        device == detect_device()
+        device = detect_device()
     
     # Load the model once
     with contextlib.redirect_stdout(io.StringIO()):  # Suppress internal model logs
