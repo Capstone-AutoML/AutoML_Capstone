@@ -139,6 +139,8 @@ def quantize_model(model_path: str, config: dict, quantize_yaml: str = None) -> 
     elif quant_method == "IMX":
         if not quantize_yaml:
             raise ValueError("IMX quantization requires a quantize_yaml path.")
+        if not os.path.exists(quantize_yaml):
+            raise ValueError(f"The quantize_yaml file does not exist at the specified path: {quantize_yaml}")
         output_path = os.path.join(output_dir, f"{base_name}_imx_quantized.pt")
         return imx_quantization(model, output_path, quantize_yaml)
 
