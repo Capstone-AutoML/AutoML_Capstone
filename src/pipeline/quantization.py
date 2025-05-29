@@ -21,7 +21,7 @@ def imx_quantization(model, output_path, quantize_yaml):
         quantize_yaml: Path to quantize.yaml with nc and class names
 
     Returns:
-        str: Path to the quantized model
+        str or None: Path to the quantized model, or None if on non-Linux platforms.
     """
     # Check if the platform is Linux
     if platform.system().lower() != "linux":
