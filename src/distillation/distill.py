@@ -75,7 +75,7 @@ def load_models(device: str, base_dir: Path) -> Tuple[YOLO, YOLO]:
     
     return teacher_yolo, student_yolo
 
-def prepare_dataset(base_dir: Path, student_model: nn.Module, batch_size: int = 16) -> Tuple[YOLODataset, DataLoader]:
+def prepare_dataset(base_dir: Path, student_model: nn.Module, batch_size: int = 16, mode: str = "train") -> Tuple[YOLODataset, DataLoader]:
     """
     Prepare dataset and dataloader for training.
     
@@ -85,6 +85,21 @@ def prepare_dataset(base_dir: Path, student_model: nn.Module, batch_size: int = 
         
     Returns:
         Tuple of (dataset, dataloader)
+        
+    Note: 
+        number_of_objects_detected: the number of objects detected in all images in the batch
+        batch_size: number of images in the batch
+    
+    - each batch in the train_dataloader contains:
+    - batch_idx:
+        tensor of shape (number_of_objects_detected), 
+        for each object, the value is 0, ... batch_size - 1, 
+        depending on the index of the image that the object belongs to in the batch
+    - img: image tensor of shape (batch_size, 3, 640, 640)
+    - bboxes: bboxes tensor of shape (number_of_objects_detected, 4),  4 is for normalized x1, y1, x2, y2
+    - cls: cls tensor of shape (number_of_objects_detected, 1), containing all class labels of the objects detected in the batch
+    - resized_shape: Resized 2D dim of the image. A list of tensor, first tensor is first dim, second tensor is second dim
+    - ori_shape: Original 2D dim of the image. Alist of tensor, first tensor is first dim, second tensor is second dim
     """
     data = {
         "names": {
@@ -102,7 +117,7 @@ def prepare_dataset(base_dir: Path, student_model: nn.Module, batch_size: int = 
         img_path = base_dir / "mock_io/data/sampled_dataset/",
         batch=batch_size,
         data=data,
-        mode="val",
+        mode=mode,
     )
     
     train_dataloader = build_dataloader(
@@ -363,6 +378,8 @@ def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
     """
     Freeze the first n layers of the model.
     For example, if num_layers = 10, the first 10 layers (The Backbone) will be frozen.
+    https://community.ultralytics.com/t/guidance-on-freezing-layers-for-yolov8x-seg-transfer-learning/189/2
+    https://github.com/ultralytics/ultralytics/blob/3e669d53067ff1ed97e0dad0a4063b156f66686d/ultralytics/engine/trainer.py#L258
     
     Args:
         model: The model to freeze layers in
@@ -388,7 +405,7 @@ def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
 def start_distillation(
     num_epochs: int = 200,
     batch_size: int = 16,
-    device: str = "mps",
+    device: str = "cpu",
     base_dir: Path = Path(".."),
     save_checkpoint_every: int = 50,
     frozen_layers: int = 10 # freeze the Backbone layers
@@ -414,7 +431,8 @@ def start_distillation(
         freeze_layers(student_model, frozen_layers)
     
     # Prepare dataset
-    train_dataset, train_dataloader = prepare_dataset(base_dir, student_model, batch_size)
+    train_dataset, train_dataloader = prepare_dataset(base_dir, student_model, batch_size, mode="train")
+    val_dataset, val_dataloader = prepare_dataset(base_dir, student_model, batch_size, mode="val")
     
     # Setup training
     detection_trainer = DetectionTrainer(cfg=student_model.args)
@@ -451,7 +469,7 @@ def start_distillation(
             )
             
             # Save checkpoint
-            if epoch % save_checkpoint_every == 0:
+            if epoch + 1 % save_checkpoint_every == 0:
                 save_checkpoint(
                     checkpoint_dir=checkpoint_dir,
                     epoch=epoch,
@@ -469,4 +487,11 @@ def start_distillation(
         print(str(e))
 
 if __name__ == "__main__":
-    start_distillation(device=device, base_dir=Path("..", ".."), frozen_layers=10)
+    start_distillation(
+        device=device, 
+        base_dir=Path("..", ".."), 
+        frozen_layers=10,
+        num_epochs=200,
+        batch_size=16,
+        save_checkpoint_every=50
+    )
