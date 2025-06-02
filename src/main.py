@@ -52,6 +52,10 @@ def main():
     
     config = load_config(pipeline_config_path)
     
+    # Training configuration
+    train_config_path = SCRIPT_DIR / "train_config.json"
+    train_config = load_config(train_config_path)
+
     # Define all paths
     base_dir = Path("mock_io")
     data_dir = base_dir / "data"
@@ -154,7 +158,7 @@ def main():
 
     # 6. Model training
     prepare_training_data(config)
-    model_path = train_model(config)
+    model_path = train_model(train_config)
 
     print("-----------------------------------------------\n")
     print(" --- Step 7: Model optimization --- ")
@@ -165,7 +169,7 @@ def main():
         distillation_images=distillation_dir,
         config=config,
         output_dir=distilled_output_dir,
-        config_registry_path=config_dir
+       config_registry_path=config_dir
     )
 
     print("-----------------------------------------------\n")

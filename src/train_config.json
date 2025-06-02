@@ -1,0 +1,30 @@
+{
+  "model_path": "",
+  "initial_model_path": "mock_io/model_registry/model/nano_trained_model.pt",
+  "data_yaml_path": "mock_io/data/training/data.yaml",
+  "output_model_name": null,
+  "torch_device": "cpu",
+
+  "training_config": {
+    "epochs": 1,
+    "batch": 16,
+    "imgsz": 640,
+    "workers": 4,
+    "lr0": 0.0005,
+    "freeze": 10,
+
+    "hsv_h": 0.0,
+    "hsv_s": 0.0,
+    "hsv_v": 0.0,
+    "degrees": 0.0,
+    "translate": 0.0,
+    "scale": 0.0,
+    "shear": 0.0,
+    "perspective": 0.0,
+    "flipud": 0.0,
+    "fliplr": 0.0,
+    "mosaic": 0.0,
+    "mixup": 0.0,
+    "copy_paste": 0.0
+  }
+}

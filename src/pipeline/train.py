@@ -16,93 +16,128 @@ def find_latest_model(model_dir: str, fallback_model: str) -> str:
         str: Path to the most recent model or the fallback model.   
     """
     model_dir = Path(model_dir)
-    models = sorted(model_dir.glob("*.pt"), key=lambda x: x.stat().st_mtime, reverse=True)
+    # Search for all .pt files sorted by modification time (most recent first)
+    models = sorted(model_dir.glob("*_updated_yolo.pt"), key=lambda x: x.stat().st_mtime, reverse=True)
 
     if models:
         return str(models[0])
     else:
-        print(f"Updated model not found. Falling back to: {fallback_model}")
+        print(f"[WARN] Updated model not found. Falling back to: {fallback_model}")
         return fallback_model
     
+def load_train_config(config_path: str) -> dict:
+    """
+    Loads training configuration from JSON file.
+    Args:
+        config_path (str): Path to the train_config.json file.
+    Returns:
+        dict: configuration dictionary
+    """
+    config_path = Path(config_path)
+    # Check if file exists
+    if not config_path.exists():
+        raise FileNotFoundError(f"Error: Config file not found at {config_path}")
+    # Load JSON into dictionary
+    with open(config_path, "r") as f:
+        config = json.load(f)
+    
+    assert "training_config" in config, "Error: 'training_config' section missing in train_config.json"
+    assert "data_yaml_path" in config, "Error: 'data_yaml_path' section missing in train_config.json"
+    assert "initial_model_path" in config, "Error: 'initial_model_path' section missing in train_config.json"
+
+    return config
+
+
 def train_model(config: dict) -> str:
     """
     Trains a YOLOv8 model using the Ultralytics library and saves the trained model and metadata.
 
-    Workflow:
-    - Loads most recent model from registry or falls back to `nano_trained_model.pt`
-    - Uses training parameters from `config['training_config']` in `pipeline_config.json`
-    - Saves trained model with timestamp-based name
-    - Saves metadata about training
-
     Args:
-        config (dict): Pipeline configuration containing:
+        config (dict): Loaded config dictionary from train_config.json, containing:
             - data_yaml_path (str): Path to `data.yaml`
             - torch_device (str): 'cpu' or 'cuda'
-            - training_config (dict): with keys: epochs, lr0, imgsz, batch, workers
+            - training_config (dict): eg., epochs, lr0, imgsz, batch, workers, etc
+            - model_path (str): (Optional) Path to a pre-trained model to fine-tune.
 
     Returns:
         str: Path to the saved trained model (.pt)
     """
     # Define paths
     model_dir = Path("mock_io/model_registry/model")
-    metadata_dir = model_dir / "model_metadata"
     model_dir.mkdir(parents=True, exist_ok=True)
-    metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load training configuration
-    train_config = config.get("training_config", {})
-    device = config.get("torch_device", "cpu")
-    data_yaml = config["data_yaml_path"]
+    user_model_path = config.get("model_path")
+    initial_model_path = config.get("initial_model_path", "mock_io/model_registry/model/nano_trained_model.pt")
 
-    # Training hyperparameters
-    epochs = train_config.get("epochs", 100)
-    lr0 = train_config.get("lr0", 0.001)
-    imgsz = train_config.get("imgsz", 640)
-    batch = train_config.get("batch", 16)
-    workers = train_config.get("workers", 8)
+    if user_model_path:
+        model_path = user_model_path
+        print(f"[INFO] Using model specified in config: {model_path}")
+    else:
+        model_path = find_latest_model(model_dir, initial_model_path)
+        print(f"[INFO] Using latest model: {model_path}")
 
-    # Load model: latest available or fallback base model
-    initial_model_path = str(model_dir / "nano_trained_model.pt")
-    model_path = config.get("model_path", find_latest_model(model_dir, initial_model_path)) # model_path can be specified in `pipeline_config.json`
+    # Load YOLO model
     model = YOLO(model_path)
 
-    print(f"Training from: {model_path}")
-    print(f"Epochs: {epochs} | LR: {lr0} | ImgSize: {imgsz} | Batch: {batch}")
+    # Extract training parameters
+    train_args = config["training_config"]
+    train_args["data"] = config["data_yaml_path"]
+    train_args["device"] = config.get("torch_device", "cpu")
 
-    # Training the model
-    model.train(
-        data=data_yaml,
-        epochs=epochs,
-        lr0=lr0,
-        imgsz=imgsz,
-        batch=batch,
-        workers=workers,
-        device=device
-    ) 
+    # Generate a timestamped name if user did not specify one
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+    output_model_name = config.get("output_model_name") or f"{timestamp}_updated_yolo.pt"
+    trained_model_path = model_dir / output_model_name
 
-    # Save model with timestamped name
-    timestamp = datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
-    model_name = f"{timestamp}_updated_yolo.pt"
-    new_model_path = model_dir / model_name
-    model.save(str(new_model_path))
+    # Define metadata and runs output directory
+    model_info_dir = model_dir / "model_info" / output_model_name.replace(".pt", "")
+    model_info_dir.mkdir(parents=True, exist_ok=True)
+    metadata_path = model_info_dir / "metadata.json" 
+    run_output_dir = model_info_dir / "runs" 
+    run_output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save metadata
+    # Save model output
+    train_args["project"] = str(model_info_dir)
+    train_args["name"] = "train"
+
+    # Run training with all arguments from config
+    model.train(**train_args)
+    
+    # Save trained model
+    model.save(str(trained_model_path))
+
+    # Save metadata with training info
     metadata = {
-        "model_name": model_name,
-        "date": timestamp,
-        "trained_on": data_yaml,
-        "epochs": epochs,
-        "lr0": lr0,
-        "imgsz": imgsz,
-        "batch": batch,
-        "device": device,
-        "source_model": model_path
+        "model_name": output_model_name,
+        "trained_from": model_path,
+        "timestamp": timestamp,
+        "training_args": train_args
     }
 
-    metadata_path = metadata_dir / f"{model_name.replace('.pt', '_metadata.json')}"
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=2)
+    
+    # Evaluate on test set if defined in data.yaml
+    try:
+        test_results = model.val(split='test')
+        test_metrics = {
+            "map_50": test_results.box.map50,
+            "map_75": test_results.box.map75,
+            "map_50_95": test_results.box.map,
+        }
+        metadata["test_metrics"] = test_metrics
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=2)
+ 
+    except Exception as e:
+        print(f"[WARN] Test evaluation failed or skipped: {e}")
 
-    print(f"Model saved to: {new_model_path}")
-    print(f"Metadata saved to: {metadata_path}")
-    return str(new_model_path)
+    print(f"[INFO] Training complete. Model saved to {trained_model_path}")
+    print(f"[INFO] Metadata saved to {metadata_path}")
+    return str(trained_model_path)
+
+
+# Entry point for standalone use
+if __name__ == "__main__":
+    config = load_train_config("train_config.json")
+    train_model(config)

@@ -120,7 +120,9 @@ def prepare_training_data(config: dict):
     aug_labels = Path(config["augmented_labels_path"])
     true_negatives = Path(config["true_negative_images_path"])
     out_dir = Path(config["training_output_path"])
-    split_ratio = config.get("train_val_split", 0.8)
+    split_ratio = config.get("train_val_test_split", [0.8, 0.2, 0.0])  # default to train/val only
+
+    assert abs(sum(split_ratio) - 1.0) < 1e-6, "Train/val/test split ratios must sum to 1.0"
 
     # Class map (str -> int)
     class_map = {
@@ -149,14 +151,14 @@ def prepare_training_data(config: dict):
         im = Image.open(image_file)
         w, h = im.size
 
-        for ann in data.get("predictions", []):  # <- fixed key here
+        for ann in data.get("predictions", []):  # Key corrected to 'predictions'
             cls = ann["class"]
             if cls not in class_map:
                 print(f"Unknown class '{cls}' in {json_file.name}. Skipping annotation.")
                 continue
             class_id = class_map[cls]
 
-            # Convert [xmin, ymin, xmax, ymax] -> YOLO format
+            # Convert [xmin, ymin, xmax, ymax] to YOLO format
             x_min, y_min, x_max, y_max = ann["bbox"]
             box_w = x_max - x_min
             box_h = y_max - y_min
@@ -169,20 +171,23 @@ def prepare_training_data(config: dict):
 
         image_label_pairs.append((image_file, yolo_lines))
 
-    # Add true negatives
-    for img_file in true_negatives.glob("*.jpg"):
-        image_label_pairs.append((img_file, []))
-    for img_file in true_negatives.glob("*.png"):
+    # Add true negatives (images with no annotations)
+    for img_file in list(true_negatives.glob("*.jpg")) + list(true_negatives.glob("*.png")):
         image_label_pairs.append((img_file, []))
 
-    # Shuffle and split
+    # Shuffle and split data into train/val/test
     random.shuffle(image_label_pairs)
-    n_train = int(len(image_label_pairs) * split_ratio)
-    train_pairs = image_label_pairs[:n_train]
-    val_pairs = image_label_pairs[n_train:]
+    n_total = len(image_label_pairs)
+    n_train = int(n_total * split_ratio[0])
+    n_val = int(n_total * split_ratio[1])
+    n_test = n_total - n_train - n_val
 
-    # Save images and labels
-    for split_name, split_data in zip(["train", "val"], [train_pairs, val_pairs]):
+    train_pairs = image_label_pairs[:n_train]
+    val_pairs = image_label_pairs[n_train:n_train + n_val]
+    test_pairs = image_label_pairs[n_train + n_val:]
+
+    # Save to YOLO-style structure
+    for split_name, split_data in zip(["train", "val", "test"], [train_pairs, val_pairs, test_pairs]):
         for img_path, labels in split_data:
             dest_img = out_dir / "images" / split_name / img_path.name
             dest_lbl = out_dir / "labels" / split_name / (img_path.stem + ".txt")
@@ -193,5 +198,5 @@ def prepare_training_data(config: dict):
             with open(dest_lbl, "w") as f:
                 f.write("\n".join(labels))
 
-    print(f"Training data prepared at '{out_dir}'")
-    print(f"Train samples: {len(train_pairs)} | Val samples: {len(val_pairs)}")
+    print(f"[INFO] Training data prepared at '{out_dir}'")
+    print(f"[INFO] Train: {len(train_pairs)}, Val: {len(val_pairs)}, Test: {len(test_pairs)}")
