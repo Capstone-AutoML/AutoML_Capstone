@@ -1,0 +1,10 @@
+train: ../../mock_io/data/sampled_dataset/images
+val: ../../mock_io/data/sampled_dataset/images
+
+nc: 5
+names:
+  0: "FireBSI"
+  1: "LightningBSI"
+  2: "PersonBSI"
+  3: "SmokeBSI"
+  4: "VehicleBSI"

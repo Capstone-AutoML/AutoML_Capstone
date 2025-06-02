@@ -1,0 +1,472 @@
+# Python standard library
+import json
+import os
+import sys
+from importlib import reload
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional, Any
+# Set environment variable for MPS fallback
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
+# Third-party libraries
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torchvision.ops.ciou_loss import complete_box_iou_loss
+import torch.nn.functional as F
+from tqdm import tqdm
+
+# Add parent directory to path
+sys.path.append("..")
+
+# Ultralytics imports
+from ultralytics import YOLO
+from ultralytics.models.yolo.model import DetectionModel
+from ultralytics.cfg import get_cfg, YAML
+from ultralytics.utils.loss import v8DetectionLoss
+from ultralytics.data.build import build_yolo_dataset, build_dataloader, YOLODataset, InfiniteDataLoader
+from ultralytics.models.yolo.detect.train import DetectionTrainer
+from ultralytics.models.yolo.detect.val import DetectionValidator
+from ultralytics.models.yolo.detect.predict import DetectionPredictor
+from ultralytics.utils.tal import make_anchors
+from ultralytics.utils.ops import non_max_suppression, xywh2xyxy
+
+# Custom modules
+from utils import load_config, detect_device
+
+pipeline_config = load_config("../pipeline_config.json")
+device = pipeline_config["torch_device"] if pipeline_config["torch_device"] else detect_device()
+print(f"Using device: {device}")
+
+def load_models(device: str, base_dir: Path) -> Tuple[YOLO, YOLO]:
+    """
+    Load teacher and student models.
+    
+    Args:
+        device: Device to load models on
+        base_dir: Base directory for model paths
+        
+    Returns:
+        Tuple of (teacher_yolo, student_yolo) models
+    """
+    # Load the teacher model (our pre-trained model)
+    teacher_yolo = YOLO(
+        base_dir / 'mock_io/model_registry/model/nano_trained_model.pt', 
+    ).to(device)
+    
+    # Load the student model (our new model, random initialized weights)
+    student_yolo = YOLO("yolov8n-5class.yaml").load("yolov8n.pt").to(device) 
+    student_yolo.yaml["nc"] = 5
+    student_model = student_yolo.model
+    student_model.nc = 5
+    
+    # Load config
+    config_dict = YAML.load("student_model_cfg.yaml")
+    student_model.args = get_cfg(config_dict)
+    
+    # Sanity check
+    assert student_yolo.nc == 5, "student_yolo.nc should be 5"
+    assert student_model.nc == 5, "student_model.nc should be 5"
+    assert isinstance(teacher_yolo, nn.Module)
+    assert isinstance(student_yolo, nn.Module)
+    
+    return teacher_yolo, student_yolo
+
+def prepare_dataset(base_dir: Path, student_model: nn.Module, batch_size: int = 16) -> Tuple[YOLODataset, DataLoader]:
+    """
+    Prepare dataset and dataloader for training.
+    
+    Args:
+        base_dir: Base directory for data
+        batch_size: Batch size for training
+        
+    Returns:
+        Tuple of (dataset, dataloader)
+    """
+    data = {
+        "names": {
+            0: "FireBSI", 
+            1: "LightningBSI", 
+            2: "PersonBSI", 
+            3: "SmokeBSI", 
+            4: "VehicleBSI"
+        },
+        "channels": 3,
+    }
+    
+    train_dataset = build_yolo_dataset(
+        cfg=student_model.args,
+        img_path = base_dir / "mock_io/data/sampled_dataset/",
+        batch=batch_size,
+        data=data,
+        mode="val",
+    )
+    
+    train_dataloader = build_dataloader(
+        train_dataset, 
+        batch=batch_size, 
+        workers=0,
+        shuffle=False, 
+    )
+    
+    return train_dataset, train_dataloader
+
+def head_features_decoder(
+    head_feats: List[torch.Tensor], 
+    nc: int, 
+    detection_criterion: v8DetectionLoss, 
+    reg_max: int = 16, 
+    strides: List[int] = [8, 16, 32], 
+    device: str = "cpu"
+) -> torch.Tensor:
+    """
+    Decode the head features into bounding boxes and class scores.
+    
+    Args:
+        head_feats: List of tensors, each representing a feature map from a detection head
+        nc: Number of classes
+        detection_criterion: Detection loss criterion
+        reg_max: Maximum number of bounding box parameters
+        strides: List of strides for the feature maps
+        device: Device to perform computations on
+        
+    Returns:
+        Tensor: pred_concatted: Concatenated bounding boxes and class raw logits scores
+                Shape is (batch_size, 4 + num_classes, total_predictions)
+    """
+    b = head_feats[0].shape[0] # batch size
+    dfl_vals = reg_max * 4 # number of dfl encoded channels for bounding boxes
+    no = nc + dfl_vals # number of out channels
+    
+    pred_dist, pred_scores = torch.cat(
+        [feat.view(b, no, -1) for feat in head_feats], dim=2
+    ).split(
+        (dfl_vals, nc), dim=1
+    )
+    
+    pred_scores = pred_scores.permute(0, 2, 1).contiguous()
+    pred_dist = pred_dist.permute(0, 2, 1).contiguous()
+
+    anchor_points, _ = make_anchors(head_feats, strides, 0.5)
+    anchor_points = anchor_points.to(device)
+    pred_bboxes = detection_criterion.bbox_decode(anchor_points, pred_dist)
+    assert torch.any(pred_scores < 0) or torch.any(pred_scores > 1), "pred_scores should be logits, not sigmoid"
+    pred_concatted = torch.permute(torch.cat((pred_bboxes, pred_scores), dim=2), (0, 2, 1))
+    
+    return pred_concatted
+
+def compute_distillation_loss(
+    student_preds: torch.Tensor, 
+    teacher_preds: torch.Tensor, 
+    args: Dict[str, Any], 
+    nc: int = 80, 
+    device: str = "cpu", 
+    eps: float = 1e-7
+) -> torch.Tensor:
+    """
+    Compute the distillation loss between the student and teacher predictions.
+    
+    Args:
+        student_preds: The student predictions
+        teacher_preds: The teacher predictions
+        args: Configuration arguments
+        nc: Number of classes
+        device: Device to perform computations on
+        eps: Small epsilon value for numerical stability
+        
+    Returns:
+        Total distillation loss
+    """
+    if not isinstance(student_preds, torch.Tensor) or not isinstance(teacher_preds, torch.Tensor):
+        raise ValueError("student_preds and teacher_preds must be tensors")
+
+    batch_size = student_preds.shape[0]
+    dtype = teacher_preds.dtype
+    kldivloss = nn.KLDivLoss(reduction='batchmean', log_target=True)
+
+    # Split the concatenated bounding boxes and class scores
+    s_bbox, s_cls_logits = torch.split(student_preds, (4, nc), dim=1)
+    s_cls_sigmoid = torch.sigmoid(s_cls_logits)
+    assert torch.all(s_cls_sigmoid >= 0) and torch.all(s_cls_sigmoid <= 1), "s_cls_sigmoid should be sigmoid, not logits"
+    teacher_preds_full = teacher_preds.clone()
+    assert torch.all(teacher_preds_full[:, nc:, :] >= 0) and torch.all(teacher_preds_full[:, nc:, :] <= 1), "teacher_preds_full should be sigmoid, not logits"
+    student_preds_full = torch.cat((s_bbox, s_cls_sigmoid), dim=1)
+    
+    common_nms_args = {
+        "conf_thres": args.get("conf", 0.25) if args.get("conf") else 0.25,
+        "iou_thres": args.get("iou", 0.7) if args.get("iou") else 0.7,
+        "classes": args.get("classes", None),
+        "agnostic": args.get("agnostic_nms", False) if args.get("agnostic_nms") else False,
+        "max_det": args.get("max_det", 300) if args else 300,
+        "nc": 0,
+        "return_idxs": True,
+        "max_time_img": 1
+    }
+
+    _, teacher_preds_final_idxs = non_max_suppression(
+        prediction=teacher_preds_full,
+        **common_nms_args,
+    )
+    
+    selected_student_raw_predictions_list = []
+    selected_teacher_raw_predictions_list = []
+
+    for i in range(batch_size):
+        student_preds_for_image_i = student_preds_full[i, ...].transpose(0, 1)
+        teacher_preds_for_image_i = teacher_preds_full[i, ...].transpose(0, 1)
+        indices_to_select = teacher_preds_final_idxs[i]
+        
+        if indices_to_select.numel() > 0:
+            selected_student_preds = student_preds_for_image_i[indices_to_select]
+            selected_teacher_preds = teacher_preds_for_image_i[indices_to_select]
+            
+        selected_student_raw_predictions_list.append(selected_student_preds)
+        selected_teacher_raw_predictions_list.append(selected_teacher_preds)
+
+    batch_box_regression_loss = torch.zeros(batch_size, dtype=dtype)
+    batch_cls_loss = torch.zeros(batch_size, dtype=dtype)
+    
+    for i in range(batch_size):
+        tp, sp = selected_teacher_raw_predictions_list[i], selected_student_raw_predictions_list[i]
+        s_bboxes, s_cls_sigmoid = torch.split(sp, (4, nc), dim=1)
+        t_bboxes, t_cls_sigmoid = torch.split(tp, (4, nc), dim=1)
+        
+        s_cls_sigmoid = torch.clamp(s_cls_sigmoid, min=eps, max=1-eps)
+        t_cls_sigmoid = torch.clamp(t_cls_sigmoid, min=eps, max=1-eps)
+
+        ciou_loss = complete_box_iou_loss(s_bboxes, t_bboxes, reduction="mean")
+        
+        s_cls_logit = torch.logit(s_cls_sigmoid)
+        s_cls_log_softmax = F.log_softmax(s_cls_logit, dim=1)
+        t_cls_logit = torch.logit(t_cls_sigmoid)
+        t_cls_log_softmax = F.log_softmax(t_cls_logit, dim=1)
+        kl_div_loss = kldivloss(s_cls_log_softmax, t_cls_log_softmax)
+        
+        batch_box_regression_loss[i] = ciou_loss
+        batch_cls_loss[i] = kl_div_loss
+    
+    total_loss = batch_cls_loss.mean() + batch_box_regression_loss.mean()
+    return total_loss
+
+def train_epoch(
+    student_model: nn.Module,
+    teacher_model: nn.Module,
+    train_dataloader: DataLoader,
+    optimizer: optim.Optimizer,
+    detection_criterion: v8DetectionLoss,
+    config_dict: Dict[str, Any],
+    device: str,
+    nc: int = 5
+) -> Dict[str, float]:
+    """
+    Train for one epoch.
+    
+    Args:
+        student_model: Student model to train
+        teacher_model: Teacher model for distillation
+        train_dataloader: DataLoader for training data
+        optimizer: Optimizer for training
+        detection_criterion: Detection loss criterion
+        config_dict: Configuration dictionary
+        device: Device to train on
+        nc: Number of classes
+        
+    Returns:
+        Dictionary containing loss values
+    """
+    student_model.train()
+    teacher_model.eval()
+    
+    batch_loss_dict = {
+        "total_loss": np.array([]),
+        "bbox_loss": np.array([]),
+        "cls_loss": np.array([]),
+        "dfl_loss": np.array([]),
+        "distillation_loss": np.array([])
+    }
+    
+    for batch_idx, batch in enumerate(train_dataloader):
+        optimizer.zero_grad()
+        
+        inputs = batch["img"].to(device)
+        targets = batch["cls"].to(device)
+        
+        student_head_feats = student_model(inputs.float())
+        detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
+        bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
+
+        with torch.no_grad():
+            teacher_preds, _ = teacher_model(inputs.float())
+        
+        student_preds = head_features_decoder(
+            head_feats=student_head_feats, 
+            nc=nc, 
+            detection_criterion=detection_criterion, 
+            device=device
+        ).to(device)
+        
+        distillation_loss = compute_distillation_loss(
+            student_preds, 
+            teacher_preds, 
+            config_dict, 
+            nc=nc, 
+            device=device
+        ).to(device)
+        
+        total_loss = detection_losses.sum() + distillation_loss
+        if total_loss.isnan().any():
+            raise ValueError("Catastrophic Failure: Total loss is NaN")
+            
+        total_loss.backward()
+        optimizer.step()
+        
+        batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss)
+        batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss)
+        batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss)
+        batch_loss_dict["distillation_loss"] = np.append(batch_loss_dict["distillation_loss"], distillation_loss.cpu().detach().numpy())
+    
+    return batch_loss_dict
+
+def save_checkpoint(
+    checkpoint_dir: Path,
+    epoch: int,
+    student_model: nn.Module,
+    optimizer: optim.Optimizer,
+    losses: Dict[str, float],
+    save_checkpoint_every: int=20
+) -> None:
+    """
+    Save model checkpoint.
+    
+    Args:
+        checkpoint_dir: Directory to save checkpoint
+        epoch: Current epoch number
+        student_model: Student model to save
+        optimizer: Optimizer state to save
+        losses: Dictionary of loss values
+    """
+    checkpoint = {
+        'epoch': epoch + 1,
+        'model_state_dict': student_model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': losses['total_loss'],
+        'bbox_loss': losses['bbox_loss'],
+        'cls_loss': losses['cls_loss'],
+        'dfl_loss': losses['dfl_loss']
+    }
+    torch.save(checkpoint, checkpoint_dir / f'checkpoint_epoch_{epoch+1}.pt')
+
+def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
+    """
+    Freeze the first n layers of the model.
+    For example, if num_layers = 10, the first 10 layers (The Backbone) will be frozen.
+    
+    Args:
+        model: The model to freeze layers in
+        num_layers: Number of layers to freeze from the start
+    """
+    # Get all parameters
+    params = list(model.parameters())
+    
+    # Freeze the first n layers
+    manual_freeze = [f"model.{i}." for i in range(num_layers)]
+    perm_freeze = ['.dfl.']
+    total_freeze = set(manual_freeze + perm_freeze)
+    for k, v in model.named_parameters():
+        for layer in total_freeze:
+            if layer in k:
+                v.requires_grad = False
+    
+    # Print which layers are frozen
+    frozen_count = sum(1 for p in model.parameters() if not p.requires_grad)
+    total_count = sum(1 for p in model.parameters())
+    print(f"Frozen {frozen_count}/{total_count} layers in the model")
+
+def start_distillation(
+    num_epochs: int = 200,
+    batch_size: int = 16,
+    device: str = "mps",
+    base_dir: Path = Path(".."),
+    save_checkpoint_every: int = 50,
+    frozen_layers: int = 10 # freeze the Backbone layers
+) -> None:
+    """
+    Start the distillation training process.
+    
+    Args:
+        num_epochs: Number of epochs to train
+        batch_size: Batch size for training
+        device: Device to train on
+        base_dir: Base directory for paths
+        save_checkpoint_every: Save checkpoint every n epochs
+        freeze_backbone_layers: Number of layers to freeze in the backbone
+    """
+    # Load models
+    teacher_yolo, student_yolo = load_models(device, base_dir)
+    teacher_model = teacher_yolo.model
+    student_model = student_yolo.model
+    
+    # Freeze backbone layers if specified
+    if frozen_layers > 0:
+        freeze_layers(student_model, frozen_layers)
+    
+    # Prepare dataset
+    train_dataset, train_dataloader = prepare_dataset(base_dir, student_model, batch_size)
+    
+    # Setup training
+    detection_trainer = DetectionTrainer(cfg=student_model.args)
+    optimizer = detection_trainer.build_optimizer(model=student_model)
+    detection_criterion = v8DetectionLoss(model=student_model)
+    
+    # Create checkpoint directory
+    checkpoint_dir = Path("./checkpoints")
+    checkpoint_dir.mkdir(exist_ok=True)
+    
+    try:
+        for epoch in tqdm(range(num_epochs), desc="Epochs", position=0):
+            # Train one epoch
+            batch_loss_dict = train_epoch(
+                student_model=student_model,
+                teacher_model=teacher_model,
+                train_dataloader=train_dataloader,
+                optimizer=optimizer,
+                detection_criterion=detection_criterion,
+                config_dict=student_model.args,
+                device=device
+            )
+            
+            # Calculate average losses
+            batch_loss_bbox = np.mean(batch_loss_dict["bbox_loss"]).round(4)
+            batch_loss_cls = np.mean(batch_loss_dict["cls_loss"]).round(4)
+            batch_loss_dfl = np.mean(batch_loss_dict["dfl_loss"]).round(4)
+            batch_loss_dist = np.mean(batch_loss_dict["distillation_loss"]).round(4)
+            batch_loss_total = batch_loss_bbox + batch_loss_cls + batch_loss_dfl + batch_loss_dist
+            
+            print(
+                f"Epoch {epoch + 1}: (Overall: {batch_loss_total}, bbox_loss: {batch_loss_bbox}, "
+                f"cls_loss: {batch_loss_cls}, dfl_loss: {batch_loss_dfl}, dist_loss: {batch_loss_dist})"
+            )
+            
+            # Save checkpoint
+            if epoch % save_checkpoint_every == 0:
+                save_checkpoint(
+                    checkpoint_dir=checkpoint_dir,
+                    epoch=epoch,
+                    student_model=student_model,
+                    optimizer=optimizer,
+                    losses={
+                        'total_loss': batch_loss_total,
+                        'bbox_loss': batch_loss_bbox,
+                        'cls_loss': batch_loss_cls,
+                        'dfl_loss': batch_loss_dfl
+                    }
+                )
+            
+    except ValueError as e:
+        print(str(e))
+
+if __name__ == "__main__":
+    start_distillation(device=device, base_dir=Path("..", ".."), frozen_layers=10)
