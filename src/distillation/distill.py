@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision.ops.ciou_loss import complete_box_iou_loss
 import torch.nn.functional as F
@@ -201,6 +202,7 @@ def compute_distillation_loss(
     batch_size = student_preds.shape[0]
     dtype = teacher_preds.dtype
     kldivloss = nn.KLDivLoss(reduction='batchmean', log_target=True)
+    eps = torch.finfo().eps
 
     # Split the concatenated bounding boxes and class scores
     s_bbox, s_cls_logits = torch.split(student_preds, (4, nc), dim=1)
@@ -238,25 +240,25 @@ def compute_distillation_loss(
             selected_student_preds = student_preds_for_image_i[indices_to_select]
             selected_teacher_preds = teacher_preds_for_image_i[indices_to_select]
             
-        selected_student_raw_predictions_list.append(selected_student_preds)
-        selected_teacher_raw_predictions_list.append(selected_teacher_preds)
+            selected_student_raw_predictions_list.append(selected_student_preds)
+            selected_teacher_raw_predictions_list.append(selected_teacher_preds)
 
-    batch_box_regression_loss = torch.zeros(batch_size, dtype=dtype)
-    batch_cls_loss = torch.zeros(batch_size, dtype=dtype)
+    # get the actual batch size (batches with results)
+    actual_batch_size = len(selected_student_raw_predictions_list)
+    batch_box_regression_loss = torch.zeros(actual_batch_size, dtype=dtype)
+    batch_cls_loss = torch.zeros(actual_batch_size, dtype=dtype)
     
-    for i in range(batch_size):
+    for i in range(actual_batch_size):
+            
         tp, sp = selected_teacher_raw_predictions_list[i], selected_student_raw_predictions_list[i]
         s_bboxes, s_cls_sigmoid = torch.split(sp, (4, nc), dim=1)
         t_bboxes, t_cls_sigmoid = torch.split(tp, (4, nc), dim=1)
-        
-        s_cls_sigmoid = torch.clamp(s_cls_sigmoid, min=eps, max=1-eps)
-        t_cls_sigmoid = torch.clamp(t_cls_sigmoid, min=eps, max=1-eps)
 
         ciou_loss = complete_box_iou_loss(s_bboxes, t_bboxes, reduction="mean")
         
-        s_cls_logit = torch.logit(s_cls_sigmoid)
+        s_cls_logit = torch.logit(s_cls_sigmoid, eps=eps)
         s_cls_log_softmax = F.log_softmax(s_cls_logit, dim=1)
-        t_cls_logit = torch.logit(t_cls_sigmoid)
+        t_cls_logit = torch.logit(t_cls_sigmoid, eps=eps)
         t_cls_log_softmax = F.log_softmax(t_cls_logit, dim=1)
         kl_div_loss = kldivloss(s_cls_log_softmax, t_cls_log_softmax)
         
@@ -270,6 +272,7 @@ def train_epoch(
     student_model: nn.Module,
     teacher_model: nn.Module,
     train_dataloader: DataLoader,
+    detection_trainer: DetectionTrainer,
     optimizer: optim.Optimizer,
     detection_criterion: v8DetectionLoss,
     config_dict: Dict[str, Any],
@@ -306,15 +309,17 @@ def train_epoch(
     for batch_idx, batch in enumerate(train_dataloader):
         optimizer.zero_grad()
         
-        inputs = batch["img"].to(device)
-        targets = batch["cls"].to(device)
+        preprocessed_batch = detection_trainer.preprocess_batch(batch)
+        inputs = preprocessed_batch["img"].to(device)
+        targets = preprocessed_batch["cls"].to(device)
         
-        student_head_feats = student_model(inputs.float())
+        student_head_feats = student_model(inputs)
         detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
         bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
 
         with torch.no_grad():
-            teacher_preds, _ = teacher_model(inputs.float())
+            teacher_inputs = batch["img"].to(device)
+            teacher_preds, _ = teacher_model(teacher_inputs)
         
         student_preds = head_features_decoder(
             head_feats=student_head_feats, 
@@ -336,6 +341,11 @@ def train_epoch(
             raise ValueError("Catastrophic Failure: Total loss is NaN")
             
         total_loss.backward()
+        
+        # Clip gradients to prevent exploding gradients (which might introduce NaN)
+        # https://github.com/ultralytics/ultralytics/blob/d564179793b6e6579a08351e2a7d948fe19ad8ca/ultralytics/engine/trainer.py#L637C1-L637C97
+        clip_grad_norm_(student_model.parameters(), max_norm=10.0)
+        
         optimizer.step()
         
         batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss)
@@ -344,6 +354,7 @@ def train_epoch(
         batch_loss_dict["distillation_loss"] = np.append(batch_loss_dict["distillation_loss"], distillation_loss.cpu().detach().numpy())
     
     return batch_loss_dict
+
 
 def save_checkpoint(
     checkpoint_dir: Path,
@@ -364,7 +375,7 @@ def save_checkpoint(
         losses: Dictionary of loss values
     """
     checkpoint = {
-        'epoch': epoch + 1,
+        'epoch': epoch,
         'model_state_dict': student_model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
         'loss': losses['total_loss'],
@@ -372,7 +383,7 @@ def save_checkpoint(
         'cls_loss': losses['cls_loss'],
         'dfl_loss': losses['dfl_loss']
     }
-    torch.save(checkpoint, checkpoint_dir / f'checkpoint_epoch_{epoch+1}.pt')
+    torch.save(checkpoint, checkpoint_dir / f'checkpoint_epoch_{epoch}.pt')
 
 def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
     """
@@ -402,14 +413,109 @@ def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
     total_count = sum(1 for p in model.parameters())
     print(f"Frozen {frozen_count}/{total_count} layers in the model")
 
+def train_loop(
+    num_epochs: int,
+    student_model: nn.Module,
+    teacher_model: nn.Module,
+    train_dataloader: DataLoader,
+    detection_trainer: DetectionTrainer,
+    optimizer: optim.Optimizer,
+    detection_criterion: v8DetectionLoss,
+    config_dict: Dict[str, Any],
+    device: str,
+    checkpoint_dir: Path,
+    save_checkpoint_every: int,
+) -> Dict[str, List[float]]:
+    """
+    Execute the complete training process including all epochs.
+    
+    Args:
+        num_epochs: Number of epochs to train
+        student_model: Student model to train
+        teacher_model: Teacher model for distillation
+        train_dataloader: DataLoader for training data
+        detection_trainer: Detection trainer instance
+        optimizer: Optimizer for training
+        detection_criterion: Detection loss criterion
+        config_dict: Configuration dictionary
+        device: Device to train on
+        checkpoint_dir: Directory to save checkpoints
+        save_checkpoint_every: Save checkpoint every n epochs
+        detection_validator: Optional validator for validation after training
+        
+    Returns:
+        Dictionary containing lists of loss values for each epoch
+    """
+    epoch_losses = {
+        'total_loss': [],
+        'bbox_loss': [],
+        'cls_loss': [],
+        'dfl_loss': [],
+        'dist_loss': []
+    }
+    
+    try:
+        for epoch in tqdm(range(num_epochs), desc="Epochs", position=0):
+            # Train one epoch
+            batch_loss_dict = train_epoch(
+                student_model=student_model,
+                teacher_model=teacher_model,
+                train_dataloader=train_dataloader,
+                detection_trainer=detection_trainer,
+                optimizer=optimizer,
+                detection_criterion=detection_criterion,
+                config_dict=config_dict,
+                device=device
+            )
+            
+            # Calculate average losses
+            batch_loss_bbox = np.mean(batch_loss_dict["bbox_loss"]).round(4)
+            batch_loss_cls = np.mean(batch_loss_dict["cls_loss"]).round(4)
+            batch_loss_dfl = np.mean(batch_loss_dict["dfl_loss"]).round(4)
+            batch_loss_dist = np.mean(batch_loss_dict["distillation_loss"]).round(4)
+            batch_loss_total = batch_loss_bbox + batch_loss_cls + batch_loss_dfl + batch_loss_dist
+            
+            # Store losses
+            epoch_losses['total_loss'].append(batch_loss_total)
+            epoch_losses['bbox_loss'].append(batch_loss_bbox)
+            epoch_losses['cls_loss'].append(batch_loss_cls)
+            epoch_losses['dfl_loss'].append(batch_loss_dfl)
+            epoch_losses['dist_loss'].append(batch_loss_dist)
+            
+            print(
+                f"Epoch {epoch + 1}: (Overall: {batch_loss_total}, bbox_loss: {batch_loss_bbox}, "
+                f"cls_loss: {batch_loss_cls}, dfl_loss: {batch_loss_dfl}, dist_loss: {batch_loss_dist})"
+            )
+            
+            # Save checkpoint
+            if (epoch + 1) % save_checkpoint_every == 0:
+                save_checkpoint(
+                    checkpoint_dir=checkpoint_dir,
+                    epoch=epoch,
+                    student_model=student_model,
+                    optimizer=optimizer,
+                    losses={
+                        'total_loss': batch_loss_total,
+                        'bbox_loss': batch_loss_bbox,
+                        'cls_loss': batch_loss_cls,
+                        'dfl_loss': batch_loss_dfl
+                    }
+                )
+            
+    except ValueError as e:
+        print(str(e))
+        print("Exit training, please check the training process again...")
+    
+    return epoch_losses
+
 def start_distillation(
     num_epochs: int = 200,
     batch_size: int = 16,
     device: str = "cpu",
     base_dir: Path = Path(".."),
-    save_checkpoint_every: int = 50,
+    save_checkpoint_every: int = 25,
     frozen_layers: int = 10 # freeze the Backbone layers
-) -> None:
+) -> Dict[str, List[float]]:
     """
     Start the distillation training process.
     
@@ -419,7 +525,10 @@ def start_distillation(
         device: Device to train on
         base_dir: Base directory for paths
         save_checkpoint_every: Save checkpoint every n epochs
-        freeze_backbone_layers: Number of layers to freeze in the backbone
+        frozen_layers: Number of layers to freeze in the backbone
+        
+    Returns:
+        Dictionary containing lists of loss values for each epoch
     """
     # Load models
     teacher_yolo, student_yolo = load_models(device, base_dir)
@@ -436,6 +545,7 @@ def start_distillation(
     
     # Setup training
     detection_trainer = DetectionTrainer(cfg=student_model.args)
+    detection_validator = DetectionValidator(dataloader=val_dataloader, args=student_model.args)
     optimizer = detection_trainer.build_optimizer(model=student_model)
     detection_criterion = v8DetectionLoss(model=student_model)
     
@@ -443,48 +553,23 @@ def start_distillation(
     checkpoint_dir = Path("./checkpoints")
     checkpoint_dir.mkdir(exist_ok=True)
     
-    try:
-        for epoch in tqdm(range(num_epochs), desc="Epochs", position=0):
-            # Train one epoch
-            batch_loss_dict = train_epoch(
-                student_model=student_model,
-                teacher_model=teacher_model,
-                train_dataloader=train_dataloader,
-                optimizer=optimizer,
-                detection_criterion=detection_criterion,
-                config_dict=student_model.args,
-                device=device
-            )
-            
-            # Calculate average losses
-            batch_loss_bbox = np.mean(batch_loss_dict["bbox_loss"]).round(4)
-            batch_loss_cls = np.mean(batch_loss_dict["cls_loss"]).round(4)
-            batch_loss_dfl = np.mean(batch_loss_dict["dfl_loss"]).round(4)
-            batch_loss_dist = np.mean(batch_loss_dict["distillation_loss"]).round(4)
-            batch_loss_total = batch_loss_bbox + batch_loss_cls + batch_loss_dfl + batch_loss_dist
-            
-            print(
-                f"Epoch {epoch + 1}: (Overall: {batch_loss_total}, bbox_loss: {batch_loss_bbox}, "
-                f"cls_loss: {batch_loss_cls}, dfl_loss: {batch_loss_dfl}, dist_loss: {batch_loss_dist})"
-            )
-            
-            # Save checkpoint
-            if epoch + 1 % save_checkpoint_every == 0:
-                save_checkpoint(
-                    checkpoint_dir=checkpoint_dir,
-                    epoch=epoch,
-                    student_model=student_model,
-                    optimizer=optimizer,
-                    losses={
-                        'total_loss': batch_loss_total,
-                        'bbox_loss': batch_loss_bbox,
-                        'cls_loss': batch_loss_cls,
-                        'dfl_loss': batch_loss_dfl
-                    }
-                )
-            
-    except ValueError as e:
-        print(str(e))
+    # Run training loop
+    train_loop(
+        num_epochs=num_epochs,
+        student_model=student_model,
+        teacher_model=teacher_model,
+        train_dataloader=train_dataloader,
+        detection_trainer=detection_trainer,
+        optimizer=optimizer,
+        detection_criterion=detection_criterion,
+        config_dict=student_model.args,
+        device=device,
+        checkpoint_dir=checkpoint_dir,
+        save_checkpoint_every=save_checkpoint_every,
+    )
+    
+    # Validation
+    detection_validator(model=student_model)
 
 if __name__ == "__main__":
     start_distillation(
@@ -493,5 +578,5 @@ if __name__ == "__main__":
         frozen_layers=10,
         num_epochs=200,
         batch_size=16,
-        save_checkpoint_every=50
+        save_checkpoint_every=25
     )
