@@ -1,5 +1,5 @@
-train: ../../mock_io/data/sampled_dataset/images
-val: ../../mock_io/data/sampled_dataset/images
+train: ../../mock_io/data/distillation/distillation_dataset/train/images
+val: ../../mock_io/data/distillation/distillation_dataset/valid/images
 
 nc: 5
 names:

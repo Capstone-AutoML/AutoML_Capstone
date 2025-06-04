@@ -77,12 +77,12 @@ def load_models(device: str, base_dir: Path) -> Tuple[YOLO, YOLO]:
     
     return teacher_yolo, student_yolo
 
-def prepare_dataset(base_dir: Path, student_model: nn.Module, batch_size: int = 16, mode: str = "train") -> Tuple[YOLODataset, DataLoader]:
+def prepare_dataset(img_path: Path, student_model: nn.Module, batch_size: int = 16, mode: str = "train") -> Tuple[YOLODataset, DataLoader]:
     """
     Prepare dataset and dataloader for training.
     
     Args:
-        base_dir: Base directory for data
+        img_path: Directory containing images
         batch_size: Batch size for training
         
     Returns:
@@ -116,7 +116,7 @@ def prepare_dataset(base_dir: Path, student_model: nn.Module, batch_size: int = 
     
     train_dataset = build_yolo_dataset(
         cfg=student_model.args,
-        img_path = base_dir / "mock_io/data/sampled_dataset/",
+        img_path = img_path,
         batch=batch_size,
         data=data,
         mode=mode,
@@ -591,6 +591,7 @@ def build_optimizer_and_scheduler(
 def start_distillation(
     device: str = "cpu",
     base_dir: Path = Path(".."),
+    img_dir: Path = Path("dataset"),
     save_checkpoint_every: int = 25,
     frozen_layers: int = 10, # freeze the Backbone layers
     lambdas: Dict[str, float] = {
@@ -629,8 +630,8 @@ def start_distillation(
         freeze_layers(student_model, frozen_layers)
     
     # Prepare dataset
-    train_dataset, train_dataloader = prepare_dataset(base_dir, student_model, BATCH_SIZE, mode="train")
-    val_dataset, val_dataloader = prepare_dataset(base_dir, student_model, BATCH_SIZE, mode="val")
+    train_dataset, train_dataloader = prepare_dataset(img_path=base_dir / img_dir / "train", student_model=student_model, batch_size=BATCH_SIZE, mode="train")
+    val_dataset, val_dataloader = prepare_dataset(img_path=base_dir / img_dir / "valid", student_model=student_model, batch_size=BATCH_SIZE, mode="val")
     
     # Setup training
     detection_trainer = DetectionTrainer(cfg=model_args)
@@ -680,6 +681,7 @@ if __name__ == "__main__":
     start_distillation(
         device=device, 
         base_dir=Path("..", ".."), 
+        img_dir=Path("mock_io/data/distillation/distillation_dataset"),
         frozen_layers=10,
         save_checkpoint_every=25,
         lambdas=lambdas
