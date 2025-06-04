@@ -4,7 +4,7 @@ import os
 import sys
 from importlib import reload
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Literal
 # Set environment variable for MPS fallback
 os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
 
@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.nn.utils import clip_grad_norm_
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 from torchvision.ops.ciou_loss import complete_box_iou_loss
 import torch.nn.functional as F
 from tqdm import tqdm
@@ -34,6 +34,7 @@ from ultralytics.models.yolo.detect.val import DetectionValidator
 from ultralytics.models.yolo.detect.predict import DetectionPredictor
 from ultralytics.utils.tal import make_anchors
 from ultralytics.utils.ops import non_max_suppression, xywh2xyxy
+from ultralytics.utils.torch_utils import one_cycle
 
 # Custom modules
 from utils import load_config, detect_device
@@ -180,7 +181,12 @@ def compute_distillation_loss(
     args: Dict[str, Any], 
     nc: int = 80, 
     device: str = "cpu", 
-    eps: float = 1e-7
+    eps: float = 1e-7,
+    reduction: Literal["batchmean", "sum"] = "batchmean",
+    lambdas: Dict[str, float] = {
+        "lambda_dist_ciou": 1.0,
+        "lambda_dist_kl": 2.0
+    }
 ) -> torch.Tensor:
     """
     Compute the distillation loss between the student and teacher predictions.
@@ -201,7 +207,7 @@ def compute_distillation_loss(
 
     batch_size = student_preds.shape[0]
     dtype = teacher_preds.dtype
-    kldivloss = nn.KLDivLoss(reduction='batchmean', log_target=True)
+    kldivloss = nn.KLDivLoss(reduction=reduction, log_target=True)
     eps = torch.finfo().eps
 
     # Split the concatenated bounding boxes and class scores
@@ -209,7 +215,7 @@ def compute_distillation_loss(
     s_cls_sigmoid = torch.sigmoid(s_cls_logits)
     assert torch.all(s_cls_sigmoid >= 0) and torch.all(s_cls_sigmoid <= 1), "s_cls_sigmoid should be sigmoid, not logits"
     teacher_preds_full = teacher_preds.clone()
-    assert torch.all(teacher_preds_full[:, nc:, :] >= 0) and torch.all(teacher_preds_full[:, nc:, :] <= 1), "teacher_preds_full should be sigmoid, not logits"
+    assert torch.all(teacher_preds_full[:, 4:, :] >= 0) and torch.all(teacher_preds_full[:, 4:, :] <= 1), "teacher_preds_full should be sigmoid, not logits"
     student_preds_full = torch.cat((s_bbox, s_cls_sigmoid), dim=1)
     
     common_nms_args = {
@@ -265,7 +271,17 @@ def compute_distillation_loss(
         batch_box_regression_loss[i] = ciou_loss
         batch_cls_loss[i] = kl_div_loss
     
-    total_loss = batch_cls_loss.mean() + batch_box_regression_loss.mean()
+    if reduction == "batchmean":
+        total_loss = (
+            lambdas["lambda_dist_ciou"] * batch_box_regression_loss.mean() + 
+            lambdas["lambda_dist_kl"] * batch_cls_loss.mean()
+        )
+    else:
+        total_loss = (
+            lambdas["lambda_dist_ciou"] * batch_box_regression_loss.sum() + 
+            lambdas["lambda_dist_kl"] * batch_cls_loss.sum()
+        )
+
     return total_loss
 
 def train_epoch(
@@ -276,7 +292,13 @@ def train_epoch(
     optimizer: optim.Optimizer,
     detection_criterion: v8DetectionLoss,
     config_dict: Dict[str, Any],
-    device: str,
+    lambdas: Dict[str, float] = {
+        "lambda_distillation": 2.0,
+        "lambda_detection": 1.0,
+        "lambda_dist_ciou": 1.0,
+        "lambda_dist_kl": 2.0
+    },
+    device: str = "cpu",
     nc: int = 5
 ) -> Dict[str, float]:
     """
@@ -330,13 +352,21 @@ def train_epoch(
         
         distillation_loss = compute_distillation_loss(
             student_preds, 
-            teacher_preds, 
+            teacher_preds,
             config_dict, 
             nc=nc, 
-            device=device
+            device=device,
+            reduction="batchmean",
+            lambdas=lambdas
         ).to(device)
         
-        total_loss = detection_losses.sum() + distillation_loss
+        # weighted sum of detection loss and distillation loss
+        total_loss = (
+            lambdas["lambda_detection"] * detection_losses.sum() + 
+            lambdas["lambda_distillation"] * distillation_loss + 
+            lambdas["lambda_dist_ciou"] * bbox_loss + 
+            lambdas["lambda_dist_kl"] * cls_loss
+        )
         if total_loss.isnan().any():
             raise ValueError("Catastrophic Failure: Total loss is NaN")
             
@@ -362,7 +392,6 @@ def save_checkpoint(
     student_model: nn.Module,
     optimizer: optim.Optimizer,
     losses: Dict[str, float],
-    save_checkpoint_every: int=20
 ) -> None:
     """
     Save model checkpoint.
@@ -384,6 +413,7 @@ def save_checkpoint(
         'dfl_loss': losses['dfl_loss']
     }
     torch.save(checkpoint, checkpoint_dir / f'checkpoint_epoch_{epoch}.pt')
+
 
 def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
     """
@@ -413,6 +443,7 @@ def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
     total_count = sum(1 for p in model.parameters())
     print(f"Frozen {frozen_count}/{total_count} layers in the model")
 
+
 def train_loop(
     num_epochs: int,
     student_model: nn.Module,
@@ -420,11 +451,18 @@ def train_loop(
     train_dataloader: DataLoader,
     detection_trainer: DetectionTrainer,
     optimizer: optim.Optimizer,
+    learning_rate_scheduler: LambdaLR,
     detection_criterion: v8DetectionLoss,
     config_dict: Dict[str, Any],
     device: str,
     checkpoint_dir: Path,
     save_checkpoint_every: int,
+    lambdas: Dict[str, float] = {
+        "lambda_distillation": 2.0,
+        "lambda_detection": 1.0,
+        "lambda_dist_ciou": 1.0,
+        "lambda_dist_kl": 2.0
+    }
 ) -> Dict[str, List[float]]:
     """
     Execute the complete training process including all epochs.
@@ -455,7 +493,7 @@ def train_loop(
     }
     
     try:
-        for epoch in tqdm(range(num_epochs), desc="Epochs", position=0):
+        for epoch in tqdm(range(1, num_epochs + 1), desc="Epochs", position=0):
             # Train one epoch
             batch_loss_dict = train_epoch(
                 student_model=student_model,
@@ -465,8 +503,11 @@ def train_loop(
                 optimizer=optimizer,
                 detection_criterion=detection_criterion,
                 config_dict=config_dict,
-                device=device
+                device=device,
+                lambdas=lambdas
             )
+            
+            learning_rate_scheduler.step()
             
             # Calculate average losses
             batch_loss_bbox = np.mean(batch_loss_dict["bbox_loss"]).round(4)
@@ -483,12 +524,12 @@ def train_loop(
             epoch_losses['dist_loss'].append(batch_loss_dist)
             
             print(
-                f"Epoch {epoch + 1}: (Overall: {batch_loss_total}, bbox_loss: {batch_loss_bbox}, "
+                f"Epoch {epoch}: (Overall: {batch_loss_total}, bbox_loss: {batch_loss_bbox}, "
                 f"cls_loss: {batch_loss_cls}, dfl_loss: {batch_loss_dfl}, dist_loss: {batch_loss_dist})"
             )
             
             # Save checkpoint
-            if (epoch + 1) % save_checkpoint_every == 0:
+            if epoch % save_checkpoint_every == 0:
                 save_checkpoint(
                     checkpoint_dir=checkpoint_dir,
                     epoch=epoch,
@@ -508,25 +549,67 @@ def train_loop(
     
     return epoch_losses
 
+
+def build_optimizer_and_scheduler(
+    model: DetectionModel,
+    detection_trainer: DetectionTrainer,
+    model_args: Dict[str, Any]
+) -> Tuple[optim.Optimizer, LambdaLR]:
+    """
+    Build the optimizer and learning rate scheduler.
+    
+    Args:
+        model: DetectionModel instance
+        detection_trainer: DetectionTrainer instance
+        model_args: Model arguments
+
+    Returns:
+        Tuple of optimizer and learning rate scheduler
+    """
+    
+    optimizer = detection_trainer.build_optimizer(
+        model=model,
+        name=model_args.optimizer,
+        lr=model_args.lr0,
+        momentum=model_args.momentum,
+        decay=model_args.weight_decay,
+    )
+    
+    # https://github.com/ultralytics/ultralytics/blob/487e27639595047cff8775dab5e2ff268d8647c4/ultralytics/engine/trainer.py#L229
+    if model_args.cos_lr:
+        lambda_func = one_cycle(1, model_args.lrf, model_args.epochs)
+    else:
+        lambda_func = lambda x: max(1 - x / model_args.epochs, 0) * (1.0 - model_args.lrf) + model_args.lrf
+    
+    learning_rate_scheduler = LambdaLR(
+        optimizer=optimizer,
+        lr_lambda=lambda_func,
+    )
+    
+    return optimizer, learning_rate_scheduler
+
 def start_distillation(
-    num_epochs: int = 200,
-    batch_size: int = 16,
     device: str = "cpu",
     base_dir: Path = Path(".."),
     save_checkpoint_every: int = 25,
-    frozen_layers: int = 10 # freeze the Backbone layers
+    frozen_layers: int = 10, # freeze the Backbone layers
+    lambdas: Dict[str, float] = {
+        "lambda_distillation": 2.0,
+        "lambda_detection": 1.0,
+        "lambda_dist_ciou": 1.0,
+        "lambda_dist_kl": 2.0
+    }
 ) -> Dict[str, List[float]]:
     """
     Start the distillation training process.
     
     Args:
-        num_epochs: Number of epochs to train
-        batch_size: Batch size for training
         device: Device to train on
         base_dir: Base directory for paths
         save_checkpoint_every: Save checkpoint every n epochs
         frozen_layers: Number of layers to freeze in the backbone
-        
+        lambdas: Dictionary of lambda values for each loss function
+
     Returns:
         Dictionary containing lists of loss values for each epoch
     """
@@ -535,18 +618,29 @@ def start_distillation(
     teacher_model = teacher_yolo.model
     student_model = student_yolo.model
     
+    model_args = student_model.args
+    model_args.mode = "train"
+
+    BATCH_SIZE = model_args.batch
+    EPOCHS = model_args.epochs
+
     # Freeze backbone layers if specified
     if frozen_layers > 0:
         freeze_layers(student_model, frozen_layers)
     
     # Prepare dataset
-    train_dataset, train_dataloader = prepare_dataset(base_dir, student_model, batch_size, mode="train")
-    val_dataset, val_dataloader = prepare_dataset(base_dir, student_model, batch_size, mode="val")
+    train_dataset, train_dataloader = prepare_dataset(base_dir, student_model, BATCH_SIZE, mode="train")
+    val_dataset, val_dataloader = prepare_dataset(base_dir, student_model, BATCH_SIZE, mode="val")
     
     # Setup training
-    detection_trainer = DetectionTrainer(cfg=student_model.args)
-    detection_validator = DetectionValidator(dataloader=val_dataloader, args=student_model.args)
-    optimizer = detection_trainer.build_optimizer(model=student_model)
+    detection_trainer = DetectionTrainer(cfg=model_args)
+    
+    optimizer, learning_rate_scheduler = build_optimizer_and_scheduler(
+        model=student_model,
+        detection_trainer=detection_trainer,
+        model_args=model_args
+    )
+    
     detection_criterion = v8DetectionLoss(model=student_model)
     
     # Create checkpoint directory
@@ -555,28 +649,38 @@ def start_distillation(
     
     # Run training loop
     train_loop(
-        num_epochs=num_epochs,
+        num_epochs=EPOCHS,
         student_model=student_model,
         teacher_model=teacher_model,
         train_dataloader=train_dataloader,
         detection_trainer=detection_trainer,
         optimizer=optimizer,
+        learning_rate_scheduler=learning_rate_scheduler,
         detection_criterion=detection_criterion,
         config_dict=student_model.args,
         device=device,
         checkpoint_dir=checkpoint_dir,
         save_checkpoint_every=save_checkpoint_every,
+        lambdas=lambdas
     )
     
-    # Validation
+    # # Validation
+    model_args.mode = "val"
+    detection_validator = DetectionValidator(dataloader=val_dataloader, args=model_args)
     detection_validator(model=student_model)
 
 if __name__ == "__main__":
+    
+    lambdas = {
+        "lambda_distillation": 2.0,
+        "lambda_detection": 1.0,
+        "lambda_dist_ciou": 1.0,
+        "lambda_dist_kl": 2.0
+    }
     start_distillation(
         device=device, 
         base_dir=Path("..", ".."), 
         frozen_layers=10,
-        num_epochs=200,
-        batch_size=16,
-        save_checkpoint_every=25
+        save_checkpoint_every=25,
+        lambdas=lambdas
     )

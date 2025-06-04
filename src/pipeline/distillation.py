@@ -8,6 +8,7 @@ with distillation loss to transfer knowledge effectively.
 from pathlib import Path
 from typing import Dict, Optional, Tuple, List
 import torch
+from torch.utils.data import DataLoader
 from ultralytics import YOLO
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,45 +16,70 @@ import yaml
 import json
 from datetime import datetime
 from tqdm import tqdm
+from ultralytics.utils.loss import DFLoss, VarifocalLoss, FocalLoss, BboxLoss, bbox_iou
+from ultralytics.utils.ops import non_max_suppression
+import cv2
+import os
 
-def _get_default_distill_config() -> Dict:
+
+class CIoULoss(nn.Module):
+    def __init__(self, reduction: str = 'mean'):
+        super().__init__()
+        self.reduction = reduction
+
+    def forward(self, pred, target):
+        return bbox_iou(pred, target, x1y1x2y2=True, CIoU=True)
+
+class YOLODataset(torch.utils.data.Dataset):
     """
-    Get default distillation configuration parameters.
+    Dataset class for YOLOv8 model training.
     
-    Returns:
-        Dict: Default configuration dictionary
+    This class provides a PyTorch dataset for training YOLOv8 models. It handles
+    image loading, resizing, and annotation parsing. The dataset supports optional
+    data augmentation and normalization transformations.
+    It will yield images and their corresponding ground truth boxes
+    in the format of [class_label, x_center, y_center, width, height]
+    Note that x_center, y_center, width, height are normalized to the image size, thus are float 0-1
     """
-    return {
-        'epochs': 100,
-        'batch': 16,
-        'imgsz': 640,
-        'workers': 8,
-        'project': 'distilled_model',
-        'name': 'student_model',
-        'exist_ok': True,
-        'pretrained': True,
-        'optimizer': 'SGD',
-        'lr0': 0.01,
-        'momentum': 0.937,
-        'weight_decay': 0.0005,
-        'warmup_epochs': 3.0,
-        'warmup_momentum': 0.8,
-        'warmup_bias_lr': 0.1,
-        'box': 7.5,
-        'cls': 0.5,
-        'dfl': 1.5,
-        'fl_gamma': 0.0,
-        'label_smoothing': 0.0,
-        'nbs': 64,
-        'overlap_mask': True,
-        'mask_ratio': 4,
-        'dropout': 0.0,
-        'val': True,
-        'plots': True,
-        'distillation_loss_weight': 0.5,
-        'temperature': 2.0,
-        'student_model': 'yolov8n.yaml'  # Default to nano model
-    }
+    def __init__(self, img_dir, label_dir, img_size=640, transforms=None):
+        self.img_dir = img_dir
+        self.label_dir = label_dir
+        self.img_size = img_size  # can be int or (H, W) tuple
+        self.transforms = transforms
+        self.images = os.listdir(img_dir)
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img_name = Path(self.images[idx])
+        img_path = Path(self.img_dir, img_name)
+        label_path = Path(self.label_dir, img_name.stem + ".txt")
+
+        # Load image
+        image = cv2.imread(img_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # Resize image
+        if isinstance(self.img_size, int):
+            target_h, target_w = self.img_size, self.img_size
+        else:
+            target_h, target_w = self.img_size
+        # https://github.com/ultralytics/ultralytics/issues/4510#issuecomment-1689938511
+        image = cv2.resize(image, (target_w, target_h), interpolation=cv2.INTER_AREA)
+
+        # Load and scale annotations
+        boxes = []
+        with open(label_path, "r") as f:
+            for line in f.readlines():
+                class_label, x, y, w, h = map(float, line.strip().split())
+                boxes.append([class_label, x, y, w, h])
+
+        # permute image to (C, H, W) and normalize pixel values to 0-1
+        image = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
+        print(img_path)
+        print(label_path)
+        return image, torch.tensor(boxes)
 
 def _save_distill_config(config: Dict, config_registry_path: Path) -> str:
     """
@@ -86,18 +112,20 @@ def _save_distill_config(config: Dict, config_registry_path: Path) -> str:
     
     return str(config_path)
 
-def compute_detection_loss(
+def _compute_detection_loss(
     student_preds: torch.Tensor,
     ground_truth: torch.Tensor,
     config: Dict
 ) -> torch.Tensor:
     """
+    See https://github.com/ultralytics/ultralytics/blob/3556ef31fbd43da044fb6765e8e26e2698b2cbdc/ultralytics/utils/loss.py#L194
+    for the implementation of the loss functions
     Compute the standard detection loss between student predictions and ground truth.
     
-    This function calculates the YOLO detection loss, which typically includes:
-    - Objectness loss (whether an object exists)
-    - Classification loss (what class the object belongs to)
-    - Bounding box regression loss (where the object is located)
+    This function calculates the YOLO detection loss using:
+    - BCEWithLogitsLoss for classification
+    - CIoU Loss for box regression
+    - Distribution Focal Loss for precise box localization
     
     Args:
         student_preds (torch.Tensor): Predictions from the student model, containing
@@ -107,14 +135,43 @@ def compute_detection_loss(
         config (Dict): Configuration containing loss parameters such as:
             - box_loss_weight: Weight for bounding box regression loss
             - cls_loss_weight: Weight for classification loss
-            - obj_loss_weight: Weight for objectness loss
+            - dfl_loss_weight: Weight for distribution focal loss
             
     Returns:
         torch.Tensor: Total detection loss value
     """
-    pass
+    # Initialize loss components
+    loss_cls = nn.BCEWithLogitsLoss(reduction='none')
+    loss_box = CIoULoss(reduction='mean')
+    loss_dfl = DFLoss()
+    
+    # Extract predictions and ground truth
+    pred_cls = student_preds[..., 4:]  # Class predictions
+    pred_box = student_preds[..., :4]  # Box coordinates
+    pred_dfl = student_preds[..., 4:8]  # DFL predictions
+    
+    gt_cls = ground_truth[..., 4:]  # Ground truth classes
+    gt_box = ground_truth[..., :4]  # Ground truth boxes
+    gt_dfl = ground_truth[..., 4:8]  # Ground truth DFL targets
+    
+    # Compute losses
+    cls_loss = loss_cls(pred_cls, gt_cls)
+    box_loss = loss_box(pred_box, gt_box)
+    dfl_loss = loss_dfl(pred_dfl, gt_dfl)
+    
+    # Get weights from config
+    box_weight = config.get('box_loss_weight', 7.5)
+    cls_weight = config.get('cls_loss_weight', 0.5)
+    dfl_weight = config.get('dfl_loss_weight', 1.5)
+    
+    # Combine losses
+    total_loss = (box_weight * box_loss + 
+                 cls_weight * cls_loss + 
+                 dfl_weight * dfl_loss)
+    
+    return total_loss
 
-def compute_distillation_loss(
+def _compute_distillation_loss(
     student_preds: torch.Tensor,
     teacher_preds: torch.Tensor,
     temperature: float,
@@ -141,7 +198,7 @@ def compute_distillation_loss(
     """
     pass
 
-def combine_losses(
+def _combine_losses(
     detection_loss: torch.Tensor,
     distillation_loss: torch.Tensor,
     alpha: float
@@ -166,7 +223,7 @@ def combine_losses(
     """
     pass
 
-def train_distillation_step(
+def _train_distillation_step(
     student_model: YOLO,
     teacher_model: YOLO,
     batch: torch.Tensor,
@@ -198,9 +255,30 @@ def train_distillation_step(
     """
     pass
 
+def _get_dataloader(
+    img_dir: Path, label_dir: Path, batch_size: int=16,shuffle: bool=True
+) -> DataLoader:
+    
+    def yolo_collate_fn(batch):
+        images, targets = zip(*batch)
+        return list(images), list(targets)
+
+    dataset = YOLODataset(
+        img_dir=img_dir,
+        label_dir=label_dir,
+        transforms=None
+    )
+
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=yolo_collate_fn
+    )
+    return data_loader
+
 def distill_model(
     teacher_model_path: str,
-    student_model_path: str,
     train_data: str,
     config: Dict,
     output_dir: Path
@@ -241,8 +319,8 @@ def distill_model(
     logs_dir.mkdir(exist_ok=True)
     
     # Load models
-    teacher_model = YOLO(teacher_model_path)
-    student_model = YOLO(student_model_path)
+    teacher_model = YOLO(teacher_model_path).model
+    student_model = YOLO("yolov8n.yaml").model
     
     # Set device
     device = config.get("device", "cuda" if torch.cuda.is_available() else "cpu")
@@ -253,9 +331,19 @@ def distill_model(
     teacher_model.eval()
     student_model.train()
     
-    # Load training data configuration
-    with open(train_data, 'r') as f:
-        data_config = yaml.safe_load(f)
+    # Get data loader
+    data_loader = _get_dataloader(
+        img_dir=train_data,
+        label_dir=train_data,
+        batch_size=config.get("batch_size", 16),
+        shuffle=config.get("shuffle", True)
+    )
+    
+    # Training loop
+    for epoch in range(config.get("epochs", 100)):
+        for batch in data_loader:
+            imgs, targets = batch
+            pass
     
     # Initialize metrics dictionary
     metrics = {
@@ -265,39 +353,4 @@ def distill_model(
         "val_metrics": []
     }
     
-    # Training loop
-    for epoch in range(config["epochs"]):
-        # Training step
-        batch_loss, loss_components = train_distillation_step(
-            student_model=student_model,
-            teacher_model=teacher_model,
-            batch=None,  # Will be implemented with data loader
-            ground_truth=None,  # Will be implemented with data loader
-            config=config
-        )
-        
-        # Update metrics
-        metrics["detection_loss"].append(loss_components["detection_loss"])
-        metrics["distillation_loss"].append(loss_components["distillation_loss"])
-        metrics["total_loss"].append(batch_loss)
-        
-        # Save checkpoint
-        if (epoch + 1) % config.get("save_interval", 10) == 0:
-            checkpoint_path = weights_dir / f"checkpoint_epoch_{epoch+1}.pt"
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': student_model.state_dict(),
-                'optimizer_state_dict': None,  # Will be implemented with optimizer
-                'loss': batch_loss,
-            }, checkpoint_path)
     
-    # Save final model
-    final_model_path = weights_dir / "distilled_model.pt"
-    torch.save(student_model.state_dict(), final_model_path)
-    
-    # Save training metrics
-    metrics_path = logs_dir / "training_metrics.json"
-    with open(metrics_path, 'w') as f:
-        json.dump(metrics, f, indent=2)
-    
-    return str(final_model_path), metrics
