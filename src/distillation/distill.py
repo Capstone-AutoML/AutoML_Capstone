@@ -889,5 +889,5 @@ if __name__ == "__main__":
         hyperparams=hyperparams,
         resume_checkpoint="checkpoints/checkpoint_epoch_199.pt",  # Set to checkpoint path to resume training
         log_dir=Path("./logs"),  # Directory to save training logs
-        log_level="batch"  # Log at epoch level instead of batch level
+        log_level="epoch"  # Log at epoch level instead of batch level
     )
