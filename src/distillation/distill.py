@@ -2,7 +2,6 @@
 import json
 import os
 import sys
-from importlib import reload
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any, Literal
 # Set environment variable for MPS fallback
@@ -15,7 +14,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.nn.utils import clip_grad_norm_
-from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
+from torch.optim.lr_scheduler import LambdaLR
 from torchvision.ops.ciou_loss import complete_box_iou_loss
 import torch.nn.functional as F
 from tqdm import tqdm
@@ -30,12 +29,11 @@ from ultralytics import YOLO
 from ultralytics.models.yolo.model import DetectionModel
 from ultralytics.cfg import get_cfg, YAML
 from ultralytics.utils.loss import v8DetectionLoss
-from ultralytics.data.build import build_yolo_dataset, build_dataloader, YOLODataset, InfiniteDataLoader
+from ultralytics.data.build import build_yolo_dataset, build_dataloader, YOLODataset
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from ultralytics.models.yolo.detect.val import DetectionValidator
-from ultralytics.models.yolo.detect.predict import DetectionPredictor
 from ultralytics.utils.tal import make_anchors
-from ultralytics.utils.ops import non_max_suppression, xywh2xyxy
+from ultralytics.utils.ops import non_max_suppression
 from ultralytics.utils.torch_utils import one_cycle
 
 # Custom modules
@@ -586,7 +584,7 @@ def train_loop(
     },
     start_epoch: int = 1,
     log_file: Optional[Path] = None,
-    log_level: Literal["batch", "epoch"] = "batch"
+    log_level: Literal["batch", "epoch"] = "epoch"
 ) -> Dict[str, List[float]]:
     """
     Execute the complete training process including all epochs.
