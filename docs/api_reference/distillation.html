@@ -1,0 +1,365 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distillation and Quantization &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a49bda7b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Utility Scripts" href="utils.html" />
+    <link rel="prev" title="Augmentation and Training" href="training.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            AutoML CI/CD/CT: Continuous Training and Deployment Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup_guide.html">Setup Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pipeline_overview.html">Pipeline Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distillation_quantization.html">Distillation and Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../evaluation.html">Evaluation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Code Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prelabeling.html">Prelabeling Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="training.html">Augmentation and Training</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Distillation and Quantization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.combine_losses"><code class="docutils literal notranslate"><span class="pre">combine_losses()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.compute_detection_loss"><code class="docutils literal notranslate"><span class="pre">compute_detection_loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.compute_distillation_loss"><code class="docutils literal notranslate"><span class="pre">compute_distillation_loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distill_model"><code class="docutils literal notranslate"><span class="pre">distill_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.train_distillation_step"><code class="docutils literal notranslate"><span class="pre">train_distillation_step()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.quantization.fp16_quantization"><code class="docutils literal notranslate"><span class="pre">fp16_quantization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.quantization.onnx_quantization"><code class="docutils literal notranslate"><span class="pre">onnx_quantization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.quantization.quantize_model"><code class="docutils literal notranslate"><span class="pre">quantize_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Scripts</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">AutoML CI/CD/CT: Continuous Training and Deployment Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Code Reference</a></li>
+      <li class="breadcrumb-item active">Distillation and Quantization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api_reference/distillation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-src.pipeline.distillation">
+<span id="distillation-and-quantization"></span><h1>Distillation and Quantization<a class="headerlink" href="#module-src.pipeline.distillation" title="Link to this heading"></a></h1>
+<p>Script for model optimization through distillation.</p>
+<p>This module implements knowledge distillation for YOLOv8 models, where a smaller student model
+learns from a larger teacher model. The distillation process combines standard detection loss
+with distillation loss to transfer knowledge effectively.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.combine_losses">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">combine_losses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detection_loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distillation_loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#combine_losses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.combine_losses" title="Link to this definition"></a></dt>
+<dd><p>Combine detection and distillation losses using weighted sum.</p>
+<p>This function implements the weighted combination of the standard detection
+loss and the distillation loss. The alpha parameter controls the trade-off
+between learning from ground truth and learning from the teacher model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>detection_loss</strong> (<em>torch.Tensor</em>) – Standard detection loss between student
+predictions and ground truth</p></li>
+<li><p><strong>distillation_loss</strong> (<em>torch.Tensor</em>) – Distillation loss between student
+and teacher predictions</p></li>
+<li><p><strong>alpha</strong> (<em>float</em>) – Weight for detection loss (1-alpha for distillation).
+Should be between 0 and 1</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Combined loss value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.compute_detection_loss">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">compute_detection_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#compute_detection_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.compute_detection_loss" title="Link to this definition"></a></dt>
+<dd><p>Compute the standard detection loss between student predictions and ground truth.</p>
+<p>This function calculates the YOLO detection loss, which typically includes:
+- Objectness loss (whether an object exists)
+- Classification loss (what class the object belongs to)
+- Bounding box regression loss (where the object is located)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>student_preds</strong> (<em>torch.Tensor</em>) – Predictions from the student model, containing
+objectness scores, class probabilities, and bounding box coordinates</p></li>
+<li><p><strong>ground_truth</strong> (<em>torch.Tensor</em>) – Ground truth labels in YOLO format, containing
+objectness, class labels, and bounding box coordinates</p></li>
+<li><p><strong>config</strong> (<em>Dict</em>) – Configuration containing loss parameters such as:
+- box_loss_weight: Weight for bounding box regression loss
+- cls_loss_weight: Weight for classification loss
+- obj_loss_weight: Weight for objectness loss</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Total detection loss value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.compute_distillation_loss">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">compute_distillation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#compute_distillation_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.compute_distillation_loss" title="Link to this definition"></a></dt>
+<dd><p>Compute the distillation loss between student and teacher predictions.</p>
+<p>This function implements knowledge distillation using KL divergence between
+the softened probability distributions of teacher and student models. The
+temperature parameter controls the softness of the probability distributions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>student_preds</strong> (<em>torch.Tensor</em>) – Raw logits from the student model</p></li>
+<li><p><strong>teacher_preds</strong> (<em>torch.Tensor</em>) – Raw logits from the teacher model</p></li>
+<li><p><strong>temperature</strong> (<em>float</em>) – Temperature parameter for softening probabilities.
+Higher values make the distribution softer</p></li>
+<li><p><strong>config</strong> (<em>Dict</em>) – Configuration containing:
+- distillation_loss_weight: Weight for the distillation loss
+- feature_distillation: Whether to include feature-level distillation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Distillation loss value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distill_model">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">distill_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">teacher_model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">student_model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#distill_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distill_model" title="Link to this definition"></a></dt>
+<dd><p>Main function to perform model distillation.</p>
+<p>This function orchestrates the entire distillation process, including:
+- Loading teacher and student models
+- Setting up data loaders
+- Training loop with distillation
+- Model checkpointing
+- Performance evaluation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>teacher_model_path</strong> (<em>str</em>) – Path to the teacher model weights</p></li>
+<li><p><strong>student_model_path</strong> (<em>str</em>) – Path to the student model weights</p></li>
+<li><p><strong>train_data</strong> (<em>str</em>) – Path to training data configuration (YAML)</p></li>
+<li><p><strong>config</strong> (<em>Dict</em>) – Distillation configuration containing:
+- epochs: Number of training epochs
+- batch_size: Batch size for training
+- temperature: For softening probabilities
+- alpha: Weight for detection vs distillation loss
+- optimizer: Optimizer configuration
+- learning_rate: Learning rate for training
+- device: Device to use for training</p></li>
+<li><p><strong>output_dir</strong> (<em>Path</em>) – Directory to save the distilled model and logs</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Path to distilled model and dictionary containing</dt><dd><p>training metrics (loss history, validation performance, etc.)</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[str, Dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.train_distillation_step">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">train_distillation_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">YOLO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">YOLO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#train_distillation_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.train_distillation_step" title="Link to this definition"></a></dt>
+<dd><p>Perform a single training step for knowledge distillation.</p>
+<p>This function executes one training iteration of the distillation process,
+including forward passes through both models, loss computation, and
+backpropagation. It handles the teacher model in evaluation mode and
+the student model in training mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>student_model</strong> (<em>YOLO</em>) – Student model to train, in training mode</p></li>
+<li><p><strong>teacher_model</strong> (<em>YOLO</em>) – Teacher model for guidance, in evaluation mode</p></li>
+<li><p><strong>batch</strong> (<em>torch.Tensor</em>) – Batch of input images</p></li>
+<li><p><strong>ground_truth</strong> (<em>torch.Tensor</em>) – Ground truth labels for the batch</p></li>
+<li><p><strong>config</strong> (<em>Dict</em>) – Training configuration containing:
+- temperature: For softening probabilities
+- alpha: Weight for detection vs distillation loss
+- optimizer: Optimizer configuration
+- learning_rate: Learning rate for training</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Combined loss and dictionary</dt><dd><p>containing individual loss components (detection_loss, distillation_loss)</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[torch.Tensor, Dict[str, float]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-src.pipeline.quantization">Script for model quantization to reduce size and improve inference speed.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.quantization.fp16_quantization">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.quantization.</span></span><span class="sig-name descname"><span class="pre">fp16_quantization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/pipeline/quantization.html#fp16_quantization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.quantization.fp16_quantization" title="Link to this definition"></a></dt>
+<dd><p>Apply FP16 quantization to the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – YOLO model to quantize</p></li>
+<li><p><strong>output_path</strong> – Path to save the quantized model</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the quantized model</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.quantization.onnx_quantization">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.quantization.</span></span><span class="sig-name descname"><span class="pre">onnx_quantization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocessed_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/pipeline/quantization.html#onnx_quantization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.quantization.onnx_quantization" title="Link to this definition"></a></dt>
+<dd><p>Apply ONNX dynamic quantization to the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – YOLO model to quantize</p></li>
+<li><p><strong>output_path</strong> – Path to save the final quantized model</p></li>
+<li><p><strong>preprocessed_path</strong> – Path to save the preprocessed ONNX model</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the quantized model</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.quantization.quantize_model">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.quantization.</span></span><span class="sig-name descname"><span class="pre">quantize_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/src/pipeline/quantization.html#quantize_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.quantization.quantize_model" title="Link to this definition"></a></dt>
+<dd><p>Apply quantization to the model to reduce size and improve inference speed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_path</strong> (<em>str</em>) – Path to the model to quantize</p></li>
+<li><p><strong>config</strong> (<em>dict</em>) – Quantization configuration parameters</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the quantized model</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="training.html" class="btn btn-neutral float-left" title="Augmentation and Training" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utility Scripts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Elshaday Yoseph, Nhan Tien Nguyen, Rongze Liu and Sepehr Heydarian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

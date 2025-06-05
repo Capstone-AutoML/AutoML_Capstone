@@ -1,12 +1,28 @@
 {
   "distillation_image_prop": 0.2,
   "torch_device": "cpu",
-  "dino_box_threshold": 0.3,
-  "dino_text_threshold": 0.25,
   "iou_threshold": 0.5,
   "low_conf_threshold": 0.3,
   "mid_conf_threshold": 0.6,
+  "dino_box_threshold": 0.3,
+  "dino_text_threshold": 0.25,
   "dino_false_negative_threshold": 0.5,
+
+  "augmentation_config": {
+    "num_augmentations": 3,
+    "horizontal_flip_prob": 0.5,
+    "brightness_contrast_prob": 0.5,
+    "hue_saturation_prob": 0.5,
+    "blur_prob": 0.3,
+    "blur_limit": 3,
+    "gauss_noise_prob": 0.3,
+    "gauss_noise_var_min": 10.0,
+    "gauss_noise_var_max": 50.0,
+    "grayscale_prob": 0.2,
+    "rotate_prob": 0.4,
+    "rotate_limit": 15
+  },
+
   "distillation_config": {
     "epochs": 100,
     "batch": 16,
@@ -33,5 +49,13 @@
     "distillation_loss_weight": 0.5,
     "temperature": 2.0,
     "student_model": "yolov8n.yaml"
-  }
+  },
+
+  "augmented_images_path": "mock_io/data/augmented/images",
+  "augmented_labels_path": "mock_io/data/augmented/labels",
+  "true_negative_images_path": "mock_io/data/augmented/no_prediction_images",
+  "training_output_path": "mock_io/data/training",
+  "train_val_split": [0.7, 0.2, 0.1],
+  "data_yaml_path": "mock_io/data/training/data.yaml",
+  "quantization_method": "ONNX"
 }

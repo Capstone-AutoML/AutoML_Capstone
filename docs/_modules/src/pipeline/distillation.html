@@ -1,0 +1,431 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.pipeline.distillation &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=a49bda7b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AutoML CI/CD/CT: Continuous Training and Deployment Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../setup_guide.html">Setup Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pipeline_overview.html">Pipeline Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../distillation_quantization.html">Distillation and Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_reference/index.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AutoML CI/CD/CT: Continuous Training and Deployment Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.pipeline.distillation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.pipeline.distillation</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Script for model optimization through distillation.</span>
+
+<span class="sd">This module implements knowledge distillation for YOLOv8 models, where a smaller student model</span>
+<span class="sd">learns from a larger teacher model. The distillation process combines standard detection loss</span>
+<span class="sd">with distillation loss to transfer knowledge effectively.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_default_distill_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get default distillation configuration parameters.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict: Default configuration dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;epochs&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="s1">&#39;batch&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="s1">&#39;imgsz&#39;</span><span class="p">:</span> <span class="mi">640</span><span class="p">,</span>
+        <span class="s1">&#39;workers&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="s1">&#39;project&#39;</span><span class="p">:</span> <span class="s1">&#39;distilled_model&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;student_model&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;exist_ok&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;pretrained&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="s1">&#39;SGD&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;lr0&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="s1">&#39;momentum&#39;</span><span class="p">:</span> <span class="mf">0.937</span><span class="p">,</span>
+        <span class="s1">&#39;weight_decay&#39;</span><span class="p">:</span> <span class="mf">0.0005</span><span class="p">,</span>
+        <span class="s1">&#39;warmup_epochs&#39;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span>
+        <span class="s1">&#39;warmup_momentum&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
+        <span class="s1">&#39;warmup_bias_lr&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="s1">&#39;box&#39;</span><span class="p">:</span> <span class="mf">7.5</span><span class="p">,</span>
+        <span class="s1">&#39;cls&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s1">&#39;dfl&#39;</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">,</span>
+        <span class="s1">&#39;fl_gamma&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;label_smoothing&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;nbs&#39;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span>
+        <span class="s1">&#39;overlap_mask&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;mask_ratio&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s1">&#39;dropout&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;val&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;plots&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;distillation_loss_weight&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="s1">&#39;student_model&#39;</span><span class="p">:</span> <span class="s1">&#39;yolov8n.yaml&#39;</span>  <span class="c1"># Default to nano model</span>
+    <span class="p">}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_save_distill_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">config_registry_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save distillation configuration to the config registry.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        config (Dict): Distillation configuration to save</span>
+<span class="sd">        config_registry_path (Path): Path to config registry directory</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Path to saved config file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create timestamp for versioning</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S&quot;</span><span class="p">)</span>
+    <span class="n">config_path</span> <span class="o">=</span> <span class="n">config_registry_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;distill_config_</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">.json&quot;</span>
+    
+    <span class="c1"># Add metadata</span>
+    <span class="n">config_with_metadata</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">timestamp</span><span class="p">,</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;distillation&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">config</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Save to file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config_with_metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+
+<div class="viewcode-block" id="compute_detection_loss">
+<a class="viewcode-back" href="../../../api_reference/distillation.html#src.pipeline.distillation.compute_detection_loss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_detection_loss</span><span class="p">(</span>
+    <span class="n">student_preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ground_truth</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the standard detection loss between student predictions and ground truth.</span>
+<span class="sd">    </span>
+<span class="sd">    This function calculates the YOLO detection loss, which typically includes:</span>
+<span class="sd">    - Objectness loss (whether an object exists)</span>
+<span class="sd">    - Classification loss (what class the object belongs to)</span>
+<span class="sd">    - Bounding box regression loss (where the object is located)</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        student_preds (torch.Tensor): Predictions from the student model, containing</span>
+<span class="sd">            objectness scores, class probabilities, and bounding box coordinates</span>
+<span class="sd">        ground_truth (torch.Tensor): Ground truth labels in YOLO format, containing</span>
+<span class="sd">            objectness, class labels, and bounding box coordinates</span>
+<span class="sd">        config (Dict): Configuration containing loss parameters such as:</span>
+<span class="sd">            - box_loss_weight: Weight for bounding box regression loss</span>
+<span class="sd">            - cls_loss_weight: Weight for classification loss</span>
+<span class="sd">            - obj_loss_weight: Weight for objectness loss</span>
+<span class="sd">            </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Total detection loss value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="compute_distillation_loss">
+<a class="viewcode-back" href="../../../api_reference/distillation.html#src.pipeline.distillation.compute_distillation_loss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_distillation_loss</span><span class="p">(</span>
+    <span class="n">student_preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">teacher_preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the distillation loss between student and teacher predictions.</span>
+<span class="sd">    </span>
+<span class="sd">    This function implements knowledge distillation using KL divergence between</span>
+<span class="sd">    the softened probability distributions of teacher and student models. The</span>
+<span class="sd">    temperature parameter controls the softness of the probability distributions.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        student_preds (torch.Tensor): Raw logits from the student model</span>
+<span class="sd">        teacher_preds (torch.Tensor): Raw logits from the teacher model</span>
+<span class="sd">        temperature (float): Temperature parameter for softening probabilities.</span>
+<span class="sd">            Higher values make the distribution softer</span>
+<span class="sd">        config (Dict): Configuration containing:</span>
+<span class="sd">            - distillation_loss_weight: Weight for the distillation loss</span>
+<span class="sd">            - feature_distillation: Whether to include feature-level distillation</span>
+<span class="sd">            </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Distillation loss value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="combine_losses">
+<a class="viewcode-back" href="../../../api_reference/distillation.html#src.pipeline.distillation.combine_losses">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">combine_losses</span><span class="p">(</span>
+    <span class="n">detection_loss</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">distillation_loss</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combine detection and distillation losses using weighted sum.</span>
+<span class="sd">    </span>
+<span class="sd">    This function implements the weighted combination of the standard detection</span>
+<span class="sd">    loss and the distillation loss. The alpha parameter controls the trade-off</span>
+<span class="sd">    between learning from ground truth and learning from the teacher model.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        detection_loss (torch.Tensor): Standard detection loss between student</span>
+<span class="sd">            predictions and ground truth</span>
+<span class="sd">        distillation_loss (torch.Tensor): Distillation loss between student</span>
+<span class="sd">            and teacher predictions</span>
+<span class="sd">        alpha (float): Weight for detection loss (1-alpha for distillation).</span>
+<span class="sd">            Should be between 0 and 1</span>
+<span class="sd">            </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Combined loss value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="train_distillation_step">
+<a class="viewcode-back" href="../../../api_reference/distillation.html#src.pipeline.distillation.train_distillation_step">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">train_distillation_step</span><span class="p">(</span>
+    <span class="n">student_model</span><span class="p">:</span> <span class="n">YOLO</span><span class="p">,</span>
+    <span class="n">teacher_model</span><span class="p">:</span> <span class="n">YOLO</span><span class="p">,</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ground_truth</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform a single training step for knowledge distillation.</span>
+<span class="sd">    </span>
+<span class="sd">    This function executes one training iteration of the distillation process,</span>
+<span class="sd">    including forward passes through both models, loss computation, and</span>
+<span class="sd">    backpropagation. It handles the teacher model in evaluation mode and</span>
+<span class="sd">    the student model in training mode.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        student_model (YOLO): Student model to train, in training mode</span>
+<span class="sd">        teacher_model (YOLO): Teacher model for guidance, in evaluation mode</span>
+<span class="sd">        batch (torch.Tensor): Batch of input images</span>
+<span class="sd">        ground_truth (torch.Tensor): Ground truth labels for the batch</span>
+<span class="sd">        config (Dict): Training configuration containing:</span>
+<span class="sd">            - temperature: For softening probabilities</span>
+<span class="sd">            - alpha: Weight for detection vs distillation loss</span>
+<span class="sd">            - optimizer: Optimizer configuration</span>
+<span class="sd">            - learning_rate: Learning rate for training</span>
+<span class="sd">            </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[torch.Tensor, Dict[str, float]]: Combined loss and dictionary</span>
+<span class="sd">            containing individual loss components (detection_loss, distillation_loss)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="distill_model">
+<a class="viewcode-back" href="../../../api_reference/distillation.html#src.pipeline.distillation.distill_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">distill_model</span><span class="p">(</span>
+    <span class="n">teacher_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">student_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">train_data</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main function to perform model distillation.</span>
+<span class="sd">    </span>
+<span class="sd">    This function orchestrates the entire distillation process, including:</span>
+<span class="sd">    - Loading teacher and student models</span>
+<span class="sd">    - Setting up data loaders</span>
+<span class="sd">    - Training loop with distillation</span>
+<span class="sd">    - Model checkpointing</span>
+<span class="sd">    - Performance evaluation</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        teacher_model_path (str): Path to the teacher model weights</span>
+<span class="sd">        student_model_path (str): Path to the student model weights</span>
+<span class="sd">        train_data (str): Path to training data configuration (YAML)</span>
+<span class="sd">        config (Dict): Distillation configuration containing:</span>
+<span class="sd">            - epochs: Number of training epochs</span>
+<span class="sd">            - batch_size: Batch size for training</span>
+<span class="sd">            - temperature: For softening probabilities</span>
+<span class="sd">            - alpha: Weight for detection vs distillation loss</span>
+<span class="sd">            - optimizer: Optimizer configuration</span>
+<span class="sd">            - learning_rate: Learning rate for training</span>
+<span class="sd">            - device: Device to use for training</span>
+<span class="sd">        output_dir (Path): Directory to save the distilled model and logs</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[str, Dict]: Path to distilled model and dictionary containing</span>
+<span class="sd">            training metrics (loss history, validation performance, etc.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create output directories</span>
+    <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">weights_dir</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;weights&quot;</span>
+    <span class="n">weights_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logs_dir</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;logs&quot;</span>
+    <span class="n">logs_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="c1"># Load models</span>
+    <span class="n">teacher_model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="n">teacher_model_path</span><span class="p">)</span>
+    <span class="n">student_model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="n">student_model_path</span><span class="p">)</span>
+    
+    <span class="c1"># Set device</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;device&quot;</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+    <span class="n">teacher_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">student_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    
+    <span class="c1"># Set models to appropriate modes</span>
+    <span class="n">teacher_model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">student_model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    
+    <span class="c1"># Load training data configuration</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">data_config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    
+    <span class="c1"># Initialize metrics dictionary</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;detection_loss&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;distillation_loss&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;total_loss&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;val_metrics&quot;</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Training loop</span>
+    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;epochs&quot;</span><span class="p">]):</span>
+        <span class="c1"># Training step</span>
+        <span class="n">batch_loss</span><span class="p">,</span> <span class="n">loss_components</span> <span class="o">=</span> <span class="n">train_distillation_step</span><span class="p">(</span>
+            <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
+            <span class="n">teacher_model</span><span class="o">=</span><span class="n">teacher_model</span><span class="p">,</span>
+            <span class="n">batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Will be implemented with data loader</span>
+            <span class="n">ground_truth</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Will be implemented with data loader</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">config</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Update metrics</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;detection_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_components</span><span class="p">[</span><span class="s2">&quot;detection_loss&quot;</span><span class="p">])</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;distillation_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_components</span><span class="p">[</span><span class="s2">&quot;distillation_loss&quot;</span><span class="p">])</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;total_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss</span><span class="p">)</span>
+        
+        <span class="c1"># Save checkpoint</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;save_interval&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">weights_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;checkpoint_epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">.pt&quot;</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">({</span>
+                <span class="s1">&#39;epoch&#39;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">,</span>
+                <span class="s1">&#39;model_state_dict&#39;</span><span class="p">:</span> <span class="n">student_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+                <span class="s1">&#39;optimizer_state_dict&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Will be implemented with optimizer</span>
+                <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">batch_loss</span><span class="p">,</span>
+            <span class="p">},</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+    
+    <span class="c1"># Save final model</span>
+    <span class="n">final_model_path</span> <span class="o">=</span> <span class="n">weights_dir</span> <span class="o">/</span> <span class="s2">&quot;distilled_model.pt&quot;</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">student_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">final_model_path</span><span class="p">)</span>
+    
+    <span class="c1"># Save training metrics</span>
+    <span class="n">metrics_path</span> <span class="o">=</span> <span class="n">logs_dir</span> <span class="o">/</span> <span class="s2">&quot;training_metrics.json&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metrics_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">final_model_path</span><span class="p">),</span> <span class="n">metrics</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Elshaday Yoseph, Nhan Tien Nguyen, Rongze Liu and Sepehr Heydarian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
