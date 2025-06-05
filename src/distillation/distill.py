@@ -183,7 +183,7 @@ def compute_distillation_loss(
     device: str = "cpu", 
     eps: float = 1e-7,
     reduction: Literal["batchmean", "sum"] = "batchmean",
-    lambdas: Dict[str, float] = {
+    hyperparams: Dict[str, float] = {
         "lambda_dist_ciou": 1.0,
         "lambda_dist_kl": 2.0
     }
@@ -208,7 +208,8 @@ def compute_distillation_loss(
     batch_size = student_preds.shape[0]
     dtype = teacher_preds.dtype
     kldivloss = nn.KLDivLoss(reduction=reduction, log_target=True)
-    eps = torch.finfo().eps
+    # eps = torch.finfo().eps
+    eps = 1e-7
 
     # Split the concatenated bounding boxes and class scores
     s_bbox, s_cls_logits = torch.split(student_preds, (4, nc), dim=1)
@@ -263,26 +264,30 @@ def compute_distillation_loss(
         ciou_loss = complete_box_iou_loss(s_bboxes, t_bboxes, reduction="mean")
         
         s_cls_logit = torch.logit(s_cls_sigmoid, eps=eps)
-        s_cls_log_softmax = F.log_softmax(s_cls_logit, dim=1)
+        s_cls_log_softmax = F.log_softmax(s_cls_logit / hyperparams["temperature"], dim=1)
         t_cls_logit = torch.logit(t_cls_sigmoid, eps=eps)
-        t_cls_log_softmax = F.log_softmax(t_cls_logit, dim=1)
-        kl_div_loss = kldivloss(s_cls_log_softmax, t_cls_log_softmax)
+        t_cls_log_softmax = F.log_softmax(t_cls_logit / hyperparams["temperature"], dim=1)
+        kl_div_loss = (
+            kldivloss(s_cls_log_softmax, t_cls_log_softmax, log_target=True) * 
+            (hyperparams["temperature"]**2)
+        )
         
         batch_box_regression_loss[i] = ciou_loss
         batch_cls_loss[i] = kl_div_loss
     
     if reduction == "batchmean":
         total_loss = (
-            lambdas["lambda_dist_ciou"] * batch_box_regression_loss.mean() + 
-            lambdas["lambda_dist_kl"] * batch_cls_loss.mean()
+            hyperparams["lambda_dist_ciou"] * batch_box_regression_loss.mean() + 
+            hyperparams["lambda_dist_kl"] * batch_cls_loss.mean()
         )
     else:
         total_loss = (
-            lambdas["lambda_dist_ciou"] * batch_box_regression_loss.sum() + 
-            lambdas["lambda_dist_kl"] * batch_cls_loss.sum()
+            hyperparams["lambda_dist_ciou"] * batch_box_regression_loss.sum() + 
+            hyperparams["lambda_dist_kl"] * batch_cls_loss.sum()
         )
 
     return total_loss
+
 
 def train_epoch(
     student_model: nn.Module,
@@ -292,30 +297,17 @@ def train_epoch(
     optimizer: optim.Optimizer,
     detection_criterion: v8DetectionLoss,
     config_dict: Dict[str, Any],
+    device: str = "cpu",
+    nc: int = 5,
     lambdas: Dict[str, float] = {
         "lambda_distillation": 2.0,
         "lambda_detection": 1.0,
         "lambda_dist_ciou": 1.0,
         "lambda_dist_kl": 2.0
-    },
-    device: str = "cpu",
-    nc: int = 5
+    }
 ) -> Dict[str, float]:
     """
     Train for one epoch.
-    
-    Args:
-        student_model: Student model to train
-        teacher_model: Teacher model for distillation
-        train_dataloader: DataLoader for training data
-        optimizer: Optimizer for training
-        detection_criterion: Detection loss criterion
-        config_dict: Configuration dictionary
-        device: Device to train on
-        nc: Number of classes
-        
-    Returns:
-        Dictionary containing loss values
     """
     student_model.train()
     teacher_model.eval()
@@ -329,59 +321,87 @@ def train_epoch(
     }
     
     for batch_idx, batch in enumerate(train_dataloader):
+            
         optimizer.zero_grad()
         
-        preprocessed_batch = detection_trainer.preprocess_batch(batch)
-        inputs = preprocessed_batch["img"].to(device)
-        targets = preprocessed_batch["cls"].to(device)
-        
-        student_head_feats = student_model(inputs)
-        detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
-        bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
-
-        with torch.no_grad():
-            teacher_inputs = batch["img"].to(device)
-            teacher_preds, _ = teacher_model(teacher_inputs)
-        
-        student_preds = head_features_decoder(
-            head_feats=student_head_feats, 
-            nc=nc, 
-            detection_criterion=detection_criterion, 
-            device=device
-        ).to(device)
-        
-        distillation_loss = compute_distillation_loss(
-            student_preds, 
-            teacher_preds,
-            config_dict, 
-            nc=nc, 
-            device=device,
-            reduction="batchmean",
-            lambdas=lambdas
-        ).to(device)
-        
-        # weighted sum of detection loss and distillation loss
-        total_loss = (
-            lambdas["lambda_detection"] * detection_losses.sum() + 
-            lambdas["lambda_distillation"] * distillation_loss + 
-            lambdas["lambda_dist_ciou"] * bbox_loss + 
-            lambdas["lambda_dist_kl"] * cls_loss
-        )
-        if total_loss.isnan().any():
-            raise ValueError("Catastrophic Failure: Total loss is NaN")
+        try:
+            preprocessed_batch = detection_trainer.preprocess_batch(batch)
+            inputs = preprocessed_batch["img"].to(device)
+            targets = preprocessed_batch["cls"].to(device)
             
-        total_loss.backward()
-        
-        # Clip gradients to prevent exploding gradients (which might introduce NaN)
-        # https://github.com/ultralytics/ultralytics/blob/d564179793b6e6579a08351e2a7d948fe19ad8ca/ultralytics/engine/trainer.py#L637C1-L637C97
-        clip_grad_norm_(student_model.parameters(), max_norm=10.0)
-        
-        optimizer.step()
-        
-        batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss)
-        batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss)
-        batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss)
-        batch_loss_dict["distillation_loss"] = np.append(batch_loss_dict["distillation_loss"], distillation_loss.cpu().detach().numpy())
+            # Additional validation after preprocessing
+            if torch.isnan(inputs).any() or torch.isinf(inputs).any():
+                print(f"NaN/Inf detected in preprocessed images at batch {batch_idx}")
+                continue
+                
+            if torch.isnan(targets).any() or torch.isinf(targets).any():
+                print(f"NaN/Inf detected in preprocessed targets at batch {batch_idx}")
+                continue
+            
+            student_head_feats = student_model(inputs)
+            detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
+            bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
+
+            with torch.no_grad():
+                teacher_inputs = batch["img"].to(device)
+                teacher_preds, _ = teacher_model(teacher_inputs)
+            
+            student_preds = head_features_decoder(
+                head_feats=student_head_feats, 
+                nc=nc, 
+                detection_criterion=detection_criterion, 
+                device=device
+            ).to(device)
+            
+            distillation_loss = compute_distillation_loss(
+                student_preds, 
+                teacher_preds,
+                config_dict, 
+                nc=nc, 
+                device=device,
+                reduction="batchmean",
+                hyperparams=lambdas
+            ).to(device)
+            
+            # Check for NaN in individual loss components
+            if torch.isnan(bbox_loss) or torch.isnan(cls_loss) or torch.isnan(dfl_loss) or torch.isnan(distillation_loss):
+                print(f"NaN detected in loss components at batch {batch_idx}:")
+                print(f"bbox_loss: {bbox_loss}, cls_loss: {cls_loss}, dfl_loss: {dfl_loss}, distillation_loss: {distillation_loss}")
+                continue
+            
+            # Calculate total loss
+            total_loss = (
+                lambdas["lambda_detection"] * detection_losses.sum() + 
+                lambdas["lambda_distillation"] * distillation_loss + 
+                lambdas["lambda_dist_ciou"] * bbox_loss + 
+                lambdas["lambda_dist_kl"] * cls_loss
+            )
+            
+            # Final NaN check before backward pass
+            if torch.isnan(total_loss).any() or torch.isinf(total_loss).any():
+                print(f"NaN detected in total loss at batch {batch_idx}")
+                print(f"Component losses: bbox={bbox_loss}, cls={cls_loss}, dfl={dfl_loss}, dist={distillation_loss}")
+                continue
+                
+            total_loss.backward()
+            
+            # Clip gradients to prevent exploding gradients
+            clip_grad_norm_(student_model.parameters(), max_norm=1.0)
+            
+            optimizer.step()
+            
+            # Store losses
+            batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss)
+            batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss)
+            batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss)
+            batch_loss_dict["distillation_loss"] = np.append(
+                batch_loss_dict["distillation_loss"], 
+                distillation_loss.cpu().detach().numpy()
+            )
+            
+        except Exception as e:
+            print(f"Error processing batch {batch_idx}: {str(e)}")
+            continue
     
     return batch_loss_dict
 
@@ -457,7 +477,7 @@ def train_loop(
     device: str,
     checkpoint_dir: Path,
     save_checkpoint_every: int,
-    lambdas: Dict[str, float] = {
+    hyperparams: Dict[str, float] = {
         "lambda_distillation": 2.0,
         "lambda_detection": 1.0,
         "lambda_dist_ciou": 1.0,
@@ -504,7 +524,7 @@ def train_loop(
                 detection_criterion=detection_criterion,
                 config_dict=config_dict,
                 device=device,
-                lambdas=lambdas
+                hyperparams=hyperparams
             )
             
             learning_rate_scheduler.step()
@@ -529,7 +549,7 @@ def train_loop(
             )
             
             # Save checkpoint
-            if epoch % save_checkpoint_every == 0:
+            if save_checkpoint_every > 0 and epoch % save_checkpoint_every == 0:
                 save_checkpoint(
                     checkpoint_dir=checkpoint_dir,
                     epoch=epoch,
@@ -594,7 +614,7 @@ def start_distillation(
     img_dir: Path = Path("dataset"),
     save_checkpoint_every: int = 25,
     frozen_layers: int = 10, # freeze the Backbone layers
-    lambdas: Dict[str, float] = {
+    hyperparams: Dict[str, float] = {
         "lambda_distillation": 2.0,
         "lambda_detection": 1.0,
         "lambda_dist_ciou": 1.0,
@@ -662,7 +682,7 @@ def start_distillation(
         device=device,
         checkpoint_dir=checkpoint_dir,
         save_checkpoint_every=save_checkpoint_every,
-        lambdas=lambdas
+        hyperparams=hyperparams
     )
     
     # # Validation
@@ -672,11 +692,12 @@ def start_distillation(
 
 if __name__ == "__main__":
     
-    lambdas = {
+    hyperparams = {
         "lambda_distillation": 2.0,
         "lambda_detection": 1.0,
         "lambda_dist_ciou": 1.0,
-        "lambda_dist_kl": 2.0
+        "lambda_dist_kl": 2.0,
+        "temperature": 2.0
     }
     start_distillation(
         device=device, 
@@ -684,5 +705,5 @@ if __name__ == "__main__":
         img_dir=Path("mock_io/data/distillation/distillation_dataset"),
         frozen_layers=10,
         save_checkpoint_every=25,
-        lambdas=lambdas
+        hyperparams=hyperparams
     )
