@@ -840,7 +840,9 @@ def start_distillation(
             optimizer=optimizer,
             learning_rate_scheduler=learning_rate_scheduler
         ) + 1  # Start from next epoch
-        print(f"Resuming training from epoch {start_epoch}")
+        print(f"Resuming training and distillation from epoch {start_epoch}")
+    else:
+        print("Starting training and distillation from scratch")
     
     # Run training loop
     train_loop(
@@ -885,7 +887,7 @@ if __name__ == "__main__":
         frozen_layers=10,
         save_checkpoint_every=25,
         hyperparams=hyperparams,
-        resume_checkpoint="checkpoints/checkpoint_epoch_199.pt",  # Set to checkpoint path to resume training
+        resume_checkpoint=None,  # Set to checkpoint path to resume training
         log_dir=Path("./logs"),  # Directory to save training logs
         log_level="epoch"  # Log at epoch level instead of batch level
     )
