@@ -1,0 +1,217 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grounding DINO Prelabeling &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a49bda7b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Matching Logic" href="matching_logic.html" />
+    <link rel="prev" title="YOLO Prelabeling" href="yolo_prelabelling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AutoML CI/CD/CT: Continuous Training and Deployment Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup_guide.html">Setup Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Grounding DINO Prelabeling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#constants">Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#get-image-files-directory"><code class="docutils literal notranslate"><span class="pre">_get_image_files(directory)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generate-gd-prelabelling-raw-dir-output-dir-config-model-weights-config-path-text-prompts-text-prompts-box-threshold-none-text-threshold-none"><code class="docutils literal notranslate"><span class="pre">generate_gd_prelabelling(raw_dir,</span> <span class="pre">output_dir,</span> <span class="pre">config,</span> <span class="pre">model_weights,</span> <span class="pre">config_path,</span> <span class="pre">text_prompts=TEXT_PROMPTS,</span> <span class="pre">box_threshold=None,</span> <span class="pre">text_threshold=None)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#output-per-image">Output per image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#summary-output">Summary Output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AutoML CI/CD/CT: Continuous Training and Deployment Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Grounding DINO Prelabeling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/gdino_prelabelling.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="grounding-dino-prelabeling">
+<h1>Grounding DINO Prelabeling<a class="headerlink" href="#grounding-dino-prelabeling" title="Link to this heading"></a></h1>
+<p>This script performs object detection using a Grounding DINO model guided by text prompts. It processes a folder of raw images and outputs structured JSON files for each image containing detected object metadata.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Input</strong>: Directory of raw images</p></li>
+<li><p><strong>Output</strong>: JSON files with bounding boxes, confidence scores, and class labels</p></li>
+<li><p><strong>Model</strong>: Grounding DINO</p></li>
+<li><p><strong>Prompts</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;fire&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;smoke&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;person&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;vehicle&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lightning&quot;</span></code></p></li>
+<li><p><strong>Thresholds</strong>: Box confidence and text match thresholds</p></li>
+<li><p><strong>Execution</strong>: Runs sequentially on a specified device</p></li>
+</ul>
+</section>
+<section id="constants">
+<h2>Constants<a class="headerlink" href="#constants" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TEXT_PROMPTS</span></code>: Default object classes to detect</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BOX_THRESHOLD</span></code>: Minimum bounding box confidence (default: <code class="docutils literal notranslate"><span class="pre">0.3</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TEXT_THRESHOLD</span></code>: Minimum text-prompt alignment confidence (default: <code class="docutils literal notranslate"><span class="pre">0.25</span></code>)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="get-image-files-directory">
+<h3><code class="docutils literal notranslate"><span class="pre">_get_image_files(directory)</span></code><a class="headerlink" href="#get-image-files-directory" title="Link to this heading"></a></h3>
+<p>Scans a directory for <code class="docutils literal notranslate"><span class="pre">.jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">.jpeg</span></code>, and <code class="docutils literal notranslate"><span class="pre">.png</span></code> files.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">directory</span> <span class="pre">(Path)</span></code>: Path to image directory</p></li>
+<li><p><strong>Returns</strong>: <code class="docutils literal notranslate"><span class="pre">List[Path]</span></code> of image files</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="generate-gd-prelabelling-raw-dir-output-dir-config-model-weights-config-path-text-prompts-text-prompts-box-threshold-none-text-threshold-none">
+<h3><code class="docutils literal notranslate"><span class="pre">generate_gd_prelabelling(raw_dir,</span> <span class="pre">output_dir,</span> <span class="pre">config,</span> <span class="pre">model_weights,</span> <span class="pre">config_path,</span> <span class="pre">text_prompts=TEXT_PROMPTS,</span> <span class="pre">box_threshold=None,</span> <span class="pre">text_threshold=None)</span></code><a class="headerlink" href="#generate-gd-prelabelling-raw-dir-output-dir-config-model-weights-config-path-text-prompts-text-prompts-box-threshold-none-text-threshold-none" title="Link to this heading"></a></h3>
+<p>Main function that runs Grounding DINO to detect prompted classes in images.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">raw_dir</span> <span class="pre">(Path)</span></code>: Directory containing input images</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_dir</span> <span class="pre">(Path)</span></code>: Output folder for predictions</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config</span> <span class="pre">(Dict)</span></code>: Dictionary with device and threshold options</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model_weights</span> <span class="pre">(Path)</span></code>: Path to DINO model checkpoint</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config_path</span> <span class="pre">(Path)</span></code>: Path to DINO config file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">text_prompts</span> <span class="pre">(List[str])</span></code>: List of classes to detect (default: predefined)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">box_threshold</span> <span class="pre">(float)</span></code>: Detection threshold (can be overridden via config)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">text_threshold</span> <span class="pre">(float)</span></code>: Text alignment threshold (can be overridden via config)</p></li>
+</ul>
+<section id="output-per-image">
+<h4>Output per image<a class="headerlink" href="#output-per-image" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Image name</p></li>
+<li><p>Class label</p></li>
+<li><p>Bounding box: <code class="docutils literal notranslate"><span class="pre">[x1,</span> <span class="pre">y1,</span> <span class="pre">x2,</span> <span class="pre">y2]</span></code></p></li>
+<li><p>Confidence score</p></li>
+<li><p>Source tag: <code class="docutils literal notranslate"><span class="pre">&quot;grounding_dino&quot;</span></code></p></li>
+</ul>
+</section>
+<section id="summary-output">
+<h4>Summary Output<a class="headerlink" href="#summary-output" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Number of successful detections</p></li>
+<li><p>Number of skipped files (unreadable)</p></li>
+<li><p>Number of failed detections</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">generate_gd_prelabelling</span><span class="p">(</span>
+    <span class="n">raw_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/raw/images&quot;</span><span class="p">),</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/predictions/dino&quot;</span><span class="p">),</span>
+    <span class="n">config</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;torch_device&quot;</span><span class="p">:</span> <span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dino_box_threshold&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s2">&quot;dino_text_threshold&quot;</span><span class="p">:</span> <span class="mf">0.25</span>
+    <span class="p">},</span>
+    <span class="n">model_weights</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;weights/groundingdino.pth&quot;</span><span class="p">),</span>
+    <span class="n">config_path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;configs/GroundingDINO_SwinT_config.py&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="yolo_prelabelling.html" class="btn btn-neutral float-left" title="YOLO Prelabeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matching_logic.html" class="btn btn-neutral float-right" title="Matching Logic" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Elshaday Yoseph, Nhan Tien Nguyen, Rongze Liu and Sepehr Heydarian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

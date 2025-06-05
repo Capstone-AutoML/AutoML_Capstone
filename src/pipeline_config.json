@@ -51,18 +51,11 @@
     "student_model": "yolov8n.yaml"
   },
 
-  "training_config": {
-    "epochs": 5,
-    "lr0": 0.001,
-    "imgsz": 640,
-    "batch": 16,
-    "workers": 8
-  },
-
   "augmented_images_path": "mock_io/data/augmented/images",
   "augmented_labels_path": "mock_io/data/augmented/labels",
   "true_negative_images_path": "mock_io/data/augmented/no_prediction_images",
   "training_output_path": "mock_io/data/training",
   "train_val_split": [0.7, 0.2, 0.1],
-  "data_yaml_path": "mock_io/data/training/data.yaml"
+  "data_yaml_path": "mock_io/data/training/data.yaml",
+  "quantization_method": "ONNX"
 }

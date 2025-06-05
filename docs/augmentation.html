@@ -1,0 +1,261 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Augmentation Module &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a49bda7b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Training" href="training.html" />
+    <link rel="prev" title="Human-in-the-Loop" href="human_in_loop.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AutoML CI/CD/CT: Continuous Training and Deployment Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup_guide.html">Setup Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Augmentation Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#key-features">Key Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#core-components">Core Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#build-augmentation-transform-config-dict-a-compose"><code class="docutils literal notranslate"><span class="pre">build_augmentation_transform(config:</span> <span class="pre">dict)</span> <span class="pre">-&gt;</span> <span class="pre">A.Compose</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#augment-images"><code class="docutils literal notranslate"><span class="pre">augment_images(...)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#inputs">Inputs:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#behavior">Behavior:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#augment-dataset"><code class="docutils literal notranslate"><span class="pre">augment_dataset(...)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Inputs:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#workflow">Workflow:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#example-config">Example Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-call">Example Call</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-structure">Output Structure</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AutoML CI/CD/CT: Continuous Training and Deployment Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Augmentation Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/augmentation.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="augmentation-module">
+<h1>Augmentation Module<a class="headerlink" href="#augmentation-module" title="Link to this heading"></a></h1>
+<p>This module generates additional training data by applying randomized <strong>image augmentations</strong> to the labeled dataset. It uses the <a class="reference external" href="https://albumentations.ai/docs/">Albumentations</a> library for robust image transformations while keeping bounding boxes aligned.</p>
+<hr class="docutils" />
+<section id="key-features">
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Supports flips, brightness changes, noise, rotation, grayscale, and blur</p></li>
+<li><p>Maintains bounding box alignment using <code class="docutils literal notranslate"><span class="pre">pascal_voc</span></code> format</p></li>
+<li><p>Saves augmented images and prediction labels in parallel</p></li>
+<li><p>Handles images with no predictions separately</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="core-components">
+<h2>Core Components<a class="headerlink" href="#core-components" title="Link to this heading"></a></h2>
+<section id="build-augmentation-transform-config-dict-a-compose">
+<h3><code class="docutils literal notranslate"><span class="pre">build_augmentation_transform(config:</span> <span class="pre">dict)</span> <span class="pre">-&gt;</span> <span class="pre">A.Compose</span></code><a class="headerlink" href="#build-augmentation-transform-config-dict-a-compose" title="Link to this heading"></a></h3>
+<p>Creates an augmentation pipeline from a config dictionary.</p>
+<p>Transforms include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">HorizontalFlip</span></code> (default <code class="docutils literal notranslate"><span class="pre">p=0.5</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RandomBrightnessContrast</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HueSaturationValue</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Blur</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GaussNoise</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ToGray</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Rotate</span></code></p></li>
+</ul>
+<p>All parameters and probabilities are configurable.</p>
+</section>
+<hr class="docutils" />
+<section id="augment-images">
+<h3><code class="docutils literal notranslate"><span class="pre">augment_images(...)</span></code><a class="headerlink" href="#augment-images" title="Link to this heading"></a></h3>
+<p>Applies the transform pipeline on each image-label pair.</p>
+<section id="inputs">
+<h4>Inputs:<a class="headerlink" href="#inputs" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">matched_pairs</span></code>: list of <code class="docutils literal notranslate"><span class="pre">(json_path,</span> <span class="pre">image_path)</span></code> tuples</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">transform</span></code>: Albumentations Compose object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_img_dir</span></code>: where augmented images will be saved</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_json_dir</span></code>: where labels will be saved</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code>: how many times to augment each image</p></li>
+</ul>
+</section>
+<section id="behavior">
+<h4>Behavior:<a class="headerlink" href="#behavior" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Saves augmented <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> files and <code class="docutils literal notranslate"><span class="pre">.json</span></code> labels side by side</p></li>
+<li><p>Stores no-prediction images in <code class="docutils literal notranslate"><span class="pre">no_prediction_images/</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="augment-dataset">
+<h3><code class="docutils literal notranslate"><span class="pre">augment_dataset(...)</span></code><a class="headerlink" href="#augment-dataset" title="Link to this heading"></a></h3>
+<p>Coordinates the augmentation process end-to-end.</p>
+<section id="id1">
+<h4>Inputs:<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">image_dir</span></code>: input directory with raw images</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code>: directory where augmented <code class="docutils literal notranslate"><span class="pre">images/</span></code> and <code class="docutils literal notranslate"><span class="pre">labels/</span></code> go</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config</span></code>: contains hyperparameters like <code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code></p></li>
+</ul>
+</section>
+<section id="workflow">
+<h4>Workflow:<a class="headerlink" href="#workflow" title="Link to this heading"></a></h4>
+<ol class="arabic simple">
+<li><p>Loads all <code class="docutils literal notranslate"><span class="pre">.json</span></code> from <code class="docutils literal notranslate"><span class="pre">mock_io/data/labeled</span></code></p></li>
+<li><p>Matches them with image files by filename stem</p></li>
+<li><p>Builds augmentation transform</p></li>
+<li><p>Calls <code class="docutils literal notranslate"><span class="pre">augment_images()</span></code> to perform the pipeline</p></li>
+<li><p>Prints processing summary</p></li>
+</ol>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-config">
+<h2>Example Config<a class="headerlink" href="#example-config" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;num_augmentations&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;horizontal_flip_prob&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="s2">&quot;brightness_contrast_prob&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="s2">&quot;hue_saturation_prob&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="s2">&quot;blur_limit&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;blur_prob&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="s2">&quot;gauss_noise_var_min&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span>
+    <span class="s2">&quot;gauss_noise_var_max&quot;</span><span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>
+    <span class="s2">&quot;gauss_noise_prob&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="s2">&quot;grayscale_prob&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="s2">&quot;rotate_limit&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+    <span class="s2">&quot;rotate_prob&quot;</span><span class="p">:</span> <span class="mf">0.4</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-call">
+<h2>Example Call<a class="headerlink" href="#example-call" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">augment_dataset</span><span class="p">(</span>
+    <span class="n">image_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/raw/images&quot;</span><span class="p">),</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/augmented&quot;</span><span class="p">),</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">config</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="output-structure">
+<h2>Output Structure<a class="headerlink" href="#output-structure" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>mock_io/
+├── data/
+│   ├── labeled/                # Original labels
+│   ├── raw/images/            # Original images
+│   ├── augmented/
+│   │   ├── images/            # Augmented image files
+│   │   ├── labels/            # Augmented JSON files
+│   └── no_prediction_images/  # Skipped originals with no predictions
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="human_in_loop.html" class="btn btn-neutral float-left" title="Human-in-the-Loop" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="training.html" class="btn btn-neutral float-right" title="Training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Elshaday Yoseph, Nhan Tien Nguyen, Rongze Liu and Sepehr Heydarian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
