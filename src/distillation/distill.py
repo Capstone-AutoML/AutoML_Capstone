@@ -19,6 +19,8 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 from torchvision.ops.ciou_loss import complete_box_iou_loss
 import torch.nn.functional as F
 from tqdm import tqdm
+import csv
+from datetime import datetime
 
 # Add parent directory to path
 sys.path.append("..")
@@ -268,7 +270,7 @@ def compute_distillation_loss(
         t_cls_logit = torch.logit(t_cls_sigmoid, eps=eps)
         t_cls_log_softmax = F.log_softmax(t_cls_logit / hyperparams["temperature"], dim=1)
         kl_div_loss = (
-            kldivloss(s_cls_log_softmax, t_cls_log_softmax, log_target=True) * 
+            kldivloss(s_cls_log_softmax, t_cls_log_softmax) * 
             (hyperparams["temperature"]**2)
         )
         
@@ -289,6 +291,47 @@ def compute_distillation_loss(
     return total_loss
 
 
+def log_training_metrics(
+    log_file: Path,
+    epoch: int,
+    batch_idx: Optional[int],
+    losses: Dict[str, float],
+    is_new_file: bool = False,
+    log_level: Literal["batch", "epoch"] = "batch"
+) -> None:
+    """
+    Log training metrics to a CSV file.
+    
+    Args:
+        log_file: Path to the log file
+        epoch: Current epoch number
+        batch_idx: Current batch index (None for epoch-level logging)
+        losses: Dictionary of loss values
+        is_new_file: Whether this is the first write to the file
+        log_level: Whether to log at batch or epoch level
+    """
+    fieldnames = ['timestamp', 'epoch', 'batch', 'total_loss', 'bbox_loss', 'cls_loss', 'dfl_loss', 'dist_loss']
+    
+    # Create file with headers if it's new
+    if is_new_file:
+        with open(log_file, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+    
+    # Append new row
+    with open(log_file, 'a', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writerow({
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'epoch': epoch,
+            'batch': batch_idx if log_level == "batch" else "epoch",
+            'total_loss': losses.get('total_loss', ''),
+            'bbox_loss': losses.get('bbox_loss', ''),
+            'cls_loss': losses.get('cls_loss', ''),
+            'dfl_loss': losses.get('dfl_loss', ''),
+            'dist_loss': losses.get('dist_loss', '')
+        })
+
 def train_epoch(
     student_model: nn.Module,
     teacher_model: nn.Module,
@@ -299,15 +342,36 @@ def train_epoch(
     config_dict: Dict[str, Any],
     device: str = "cpu",
     nc: int = 5,
-    lambdas: Dict[str, float] = {
+    hyperparams: Dict[str, float] = {
         "lambda_distillation": 2.0,
         "lambda_detection": 1.0,
         "lambda_dist_ciou": 1.0,
         "lambda_dist_kl": 2.0
-    }
+    },
+    epoch: int = 1,
+    log_file: Optional[Path] = None,
+    log_level: Literal["batch", "epoch"] = "batch"
 ) -> Dict[str, float]:
     """
     Train for one epoch.
+    
+    Args:
+        student_model: Student model to train
+        teacher_model: Teacher model for distillation
+        train_dataloader: DataLoader for training data
+        detection_trainer: Detection trainer instance
+        optimizer: Optimizer for training
+        detection_criterion: Detection loss criterion
+        config_dict: Configuration dictionary
+        device: Device to train on
+        nc: Number of classes
+        hyperparams: Dictionary of hyperparameters for loss functions
+        epoch: Current epoch number
+        log_file: Optional path to log file for metrics
+        log_level: Whether to log at batch or epoch level
+        
+    Returns:
+        Dictionary of loss values
     """
     student_model.train()
     teacher_model.eval()
@@ -360,21 +424,15 @@ def train_epoch(
                 nc=nc, 
                 device=device,
                 reduction="batchmean",
-                hyperparams=lambdas
+                hyperparams=hyperparams
             ).to(device)
-            
-            # Check for NaN in individual loss components
-            if torch.isnan(bbox_loss) or torch.isnan(cls_loss) or torch.isnan(dfl_loss) or torch.isnan(distillation_loss):
-                print(f"NaN detected in loss components at batch {batch_idx}:")
-                print(f"bbox_loss: {bbox_loss}, cls_loss: {cls_loss}, dfl_loss: {dfl_loss}, distillation_loss: {distillation_loss}")
-                continue
             
             # Calculate total loss
             total_loss = (
-                lambdas["lambda_detection"] * detection_losses.sum() + 
-                lambdas["lambda_distillation"] * distillation_loss + 
-                lambdas["lambda_dist_ciou"] * bbox_loss + 
-                lambdas["lambda_dist_kl"] * cls_loss
+                hyperparams["lambda_detection"] * detection_losses.sum() + 
+                hyperparams["lambda_distillation"] * distillation_loss + 
+                hyperparams["lambda_dist_ciou"] * bbox_loss + 
+                hyperparams["lambda_dist_kl"] * cls_loss
             )
             
             # Final NaN check before backward pass
@@ -399,9 +457,45 @@ def train_epoch(
                 distillation_loss.cpu().detach().numpy()
             )
             
+            # Log metrics if log_file is provided and log_level is batch
+            if log_file is not None and log_level == "batch":
+                current_losses = {
+                    'total_loss': float(total_loss.cpu().detach().numpy()),
+                    'bbox_loss': float(bbox_loss),
+                    'cls_loss': float(cls_loss),
+                    'dfl_loss': float(dfl_loss),
+                    'dist_loss': float(distillation_loss.cpu().detach().numpy())
+                }
+                log_training_metrics(
+                    log_file=log_file,
+                    epoch=epoch,
+                    batch_idx=batch_idx,
+                    losses=current_losses,
+                    is_new_file=(epoch == 1 and batch_idx == 0),
+                    log_level=log_level
+                )
+            
         except Exception as e:
             print(f"Error processing batch {batch_idx}: {str(e)}")
             continue
+    
+    # Log epoch-level metrics if log_level is epoch
+    if log_file is not None and log_level == "epoch":
+        epoch_losses = {
+            'total_loss': float(np.mean(batch_loss_dict["total_loss"])),
+            'bbox_loss': float(np.mean(batch_loss_dict["bbox_loss"])),
+            'cls_loss': float(np.mean(batch_loss_dict["cls_loss"])),
+            'dfl_loss': float(np.mean(batch_loss_dict["dfl_loss"])),
+            'dist_loss': float(np.mean(batch_loss_dict["distillation_loss"]))
+        }
+        log_training_metrics(
+            log_file=log_file,
+            epoch=epoch,
+            batch_idx=None,
+            losses=epoch_losses,
+            is_new_file=(epoch == 1),
+            log_level=log_level
+        )
     
     return batch_loss_dict
 
@@ -411,6 +505,7 @@ def save_checkpoint(
     epoch: int,
     student_model: nn.Module,
     optimizer: optim.Optimizer,
+    learning_rate_scheduler: LambdaLR,
     losses: Dict[str, float],
 ) -> None:
     """
@@ -421,12 +516,14 @@ def save_checkpoint(
         epoch: Current epoch number
         student_model: Student model to save
         optimizer: Optimizer state to save
+        learning_rate_scheduler: Learning rate scheduler state to save
         losses: Dictionary of loss values
     """
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': student_model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': learning_rate_scheduler.state_dict(),
         'loss': losses['total_loss'],
         'bbox_loss': losses['bbox_loss'],
         'cls_loss': losses['cls_loss'],
@@ -482,7 +579,10 @@ def train_loop(
         "lambda_detection": 1.0,
         "lambda_dist_ciou": 1.0,
         "lambda_dist_kl": 2.0
-    }
+    },
+    start_epoch: int = 1,
+    log_file: Optional[Path] = None,
+    log_level: Literal["batch", "epoch"] = "batch"
 ) -> Dict[str, List[float]]:
     """
     Execute the complete training process including all epochs.
@@ -494,12 +594,16 @@ def train_loop(
         train_dataloader: DataLoader for training data
         detection_trainer: Detection trainer instance
         optimizer: Optimizer for training
+        learning_rate_scheduler: Learning rate scheduler
         detection_criterion: Detection loss criterion
         config_dict: Configuration dictionary
         device: Device to train on
         checkpoint_dir: Directory to save checkpoints
         save_checkpoint_every: Save checkpoint every n epochs
-        detection_validator: Optional validator for validation after training
+        hyperparams: Dictionary of hyperparameters for loss functions
+        start_epoch: Start training from this epoch
+        log_file: Optional path to log file for metrics
+        log_level: Whether to log at batch or epoch level
         
     Returns:
         Dictionary containing lists of loss values for each epoch
@@ -524,7 +628,10 @@ def train_loop(
                 detection_criterion=detection_criterion,
                 config_dict=config_dict,
                 device=device,
-                hyperparams=hyperparams
+                hyperparams=hyperparams,
+                epoch=epoch,
+                log_file=log_file,
+                log_level=log_level
             )
             
             learning_rate_scheduler.step()
@@ -555,6 +662,7 @@ def train_loop(
                     epoch=epoch,
                     student_model=student_model,
                     optimizer=optimizer,
+                    learning_rate_scheduler=learning_rate_scheduler,
                     losses={
                         'total_loss': batch_loss_total,
                         'bbox_loss': batch_loss_bbox,
@@ -608,6 +716,43 @@ def build_optimizer_and_scheduler(
     
     return optimizer, learning_rate_scheduler
 
+
+def load_checkpoint(
+    checkpoint_path: Path,
+    student_model: nn.Module,
+    optimizer: optim.Optimizer,
+    learning_rate_scheduler: LambdaLR
+) -> int:
+    """
+    Load a checkpoint and restore model and optimizer state.
+    
+    Args:
+        checkpoint_path: Path to the checkpoint file
+        student_model: Student model to restore state to
+        optimizer: Optimizer to restore state to
+        learning_rate_scheduler: Learning rate scheduler to restore state to
+        
+    Returns:
+        The epoch number from the checkpoint
+    """
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    
+    # Restore model state
+    student_model.load_state_dict(checkpoint['model_state_dict'])
+    
+    # Restore optimizer state
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    
+    # Restore learning rate scheduler state if it exists
+    if 'scheduler_state_dict' in checkpoint:
+        learning_rate_scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    
+    return checkpoint['epoch']
+
+
 def start_distillation(
     device: str = "cpu",
     base_dir: Path = Path(".."),
@@ -619,7 +764,10 @@ def start_distillation(
         "lambda_detection": 1.0,
         "lambda_dist_ciou": 1.0,
         "lambda_dist_kl": 2.0
-    }
+    },
+    resume_checkpoint: Optional[Path] = None,
+    log_dir: Optional[Path] = None,
+    log_level: Literal["batch", "epoch"] = "batch"
 ) -> Dict[str, List[float]]:
     """
     Start the distillation training process.
@@ -629,7 +777,10 @@ def start_distillation(
         base_dir: Base directory for paths
         save_checkpoint_every: Save checkpoint every n epochs
         frozen_layers: Number of layers to freeze in the backbone
-        lambdas: Dictionary of lambda values for each loss function
+        hyperparams: Dictionary of hyperparameters for loss functions
+        resume_checkpoint: Optional path to checkpoint to resume training from
+        log_dir: Optional directory to save training logs
+        log_level: Whether to log at batch or epoch level
 
     Returns:
         Dictionary containing lists of loss values for each epoch
@@ -668,6 +819,26 @@ def start_distillation(
     checkpoint_dir = Path("./checkpoints")
     checkpoint_dir.mkdir(exist_ok=True)
     
+    # Create log directory and file if specified
+    log_file = None
+    if log_dir is not None:
+        log_dir = Path(log_dir)
+        log_dir.mkdir(exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_file = log_dir / f'training_log_{timestamp}.csv'
+    
+    # Load checkpoint if specified
+    start_epoch = 1
+    if resume_checkpoint is not None:
+        print(f"Resuming from checkpoint: {resume_checkpoint}")
+        start_epoch = load_checkpoint(
+            checkpoint_path=resume_checkpoint,
+            student_model=student_model,
+            optimizer=optimizer,
+            learning_rate_scheduler=learning_rate_scheduler
+        ) + 1  # Start from next epoch
+        print(f"Resuming training from epoch {start_epoch}")
+    
     # Run training loop
     train_loop(
         num_epochs=EPOCHS,
@@ -682,13 +853,17 @@ def start_distillation(
         device=device,
         checkpoint_dir=checkpoint_dir,
         save_checkpoint_every=save_checkpoint_every,
-        hyperparams=hyperparams
+        hyperparams=hyperparams,
+        start_epoch=start_epoch,
+        log_file=log_file,
+        log_level=log_level
     )
     
-    # # Validation
+    # Validation
     model_args.mode = "val"
     detection_validator = DetectionValidator(dataloader=val_dataloader, args=model_args)
     detection_validator(model=student_model)
+
 
 if __name__ == "__main__":
     
@@ -699,11 +874,15 @@ if __name__ == "__main__":
         "lambda_dist_kl": 2.0,
         "temperature": 2.0
     }
+    
     start_distillation(
         device=device, 
         base_dir=Path("..", ".."), 
         img_dir=Path("mock_io/data/distillation/distillation_dataset"),
         frozen_layers=10,
         save_checkpoint_every=25,
-        hyperparams=hyperparams
+        hyperparams=hyperparams,
+        resume_checkpoint="checkpoints/checkpoint_epoch_199.pt",  # Set to checkpoint path to resume training
+        log_dir=Path("./logs"),  # Directory to save training logs
+        log_level="batch"  # Log at epoch level instead of batch level
     )
