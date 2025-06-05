@@ -301,7 +301,7 @@ def log_training_metrics(
     batch_idx: Optional[int],
     losses: Dict[str, float],
     is_new_file: bool = False,
-    log_level: Literal["batch", "epoch"] = "batch"
+    log_level: Literal["batch", "epoch"] = "epoch"
 ) -> None:
     """
     Log training metrics to a CSV file.
