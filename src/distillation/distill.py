@@ -768,7 +768,7 @@ def start_distillation(
         "lambda_dist_kl": 2.0
     },
     resume_checkpoint: Optional[Path] = None,
-    log_dir: Optional[Path] = None,
+    output_dir: Path = Path("distillation_out"),
     log_level: Literal["batch", "epoch"] = "batch"
 ) -> Dict[str, List[float]]:
     """
@@ -782,12 +782,26 @@ def start_distillation(
         frozen_layers: Number of layers to freeze in the backbone
         hyperparams: Dictionary of hyperparameters for loss functions
         resume_checkpoint: Optional path to checkpoint to resume training from
-        log_dir: Optional directory to save training logs
+        output_dir: Directory to save output
         log_level: Whether to log at batch or epoch level
 
     Returns:
         Dictionary containing lists of loss values for each epoch
     """
+    # Create output directory structure
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_dir = output_dir / timestamp
+    logs_dir = output_dir / "logs"
+    checkpoint_dir = output_dir / "checkpoints"
+    
+    # Create directories
+    output_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(exist_ok=True)
+    checkpoint_dir.mkdir(exist_ok=True)
+    
+    # Create log file
+    log_file = logs_dir / f'training_log_{timestamp}.csv'
+    
     # Load models
     teacher_yolo, student_yolo = load_models(device, base_dir)
     teacher_model = teacher_yolo.model
@@ -817,18 +831,6 @@ def start_distillation(
     )
     
     detection_criterion = v8DetectionLoss(model=student_model)
-    
-    # Create checkpoint directory
-    checkpoint_dir = Path("./checkpoints")
-    checkpoint_dir.mkdir(exist_ok=True)
-    
-    # Create log directory and file if specified
-    log_file = None
-    if log_dir is not None:
-        log_dir = Path(log_dir)
-        log_dir.mkdir(exist_ok=True)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        log_file = log_dir / f'training_log_{timestamp}.csv'
     
     # Load checkpoint if specified
     start_epoch = 1
@@ -887,7 +889,7 @@ if __name__ == "__main__":
         frozen_layers=10,
         save_checkpoint_every=25,
         hyperparams=hyperparams,
-        resume_checkpoint=None,  # Set to checkpoint path to resume training
-        log_dir=Path("./logs"),  # Directory to save training logs
+        resume_checkpoint=None,
+        output_dir=Path("distillation_out"),
         log_level="epoch"  # Log at epoch level instead of batch level
     )
