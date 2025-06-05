@@ -115,16 +115,30 @@ def draw_yolo_bboxes(img_path, label_path, label_map=None):
     plt.show()
 
 def prepare_training_data(config: dict):
+    """
+    Splits dataset into train/val/test sets and saves the images and
+    labels. Labels are converted from JSON to YOLO format. 
+    True negative images with no labels are also added to the dataset.
+    Args:
+        config (dict): Dictionary containing required paths and optional split ratios.
+                       Expected keys:
+                       - "augmented_images_path"
+                       - "augmented_labels_path"
+                       - "true_negative_images_path"
+                       - "training_output_path"
+                       - "train_val_test_split" (list of 3 floats summing to 1.0)
+    """
     # Define paths
     aug_images = Path(config["augmented_images_path"])
     aug_labels = Path(config["augmented_labels_path"])
     true_negatives = Path(config["true_negative_images_path"])
     out_dir = Path(config["training_output_path"])
-    split_ratio = config.get("train_val_test_split", [0.8, 0.2, 0.0])  # default to train/val only
+    split_ratio = config.get("train_val_test_split", [0.7, 0.2, .10])  # default to train/val only
 
+    # Validate split ratio
     assert abs(sum(split_ratio) - 1.0) < 1e-6, "Train/val/test split ratios must sum to 1.0"
 
-    # Class map (str -> int)
+    # Convert classes to int in a dictionary
     class_map = {
         "FireBSI": 0,
         "LightningBSI": 1,
@@ -151,14 +165,14 @@ def prepare_training_data(config: dict):
         im = Image.open(image_file)
         w, h = im.size
 
-        for ann in data.get("predictions", []):  # Key corrected to 'predictions'
+        for ann in data.get("predictions", []):
             cls = ann["class"]
             if cls not in class_map:
                 print(f"Unknown class '{cls}' in {json_file.name}. Skipping annotation.")
                 continue
             class_id = class_map[cls]
 
-            # Convert [xmin, ymin, xmax, ymax] to YOLO format
+            # Convert [xmin, ymin, xmax, ymax] to YOLO format: https://medium.com/@telega.slawomir.ai/json-to-yolo-dataset-converter-9e9e643a31a7
             x_min, y_min, x_max, y_max = ann["bbox"]
             box_w = x_max - x_min
             box_h = y_max - y_min
@@ -171,7 +185,7 @@ def prepare_training_data(config: dict):
 
         image_label_pairs.append((image_file, yolo_lines))
 
-    # Add true negatives (images with no annotations)
+    # Add true negatives (images with no labels)
     for img_file in list(true_negatives.glob("*.jpg")) + list(true_negatives.glob("*.png")):
         image_label_pairs.append((img_file, []))
 
@@ -180,7 +194,6 @@ def prepare_training_data(config: dict):
     n_total = len(image_label_pairs)
     n_train = int(n_total * split_ratio[0])
     n_val = int(n_total * split_ratio[1])
-    n_test = n_total - n_train - n_val
 
     train_pairs = image_label_pairs[:n_train]
     val_pairs = image_label_pairs[n_train:n_train + n_val]
