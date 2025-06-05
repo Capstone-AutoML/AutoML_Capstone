@@ -60,7 +60,7 @@ def match_and_filter(
     """
     Compare YOLO and DINO predictions for each image.
     Save YOLO prediction files to `labeled_dir` if they match DINO confidently.
-    Save unmatched/mismatched files to `pending_dir` with label_status = 0 for review.
+    Save unmatched/mismatched files to `pending_dir` for review.
 
     Thresholds and behavior are controlled via config dictionary.
     """
@@ -135,7 +135,6 @@ def match_and_filter(
             if is_mismatch:
                 # Add label_status = 0 to each YOLO object for review
                 for obj in yolo_preds:
-                    obj["label_status"] = 0
 
                     conf = obj["confidence"]
                     if conf < low_conf:
@@ -144,7 +143,6 @@ def match_and_filter(
                         obj["confidence_flag"] = "mid"
                     else:
                         obj["confidence_flag"] = "high"
-
 
                 with open(pending_dir / filename, "w") as f:
                     json.dump({"predictions": yolo_preds}, f, indent=2)
