@@ -21,11 +21,25 @@ reviewed_dir = mismatch_dir / "reviewed_results"
 image_dir = Path("mock_io/data/raw/images")
 output_dir = Path("mock_io/data/ls_tasks")
 labeled_dir = Path("mock_io/data/labeled")
-mismatch_dir.mkdir(exist_ok=True)
-mismatch_pending_dir.mkdir(exist_ok=True)
-reviewed_dir.mkdir(exist_ok=True)
-output_dir.mkdir(exist_ok=True)
-labeled_dir.mkdir(exist_ok=True)
+
+
+def _ensure_directories():
+    """
+    Create necessary directories for the human intervention workflow.
+
+    This function creates all required directories if they don't exist.
+    Called only when the script is actually running.
+    """
+    directories = [
+        mismatch_dir,
+        mismatch_pending_dir,
+        reviewed_dir,
+        output_dir,
+        labeled_dir
+    ]
+
+    for directory in directories:
+        directory.mkdir(parents=True, exist_ok=True)
 
 
 def _find_image_path(stem: str, image_dir: Path) -> Path:
@@ -856,6 +870,9 @@ def run_human_review(project_name: str = "AutoML-Human-Intervention",
     Returns:
         dict: Dictionary containing the results of the human review process.
     """
+    # Ensure directories exist
+    _ensure_directories()
+
     # Initialize JSON files in the pending folder
     _initialize_json_files(mismatch_pending_dir)
 
