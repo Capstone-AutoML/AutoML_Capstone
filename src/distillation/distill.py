@@ -83,14 +83,7 @@ def prepare_dataset(img_path: Path, student_model: nn.Module, batch_size: int = 
     """
     Prepare dataset and dataloader for training.
     
-    Args:
-        img_path: Directory containing images
-        batch_size: Batch size for training
-        
-    Returns:
-        Tuple of (dataset, dataloader)
-        
-    Note: 
+    Notes: 
         number_of_objects_detected: the number of objects detected in all images in the batch
         batch_size: number of images in the batch
     
@@ -104,6 +97,15 @@ def prepare_dataset(img_path: Path, student_model: nn.Module, batch_size: int = 
     - cls: cls tensor of shape (number_of_objects_detected, 1), containing all class labels of the objects detected in the batch
     - resized_shape: Resized 2D dim of the image. A list of tensor, first tensor is first dim, second tensor is second dim
     - ori_shape: Original 2D dim of the image. Alist of tensor, first tensor is first dim, second tensor is second dim
+    
+    Args:
+        img_path: Directory containing images
+        student_model: Student model instance
+        batch_size: Batch size for training
+        mode: Dataset mode ("train" or "val")
+        
+    Returns:
+        Tuple of (dataset, dataloader)
     """
     data = {
         "names": {
@@ -200,6 +202,8 @@ def compute_distillation_loss(
         nc: Number of classes
         device: Device to perform computations on
         eps: Small epsilon value for numerical stability
+        reduction: Reduction method for the loss ("batchmean" or "sum")
+        hyperparams: Dictionary of hyperparameters for loss functions
         
     Returns:
         Total distillation loss
@@ -371,7 +375,7 @@ def train_epoch(
         log_level: Whether to log at batch or epoch level
         
     Returns:
-        Dictionary of loss values
+        Dictionary of loss values for the epoch
     """
     student_model.train()
     teacher_model.eval()
@@ -775,6 +779,7 @@ def start_distillation(
     Args:
         device: Device to train on
         base_dir: Base directory for paths
+        img_dir: Directory containing training images
         save_checkpoint_every: Save checkpoint every n epochs
         frozen_layers: Number of layers to freeze in the backbone
         hyperparams: Dictionary of hyperparameters for loss functions
