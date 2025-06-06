@@ -352,28 +352,11 @@ def train_epoch(
     },
     epoch: int = 1,
     log_file: Optional[Path] = None,
-    log_level: Literal["batch", "epoch"] = "batch"
+    log_level: Literal["batch", "epoch"] = "batch",
+    debug: bool = False
 ) -> Dict[str, float]:
     """
     Train for one epoch.
-    
-    Args:
-        student_model: Student model to train
-        teacher_model: Teacher model for distillation
-        train_dataloader: DataLoader for training data
-        detection_trainer: Detection trainer instance
-        optimizer: Optimizer for training
-        detection_criterion: Detection loss criterion
-        config_dict: Configuration dictionary
-        device: Device to train on
-        nc: Number of classes
-        hyperparams: Dictionary of hyperparameters for loss functions
-        epoch: Current epoch number
-        log_file: Optional path to log file for metrics
-        log_level: Whether to log at batch or epoch level
-        
-    Returns:
-        Dictionary of loss values for the epoch
     """
     student_model.train()
     teacher_model.eval()
@@ -429,13 +412,40 @@ def train_epoch(
                 hyperparams=hyperparams
             ).to(device)
             
+            # Calculate total loss with proper scaling and type conversion
+            detection_loss = detection_losses.sum()
+            bbox_loss = bbox_loss.to(device)
+            cls_loss = cls_loss.to(device)
+            dfl_loss = dfl_loss.to(device)
+            
+            # Debug print individual losses
+            if debug:
+                print(f"\nBatch {batch_idx} Loss Components:")
+                print(f"Detection Loss: {detection_loss.item():.4f}")
+                print(f"Bbox Loss: {bbox_loss.item():.4f}")
+                print(f"Cls Loss: {cls_loss.item():.4f}")
+                print(f"DFL Loss: {dfl_loss.item():.4f}")
+                print(f"Distillation Loss: {distillation_loss.item():.4f}")
+                
+            # Calculate weighted components
+            weighted_detection = hyperparams["lambda_detection"] * detection_loss
+            weighted_bbox = hyperparams["lambda_dist_ciou"] * bbox_loss
+            weighted_cls = hyperparams["lambda_dist_kl"] * cls_loss
+            weighted_dist = hyperparams["lambda_distillation"] * distillation_loss
+            
+            # Debug print weighted components
+            if debug:
+                print(f"\nWeighted Components:")
+                print(f"Weighted Detection: {weighted_detection.item():.4f}")
+                print(f"Weighted Bbox: {weighted_bbox.item():.4f}")
+                print(f"Weighted Cls: {weighted_cls.item():.4f}")
+                print(f"Weighted Dist: {weighted_dist.item():.4f}")
+            
             # Calculate total loss
-            total_loss = (
-                hyperparams["lambda_detection"] * detection_losses.sum() + 
-                hyperparams["lambda_distillation"] * distillation_loss + 
-                hyperparams["lambda_dist_ciou"] * bbox_loss + 
-                hyperparams["lambda_dist_kl"] * cls_loss
-            )
+            total_loss = weighted_detection + weighted_bbox + weighted_cls + weighted_dist
+            
+            if debug:
+                print(f"Total Loss: {total_loss.item():.4f}")
             
             # Final NaN check before backward pass
             if torch.isnan(total_loss).any() or torch.isinf(total_loss).any():
@@ -451,21 +461,22 @@ def train_epoch(
             optimizer.step()
             
             # Store losses
-            batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss)
-            batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss)
-            batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss)
+            batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss.cpu().detach().numpy())
+            batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss.cpu().detach().numpy())
+            batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss.cpu().detach().numpy())
             batch_loss_dict["distillation_loss"] = np.append(
                 batch_loss_dict["distillation_loss"], 
                 distillation_loss.cpu().detach().numpy()
             )
+            batch_loss_dict["total_loss"] = np.append(batch_loss_dict["total_loss"], total_loss.cpu().detach().numpy())
             
             # Log metrics if log_file is provided and log_level is batch
             if log_file is not None and log_level == "batch":
                 current_losses = {
                     'total_loss': float(total_loss.cpu().detach().numpy()),
-                    'bbox_loss': float(bbox_loss),
-                    'cls_loss': float(cls_loss),
-                    'dfl_loss': float(dfl_loss),
+                    'bbox_loss': float(bbox_loss.cpu().detach().numpy()),
+                    'cls_loss': float(cls_loss.cpu().detach().numpy()),
+                    'dfl_loss': float(dfl_loss.cpu().detach().numpy()),
                     'dist_loss': float(distillation_loss.cpu().detach().numpy())
                 }
                 log_training_metrics(
@@ -480,24 +491,6 @@ def train_epoch(
         except Exception as e:
             print(f"Error processing batch {batch_idx}: {str(e)}")
             continue
-    
-    # Log epoch-level metrics if log_level is epoch
-    if log_file is not None and log_level == "epoch":
-        epoch_losses = {
-            'total_loss': float(np.mean(batch_loss_dict["total_loss"])),
-            'bbox_loss': float(np.mean(batch_loss_dict["bbox_loss"])),
-            'cls_loss': float(np.mean(batch_loss_dict["cls_loss"])),
-            'dfl_loss': float(np.mean(batch_loss_dict["dfl_loss"])),
-            'dist_loss': float(np.mean(batch_loss_dict["distillation_loss"]))
-        }
-        log_training_metrics(
-            log_file=log_file,
-            epoch=epoch,
-            batch_idx=None,
-            losses=epoch_losses,
-            is_new_file=(epoch == 1),
-            log_level=log_level
-        )
     
     return batch_loss_dict
 
@@ -584,7 +577,8 @@ def train_loop(
     },
     start_epoch: int = 1,
     log_file: Optional[Path] = None,
-    log_level: Literal["batch", "epoch"] = "epoch"
+    log_level: Literal["batch", "epoch"] = "epoch",
+    debug: bool = False
 ) -> Dict[str, List[float]]:
     """
     Execute the complete training process including all epochs.
@@ -633,7 +627,8 @@ def train_loop(
                 hyperparams=hyperparams,
                 epoch=epoch,
                 log_file=log_file,
-                log_level=log_level
+                log_level=log_level,
+                debug=debug
             )
             
             learning_rate_scheduler.step()
@@ -769,7 +764,8 @@ def start_distillation(
     },
     resume_checkpoint: Optional[Path] = None,
     output_dir: Path = Path("distillation_out"),
-    log_level: Literal["batch", "epoch"] = "batch"
+    log_level: Literal["batch", "epoch"] = "batch",
+    debug: bool = False
 ) -> Dict[str, List[float]]:
     """
     Start the distillation training process.
@@ -784,7 +780,7 @@ def start_distillation(
         resume_checkpoint: Optional path to checkpoint to resume training from
         output_dir: Directory to save output
         log_level: Whether to log at batch or epoch level
-
+        debug: Whether to print debug information
     Returns:
         Dictionary containing lists of loss values for each epoch
     """
@@ -863,7 +859,8 @@ def start_distillation(
         hyperparams=hyperparams,
         start_epoch=start_epoch,
         log_file=log_file,
-        log_level=log_level
+        log_level=log_level,
+        debug=debug
     )
     
     # Validation
@@ -891,5 +888,6 @@ if __name__ == "__main__":
         hyperparams=hyperparams,
         resume_checkpoint=None,
         output_dir=Path("distillation_out"),
-        log_level="epoch"  # Log at epoch level instead of batch level
+        log_level="epoch",  # Log at epoch level instead of batch level
+        debug=True
     )
