@@ -889,5 +889,5 @@ if __name__ == "__main__":
         resume_checkpoint=None,
         output_dir=Path("distillation_out"),
         log_level="epoch",  # Log at epoch level instead of batch level
-        debug=True
+        debug=False
     )
