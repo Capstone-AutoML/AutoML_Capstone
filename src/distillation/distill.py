@@ -292,12 +292,30 @@ def compute_distillation_loss(
 
     return total_loss
 
+def calculate_gradient_norm(model: nn.Module) -> float:
+    """
+    Calculate the total gradient norm across all parameters.
+    
+    Args:
+        model: The model to calculate gradient norm for
+        
+    Returns:
+        Total gradient norm as a float
+    """
+    total_norm = 0.0
+    for p in model.parameters():
+        if p.grad is not None:
+            param_norm = p.grad.data.norm(2)
+            total_norm += param_norm.item() ** 2
+    return total_norm ** 0.5
 
 def log_training_metrics(
     log_file: Path,
     epoch: int,
     batch_idx: Optional[int],
     losses: Dict[str, float],
+    grad_norm_before: Optional[float] = None,
+    grad_norm_after: Optional[float] = None,
     is_new_file: bool = False,
     log_level: Literal["batch", "epoch"] = "epoch"
 ) -> None:
@@ -309,30 +327,38 @@ def log_training_metrics(
         epoch: Current epoch number
         batch_idx: Current batch index (None for epoch-level logging)
         losses: Dictionary of loss values
+        grad_norm_before: Gradient norm before clipping
+        grad_norm_after: Gradient norm after clipping
         is_new_file: Whether this is the first write to the file
         log_level: Whether to log at batch or epoch level
     """
-    fieldnames = ['timestamp', 'epoch', 'batch', 'total_loss', 'bbox_loss', 'cls_loss', 'dfl_loss', 'dist_loss']
+    fieldnames = [
+        'timestamp', 'epoch', 'batch', 
+        'total_loss', 'bbox_loss', 'cls_loss', 'dfl_loss', 'dist_loss',
+        'grad_norm_before', 'grad_norm_after'
+    ]
     
-    # Create file with headers if it's new
-    if is_new_file:
-        with open(log_file, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
+    # Prepare the row data
+    row = {
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'epoch': epoch,
+        'batch': batch_idx if log_level == "batch" else "epoch",
+        'total_loss': losses.get('total_loss', ''),
+        'bbox_loss': losses.get('bbox_loss', ''),
+        'cls_loss': losses.get('cls_loss', ''),
+        'dfl_loss': losses.get('dfl_loss', ''),
+        'dist_loss': losses.get('dist_loss', ''),
+        'grad_norm_before': grad_norm_before if grad_norm_before is not None else '',
+        'grad_norm_after': grad_norm_after if grad_norm_after is not None else ''
+    }
     
-    # Append new row
-    with open(log_file, 'a', newline='') as f:
+    # Write to file
+    mode = 'w' if is_new_file else 'a'
+    with open(log_file, mode, newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writerow({
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'epoch': epoch,
-            'batch': batch_idx if log_level == "batch" else "epoch",
-            'total_loss': losses.get('total_loss', ''),
-            'bbox_loss': losses.get('bbox_loss', ''),
-            'cls_loss': losses.get('cls_loss', ''),
-            'dfl_loss': losses.get('dfl_loss', ''),
-            'dist_loss': losses.get('dist_loss', '')
-        })
+        if is_new_file:
+            writer.writeheader()
+        writer.writerow(row)
 
 def train_epoch(
     student_model: nn.Module,
@@ -366,7 +392,9 @@ def train_epoch(
         "bbox_loss": np.array([]),
         "cls_loss": np.array([]),
         "dfl_loss": np.array([]),
-        "distillation_loss": np.array([])
+        "distillation_loss": np.array([]),
+        "grad_norm_before": np.array([]),
+        "grad_norm_after": np.array([])
     }
     
     for batch_idx, batch in enumerate(train_dataloader):
@@ -451,12 +479,18 @@ def train_epoch(
                 
             total_loss.backward()
             
+            # Calculate gradient norm before clipping
+            grad_norm_before = calculate_gradient_norm(student_model)
+            
             # Clip gradients to prevent exploding gradients
-            clip_grad_norm_(student_model.parameters(), max_norm=1.0)
+            clip_grad_norm_(student_model.parameters(), max_norm=10.0)
+            
+            # Calculate gradient norm after clipping
+            grad_norm_after = calculate_gradient_norm(student_model)
             
             optimizer.step()
             
-            # Store losses
+            # Store losses and gradient norms
             batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss.cpu().detach().numpy())
             batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss.cpu().detach().numpy())
             batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss.cpu().detach().numpy())
@@ -465,6 +499,8 @@ def train_epoch(
                 distillation_loss.cpu().detach().numpy()
             )
             batch_loss_dict["total_loss"] = np.append(batch_loss_dict["total_loss"], total_loss.cpu().detach().numpy())
+            batch_loss_dict["grad_norm_before"] = np.append(batch_loss_dict["grad_norm_before"], grad_norm_before)
+            batch_loss_dict["grad_norm_after"] = np.append(batch_loss_dict["grad_norm_after"], grad_norm_after)
             
             # Log metrics if log_file is provided and log_level is batch
             if log_file is not None and log_level == "batch":
@@ -480,6 +516,8 @@ def train_epoch(
                     epoch=epoch,
                     batch_idx=batch_idx,
                     losses=current_losses,
+                    grad_norm_before=grad_norm_before,
+                    grad_norm_after=grad_norm_after,
                     is_new_file=(epoch == 1 and batch_idx == 0),
                     log_level=log_level
                 )
@@ -487,6 +525,26 @@ def train_epoch(
         except Exception as e:
             print(f"Error processing batch {batch_idx}: {str(e)}")
             continue
+    
+    # Log epoch-level metrics if log_level is epoch
+    if log_file is not None and log_level == "epoch":
+        epoch_losses = {
+            'total_loss': float(np.mean(batch_loss_dict["total_loss"])),
+            'bbox_loss': float(np.mean(batch_loss_dict["bbox_loss"])),
+            'cls_loss': float(np.mean(batch_loss_dict["cls_loss"])),
+            'dfl_loss': float(np.mean(batch_loss_dict["dfl_loss"])),
+            'dist_loss': float(np.mean(batch_loss_dict["distillation_loss"]))
+        }
+        log_training_metrics(
+            log_file=log_file,
+            epoch=epoch,
+            batch_idx=None,
+            losses=epoch_losses,
+            grad_norm_before=float(np.mean(batch_loss_dict["grad_norm_before"])),
+            grad_norm_after=float(np.mean(batch_loss_dict["grad_norm_after"])),
+            is_new_file=(epoch == 1),
+            log_level=log_level
+        )
     
     return batch_loss_dict
 
@@ -884,6 +942,6 @@ if __name__ == "__main__":
         hyperparams=hyperparams,
         resume_checkpoint=None,
         output_dir=Path("distillation_out"),
-        log_level="epoch",  # Log at epoch level instead of batch level
+        log_level="batch",  # Log at epoch level instead of batch level
         debug=False
     )
