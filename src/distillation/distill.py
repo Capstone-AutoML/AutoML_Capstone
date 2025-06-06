@@ -429,20 +429,16 @@ def train_epoch(
                 
             # Calculate weighted components
             weighted_detection = hyperparams["lambda_detection"] * detection_loss
-            weighted_bbox = hyperparams["lambda_dist_ciou"] * bbox_loss
-            weighted_cls = hyperparams["lambda_dist_kl"] * cls_loss
             weighted_dist = hyperparams["lambda_distillation"] * distillation_loss
             
             # Debug print weighted components
             if debug:
                 print(f"\nWeighted Components:")
                 print(f"Weighted Detection: {weighted_detection.item():.4f}")
-                print(f"Weighted Bbox: {weighted_bbox.item():.4f}")
-                print(f"Weighted Cls: {weighted_cls.item():.4f}")
                 print(f"Weighted Dist: {weighted_dist.item():.4f}")
             
             # Calculate total loss
-            total_loss = weighted_detection + weighted_bbox + weighted_cls + weighted_dist
+            total_loss = weighted_detection + weighted_dist
             
             if debug:
                 print(f"Total Loss: {total_loss.item():.4f}")
