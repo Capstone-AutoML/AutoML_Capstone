@@ -17,15 +17,29 @@ from dotenv import load_dotenv
 
 mismatch_dir = Path("mock_io/data/mismatched")
 mismatch_pending_dir = mismatch_dir / "pending"
-# mismatch_imported_dir = mismatch_dir / "imported"
 reviewed_dir = mismatch_dir / "reviewed_results"
 image_dir = Path("mock_io/data/raw/images")
 output_dir = Path("mock_io/data/ls_tasks")
-mismatch_dir.mkdir(parents=True, exist_ok=True)
-mismatch_pending_dir.mkdir(parents=True, exist_ok=True)
-# mismatch_imported_dir.mkdir(exist_ok=True)
-reviewed_dir.mkdir(parents=True, exist_ok=True)
-output_dir.mkdir(parents=True, exist_ok=True)
+labeled_dir = Path("mock_io/data/labeled")
+
+
+def _ensure_directories():
+    """
+    Create necessary directories for the human intervention workflow.
+
+    This function creates all required directories if they don't exist.
+    Called only when the script is actually running.
+    """
+    directories = [
+        mismatch_dir,
+        mismatch_pending_dir,
+        reviewed_dir,
+        output_dir,
+        labeled_dir
+    ]
+
+    for directory in directories:
+        directory.mkdir(parents=True, exist_ok=True)
 
 
 def _find_image_path(stem: str, image_dir: Path) -> Path:
@@ -122,6 +136,31 @@ def _convert_bbox_to_percent(bbox, img_width, img_height):
     }
 
 
+def _convert_bbox_from_percent(bbox_dict, img_width, img_height):
+    """
+    Converts bounding box coordinates from percentage back to pixel format.
+
+    Args:
+        bbox_dict (dict): Bbox with x, y, width, height in percentages
+        img_width (int): Width of the image in pixels
+        img_height (int): Height of the image in pixels
+
+    Returns:
+        list: Bounding box in [x1, y1, x2, y2] pixel format
+    """
+    x_percent = bbox_dict["x"]
+    y_percent = bbox_dict["y"]
+    width_percent = bbox_dict["width"]
+    height_percent = bbox_dict["height"]
+
+    x1 = (x_percent / 100) * img_width
+    y1 = (y_percent / 100) * img_height
+    x2 = x1 + (width_percent / 100) * img_width
+    y2 = y1 + (height_percent / 100) * img_height
+
+    return [x1, y1, x2, y2]
+
+
 def _generate_ls_tasks(json_dir: Path, image_dir: Path, output_dir: Path):
     """
     Converts mismatched YOLOv8 prediction JSON files into a single
@@ -170,7 +209,11 @@ def _generate_ls_tasks(json_dir: Path, image_dir: Path, output_dir: Path):
                     "from_name": "bbox",
                     "to_name": "image",
                     "type": "rectanglelabels",
-                    "value": box
+                    "value": box,
+                    "meta": {
+                        "confidence": item.get("confidence", 0.0),
+                        "confidence_flag": item.get("confidence_flag", "N.A.")
+                    }
                 })
 
             # Encode image to base64
@@ -601,11 +644,126 @@ def export_versioned_results(project_id: str, output_dir: Path, version: str = N
         print("[✓] Exported results:")
         print(f"    - {len(results)} tasks ({labeled_results_count} labeled): {results_path}")
 
+        # Transform results to labeled directory
+        try:
+            transformed_count = transform_reviewed_results_to_labeled(results, labeled_dir, image_dir)
+            if transformed_count > 0:
+                print(f"[✓] Auto-transformed {transformed_count} files to labeled directory")
+
+        except Exception as e:
+            print(f"[Warning] Failed to auto-transform results: {e}")
+
         return results
 
     except requests.exceptions.RequestException as e:
         print(f"[Error] Failed to export results: {e}")
         return {}
+
+
+def _extract_confidence_from_results(export_result, bbox_index):
+    """
+    Extract confidence info from original prediction metadata.
+
+    Args:
+        export_result (dict): Single result from Label Studio export
+        bbox_index (int): Index of the bounding box
+
+    Returns:
+        tuple: (confidence, confidence_flag)
+    """
+    annotations = export_result.get("annotations", [])
+    if not annotations:
+        return 1.0, "human"
+
+    latest_annotation = annotations[-1]
+
+    # Check if there's prediction data in the annotation
+    if "prediction" in latest_annotation:
+        prediction = latest_annotation["prediction"]
+        result_items = prediction.get("result", [])
+        if bbox_index < len(result_items):
+            prediction_item = result_items[bbox_index]
+            meta = prediction_item.get("meta", {})
+            confidence = meta.get("confidence", 1.0)
+            confidence_flag = meta.get("confidence_flag", "human")
+            return confidence, confidence_flag
+
+    return 1.0, "human"
+
+
+def _transform_ls_result_to_original_format(export_result, image_dir: Path):
+    """
+    Transform Label Studio export result back to original JSON format.
+
+    Args:
+        export_result (dict): Single result from Label Studio export
+        image_dir (Path): Directory containing images
+
+    Returns:
+        dict: Transformed data or None if failed
+    """
+    try:
+        # Get annotations from export result
+        annotations = export_result.get("annotations", [])
+        if not annotations:
+            return None
+
+        latest_annotation = annotations[-1]
+        if latest_annotation.get("was_cancelled", False):
+            return None
+
+        # Extract filename info
+        original_filename = export_result["data"].get("original_filename")
+        if not original_filename:
+            return None
+
+        # Transform annotations to original format
+        predictions = []
+        result_items = latest_annotation.get("result", [])
+
+        for idx, annotation_item in enumerate(result_items):
+            if annotation_item.get("type") == "rectanglelabels" and "value" in annotation_item:
+                value = annotation_item["value"]
+                labels = value.get("rectanglelabels", [])
+
+                if not labels:
+                    continue
+
+                # Get image dimensions from annotation
+                img_width = annotation_item.get("original_width")
+                img_height = annotation_item.get("original_height")
+
+                if not img_width or not img_height:
+                    continue
+
+                # Convert bbox from percentage to pixels
+                bbox_pixels = _convert_bbox_from_percent(value, img_width, img_height)
+
+                # Get confidence from original prediction
+                confidence, confidence_flag = _extract_confidence_from_results(export_result, idx)
+
+                prediction = {
+                    "bbox": bbox_pixels,
+                    "confidence": confidence,
+                    "class": labels[0],
+                    "confidence_flag": confidence_flag
+                }
+                predictions.append(prediction)
+
+        return {
+            "data": {
+                "predictions": predictions,
+                "label_status": 2,
+                "reviewed_timestamp": latest_annotation.get("updated_at"),
+                "annotation_id": latest_annotation.get("id"),
+                "result_id": export_result.get("id")
+            },
+            "original_filename": original_filename
+        }
+
+    except Exception as e:
+        print(f"[Error] Failed to transform {export_result.get('id')}: {e}")
+        return None
 
 
 def import_tasks_to_project(base_url: str, headers: Dict[str, str],
@@ -643,6 +801,61 @@ def import_tasks_to_project(base_url: str, headers: Dict[str, str],
         return False
 
 
+def transform_reviewed_results_to_labeled(export_results: list,
+                                          labeled_dir: Path = None,
+                                          image_dir: Path = None) -> int:
+    """
+    Transform reviewed Label Studio results to labeled directory.
+    Removes original pending files and saves human-reviewed data.
+
+    Args:
+        export_results (list): List of results from Label Studio export
+        labeled_dir (Path): Directory to save labeled files
+        image_dir (Path): Directory containing images
+
+    Returns:
+        int: Number of files transformed
+    """
+    if labeled_dir is None:
+        labeled_dir = Path("mock_io/data/labeled")
+    if image_dir is None:
+        image_dir = Path("mock_io/data/raw/images")
+    transformed_count = 0
+
+    # Transform results to original format
+    for export_result in export_results:
+        if not export_result.get("annotations"):
+            continue
+
+        transformed = _transform_ls_result_to_original_format(export_result, image_dir)
+        if not transformed:
+            continue
+
+        original_filename = transformed["original_filename"]
+        labeled_file = labeled_dir / original_filename
+
+        # Skip if file exists in labeled/
+        if labeled_file.exists():
+            continue
+
+        try:
+            # Save human-corrected data to labeled directory
+            with open(labeled_file, 'w') as f:
+                json.dump(transformed["data"], f, indent=2)
+
+            # Remove original file from pending directory
+            pending_file = mismatch_pending_dir / original_filename
+            if pending_file.exists():
+                pending_file.unlink()
+            transformed_count += 1
+
+        except Exception as e:
+            print(f"[Error] Failed to save {original_filename}: {e}")
+
+    print(f"[✓] Transformed {transformed_count} new labeled files")
+    return transformed_count
+
+
 def run_human_review(project_name: str = "AutoML-Human-Intervention",
                      export_results_flag: bool = None) -> dict:
     """Run the complete human review workflow.
@@ -657,6 +870,9 @@ def run_human_review(project_name: str = "AutoML-Human-Intervention",
     Returns:
         dict: Dictionary containing the results of the human review process.
     """
+    # Ensure directories exist
+    _ensure_directories()
+
     # Initialize JSON files in the pending folder
     _initialize_json_files(mismatch_pending_dir)
 

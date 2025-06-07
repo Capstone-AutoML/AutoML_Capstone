@@ -9,8 +9,13 @@ from pathlib import Path
 import pandas as pd
 from typing import Dict, Union, Optional
 import json
+import yaml
 import os
 import torch
+import shutil
+import random
+from PIL import Image
+
 
 def detect_device() -> str:
     """
@@ -109,4 +114,141 @@ def draw_yolo_bboxes(img_path, label_path, label_map=None):
     plt.axis('off')
     plt.tight_layout()
     plt.show()
-    
+
+
+def create_data_yaml(output_dir: str, yaml_path: str = None):
+    """
+    Create a data.yaml file for training with absolute paths.
+
+    Args:
+        output_dir (str): Directory containing the training images and labels.
+        yaml_path (str, optional):
+            Output path for the YAML file.
+            Defaults to "output_dir/data.yaml".
+    """
+    if yaml_path is None:
+        yaml_path = os.path.join(output_dir, "data.yaml")
+
+    # Resolve absolute paths
+    train_path = os.path.abspath(os.path.join(output_dir, "images", "train"))
+    val_path = os.path.abspath(os.path.join(output_dir, "images", "val"))
+    test_path = os.path.abspath(os.path.join(output_dir, "images", "test"))
+
+    # YAML content
+    data_yaml = {
+        "train": train_path,
+        "val": val_path,
+        "test": test_path,
+        "nc": 5,
+        "names": ["FireBSI", "LightningBSI", "PersonBSI", "SmokeBSI", "VehicleBSI"]
+    }
+
+    # Write YAML file
+    with open(yaml_path, "w") as f:
+        yaml.dump(data_yaml, f, sort_keys=False, default_flow_style=None)
+
+    print(f"[INFO] data.yaml saved to: {yaml_path}")
+
+
+def prepare_training_data(config: dict):
+    """
+    Splits dataset into train/val/test sets and saves the images and
+    labels. Labels are converted from JSON to YOLO format. 
+    True negative images with no labels are also added to the dataset.
+    Args:
+        config (dict): Dictionary containing required paths and optional split ratios.
+                       Expected keys:
+                       - "augmented_images_path"
+                       - "augmented_labels_path"
+                       - "true_negative_images_path"
+                       - "training_output_path"
+                       - "train_val_test_split" (list of 3 floats summing to 1.0)
+    """
+    # Define paths
+    aug_images = Path(config["augmented_images_path"])
+    aug_labels = Path(config["augmented_labels_path"])
+    true_negatives = Path(config["true_negative_images_path"])
+    out_dir = Path(config["training_output_path"])
+    split_ratio = config.get("train_val_test_split", [0.7, 0.2, .10])  # default to train/val only
+
+    # Validate split ratio
+    assert abs(sum(split_ratio) - 1.0) < 1e-6, "Train/val/test split ratios must sum to 1.0"
+
+    # Convert classes to int in a dictionary
+    class_map = {
+        "FireBSI": 0,
+        "LightningBSI": 1,
+        "PersonBSI": 2,
+        "SmokeBSI": 3,
+        "VehicleBSI": 4
+    }
+
+    image_label_pairs = []
+
+    # Convert JSON labels to YOLO format
+    for json_file in aug_labels.glob("*.json"):
+        image_file = aug_images / (json_file.stem + ".jpg")
+        if not image_file.exists():
+            image_file = image_file.with_suffix(".png")
+        if not image_file.exists():
+            print(f"Image for {json_file.name} not found. Skipping.")
+            continue
+
+        with open(json_file) as f:
+            data = json.load(f)
+
+        yolo_lines = []
+        im = Image.open(image_file)
+        w, h = im.size
+
+        for ann in data.get("predictions", []):
+            cls = ann["class"]
+            if cls not in class_map:
+                print(f"Unknown class '{cls}' in {json_file.name}. Skipping annotation.")
+                continue
+            class_id = class_map[cls]
+
+            # Convert [xmin, ymin, xmax, ymax] to YOLO format: https://medium.com/@telega.slawomir.ai/json-to-yolo-dataset-converter-9e9e643a31a7
+            x_min, y_min, x_max, y_max = ann["bbox"]
+            box_w = x_max - x_min
+            box_h = y_max - y_min
+            x_center = (x_min + box_w / 2) / w
+            y_center = (y_min + box_h / 2) / h
+            norm_w = box_w / w
+            norm_h = box_h / h
+
+            yolo_lines.append(f"{class_id} {x_center:.6f} {y_center:.6f} {norm_w:.6f} {norm_h:.6f}")
+
+        image_label_pairs.append((image_file, yolo_lines))
+
+    # Add true negatives (images with no labels)
+    for img_file in list(true_negatives.glob("*.jpg")) + list(true_negatives.glob("*.png")):
+        image_label_pairs.append((img_file, []))
+
+    # Shuffle and split data into train/val/test
+    random.shuffle(image_label_pairs)
+    n_total = len(image_label_pairs)
+    n_train = int(n_total * split_ratio[0])
+    n_val = int(n_total * split_ratio[1])
+
+    train_pairs = image_label_pairs[:n_train]
+    val_pairs = image_label_pairs[n_train:n_train + n_val]
+    test_pairs = image_label_pairs[n_train + n_val:]
+
+    # Save to YOLO-style structure
+    for split_name, split_data in zip(["train", "val", "test"], [train_pairs, val_pairs, test_pairs]):
+        for img_path, labels in split_data:
+            dest_img = out_dir / "images" / split_name / img_path.name
+            dest_lbl = out_dir / "labels" / split_name / (img_path.stem + ".txt")
+            dest_img.parent.mkdir(parents=True, exist_ok=True)
+            dest_lbl.parent.mkdir(parents=True, exist_ok=True)
+
+            shutil.copy(img_path, dest_img)
+            with open(dest_lbl, "w") as f:
+                f.write("\n".join(labels))
+
+    print(f"[INFO] Training data prepared at '{out_dir}'")
+    print(f"[INFO] Train: {len(train_pairs)}, Val: {len(val_pairs)}, Test: {len(test_pairs)}")
+
+    # Create data.yaml file
+    create_data_yaml(out_dir)
