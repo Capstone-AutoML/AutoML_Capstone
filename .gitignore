@@ -13,3 +13,7 @@
 **.venv
 **.env
 GroundingDINO/
+notebooks/
+src/distillation/runs/
+src/distillation/checkpoints/
+src/distillation/logs/
