@@ -1,4 +1,18 @@
 #!/bin/bash
+
+# Step 0: Build GroundingDINO's C++/CUDA extension if not already built
+cd /tmp/GroundingDINO
+
+echo "🛠️ Building GroundingDINO extension..."
+python setup.py clean > /dev/null 2>&1
+rm -rf build/ dist/ *.egg-info
+pip install . > /dev/null 2>&1
+
+
+cd /app  # Return to project root
+
+# --- Token and asset download section ---
+
 if [ ! -f token.txt ]; then
     echo "token.txt not found in project, using fallback from image..."
     cp /opt/token.txt token.txt
