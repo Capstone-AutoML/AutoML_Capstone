@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 from typing import Dict, Union, Optional
 import json
+import yaml
 import os
 import torch
 import shutil
@@ -114,6 +115,41 @@ def draw_yolo_bboxes(img_path, label_path, label_map=None):
     plt.tight_layout()
     plt.show()
 
+
+def create_data_yaml(output_dir: str, yaml_path: str = None):
+    """
+    Create a data.yaml file for training with absolute paths.
+
+    Args:
+        output_dir (str): Directory containing the training images and labels.
+        yaml_path (str, optional):
+            Output path for the YAML file.
+            Defaults to "output_dir/data.yaml".
+    """
+    if yaml_path is None:
+        yaml_path = os.path.join(output_dir, "data.yaml")
+
+    # Resolve absolute paths
+    train_path = os.path.abspath(os.path.join(output_dir, "images", "train"))
+    val_path = os.path.abspath(os.path.join(output_dir, "images", "val"))
+    test_path = os.path.abspath(os.path.join(output_dir, "images", "test"))
+
+    # YAML content
+    data_yaml = {
+        "train": train_path,
+        "val": val_path,
+        "test": test_path,
+        "nc": 5,
+        "names": ["FireBSI", "LightningBSI", "PersonBSI", "SmokeBSI", "VehicleBSI"]
+    }
+
+    # Write YAML file
+    with open(yaml_path, "w") as f:
+        yaml.dump(data_yaml, f, sort_keys=False, default_flow_style=None)
+
+    print(f"[INFO] data.yaml saved to: {yaml_path}")
+
+
 def prepare_training_data(config: dict):
     """
     Splits dataset into train/val/test sets and saves the images and
@@ -213,3 +249,6 @@ def prepare_training_data(config: dict):
 
     print(f"[INFO] Training data prepared at '{out_dir}'")
     print(f"[INFO] Train: {len(train_pairs)}, Val: {len(val_pairs)}, Test: {len(test_pairs)}")
+
+    # Create data.yaml file
+    create_data_yaml(out_dir)
