@@ -12,6 +12,7 @@ import json
 import yaml
 import os
 import torch
+import numpy as np
 import shutil
 import random
 from PIL import Image
@@ -76,41 +77,77 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict:
     return config
 
 
-def draw_yolo_bboxes(img_path, label_path, label_map=None):
-    """Draw YOLO-format bounding boxes on an image.
-
+def draw_yolo_bboxes(
+    img: Union[str, Path, np.ndarray],
+    label: Union[str, Path, np.ndarray],
+    label_map: Optional[Dict[int, str]] = None
+) -> None:
+    """
+    Draw YOLO-format bounding boxes on an image.
+    
     Parameters
     ----------
-    img_path : Path or str
-        Path to the image file.
-    label_path : Path or str
-        Path to the corresponding YOLO label file.
+    img : Union[str, Path, np.ndarray]
+        Either a path to an image file or a numpy array of the image
+    label : Union[str, Path, np.ndarray]
+        Either a path to a YOLO label file or a 2D array of YOLO format boxes
+        (each row: [class_id, x_center, y_center, width, height])
+    label_map : Optional[Dict[int, str]], optional
+        Dictionary mapping class IDs to class names, by default None
     """
-    image = cv2.imread(str(img_path))
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Handle image input
+    if isinstance(img, (str, Path)):
+        image = cv2.imread(str(img))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    else:
+        image = img.copy()
+        if len(image.shape) == 3 and image.shape[2] == 3:
+            if image.dtype != np.uint8:
+                image = (image * 255).astype(np.uint8)
+    
     h, w, _ = image.shape
-
+    
+    # Create figure
     fig, ax = plt.subplots()
     ax.imshow(image)
-
-    with open(label_path, "r") as f:
-        for line in f:
-            cls_id, x_center, y_center, width, height = map(float, line.strip().split())
-            cls_id = int(cls_id)
-            cls_name = ""
-            if label_map is not None:
-                cls_name = label_map[cls_id]
-            x = (x_center - width / 2) * w
-            y = (y_center - height / 2) * h
-            box_w = width * w
-            box_h = height * h
-
-            rect = patches.Rectangle((x, y), box_w, box_h,
-                                     linewidth=2, edgecolor='red', facecolor='none')
-            ax.add_patch(rect)
-            ax.text(x, y - 5, f"{cls_id}: {cls_name}", color='red',
-                    fontsize=10, backgroundcolor='white')
-
+    
+    # Handle label input
+    if isinstance(label, (str, Path)):
+        with open(label, "r") as f:
+            boxes = [list(map(float, line.strip().split())) for line in f]
+    else:
+        boxes = label
+    
+    # Draw boxes
+    for box in boxes:
+        cls_id, x_center, y_center, width, height = box
+        cls_id = int(cls_id)
+        
+        # Get class name if label_map is provided
+        cls_name = label_map[cls_id] if label_map is not None else ""
+        
+        # Convert normalized coordinates to pixel coordinates
+        x = (x_center - width / 2) * w
+        y = (y_center - height / 2) * h
+        box_w = width * w
+        box_h = height * h
+        
+        # Draw rectangle
+        rect = patches.Rectangle(
+            (x, y), box_w, box_h,
+            linewidth=2, edgecolor='red', facecolor='none'
+        )
+        ax.add_patch(rect)
+        
+        # Add label
+        ax.text(
+            x, y - 5,
+            f"{cls_id}: {cls_name}",
+            color='red',
+            fontsize=10,
+            backgroundcolor='white'
+        )
+    
     plt.axis('off')
     plt.tight_layout()
     plt.show()
@@ -410,6 +447,37 @@ def prepare_quantization_data(config: dict, image_dir: Path, calibration_samples
 
     # Create quantize.yaml file for IMX
     create_quantize_yaml(quant_dir)
+
+
+def create_distill_yaml(output_dir: str, yaml_path: str = None):
+    """
+    Create a distillation_data.yaml file for distillation with absolute paths.
+
+    Args:
+        output_dir (str): Directory containing the distillation images and labels.
+        yaml_path (str, optional): Output path for the YAML file.
+                                  Defaults to "mock_io/data/distillation/distillation_data.yaml".
+    """
+    if yaml_path is None:
+        yaml_path = "mock_io/data/distillation/distillation_data.yaml"
+
+    # Resolve absolute paths
+    train_path = os.path.abspath(os.path.join(output_dir, "train"))
+    val_path = os.path.abspath(os.path.join(output_dir, "valid"))
+
+    # YAML content
+    distill_yaml = {
+        "train": train_path,
+        "val": val_path,
+        "nc": 5,
+        "names": ["FireBSI", "LightningBSI", "PersonBSI", "SmokeBSI", "VehicleBSI"]
+    }
+
+    # Write YAML file
+    with open(yaml_path, "w") as f:
+        yaml.dump(distill_yaml, f, sort_keys=False, default_flow_style=None)
+
+    print(f"[INFO] distillation_data.yaml saved to: {yaml_path}")
 
 
 def create_quantize_yaml(output_dir: str, yaml_path: str = None):
