@@ -126,4 +126,4 @@ python src/generate_boxed_images.py
 
 ## Support
 
-Encountering issues? Need assistance? For any questions regarding this dashboard, please open an issue in the GitHub repository.
+Encountering issues? Need assistance? For any questions regarding this pipeline, please open an issue in the GitHub repository.
