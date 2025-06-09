@@ -956,7 +956,7 @@ if __name__ == "__main__":
         save_checkpoint_every=25,
         hyperparams=hyperparams,
         resume_checkpoint=None,
-        output_dir=Path("distillation_out"),
+        output_dir=Path(SCRIPT_DIR, "distillation_out"),
         log_level="batch",
         debug=False,
         distillation_config=distillation_config
