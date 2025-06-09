@@ -626,13 +626,17 @@ def save_final_model(
         model_name: Name of the saved model file
     """
     model_path = output_dir / model_name
-    torch.save(model.state_dict(), model_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save the model using YOLO's save method
+    model.save(model_path)
     print(f"Final model saved to {model_path}")
 
 
 def train_loop(
     num_epochs: int,
     student_model: nn.Module,
+    student_yolo: YOLO,  # Add YOLO model instance
     teacher_model: nn.Module,
     train_dataloader: DataLoader,
     detection_trainer: DetectionTrainer,
@@ -652,7 +656,7 @@ def train_loop(
     start_epoch: int = 1,
     log_file: Optional[Path] = None,
     log_level: Literal["batch", "epoch"] = "epoch",
-    final_model_dir: Path = Path("mock_io/model_registry/distilled"),
+    final_model_dir: Path = Path("mock_io/model_registry/distilled/latest"),
     debug: bool = False
 ) -> Dict[str, List[float]]:
     """
@@ -661,6 +665,7 @@ def train_loop(
     Args:
         num_epochs: Number of epochs to train
         student_model: Student model to train
+        student_yolo: Student YOLO model instance for saving
         teacher_model: Teacher model for distillation
         train_dataloader: DataLoader for training data
         detection_trainer: Detection trainer instance
@@ -675,6 +680,8 @@ def train_loop(
         start_epoch: Start training from this epoch
         log_file: Optional path to log file for metrics
         log_level: Whether to log at batch or epoch level
+        final_model_dir: Directory to save final model
+        debug: Whether to print debug information
         
     Returns:
         Dictionary containing lists of loss values for each epoch
@@ -744,7 +751,7 @@ def train_loop(
                 )
         
         # Save final model after training completes
-        save_final_model(student_model, final_model_dir)
+        save_final_model(student_yolo, final_model_dir)
             
     except ValueError as e:
         print(str(e))
@@ -842,7 +849,7 @@ def start_distillation(
     },
     resume_checkpoint: Optional[Path] = None,
     output_dir: Path = Path("distillation_out"),
-    final_model_dir: Path = Path("mock_io/model_registry/distilled"),
+    final_model_dir: Path = Path("mock_io/model_registry/distilled/latest"),
     log_level: Literal["batch", "epoch"] = "batch",
     debug: bool = False,
     distillation_config: Optional[Dict[str, Any]] = None,
@@ -860,6 +867,7 @@ def start_distillation(
         hyperparams: Dictionary of hyperparameters for loss functions
         resume_checkpoint: Optional path to checkpoint to resume training from
         output_dir: Directory to save output
+        final_model_dir: Directory to save final model
         log_level: Whether to log at batch or epoch level
         debug: Whether to print debug information
         distillation_config: Configuration dictionary for distillation
@@ -869,7 +877,7 @@ def start_distillation(
     """
     if distillation_config is None:
         raise ValueError("distillation_config is required")
-
+        
     # Ensure distillation dataset directories exist
     distillation_base_dir = Path(distillation_config["distillation_dataset"])
     distillation_dataset_dir = distillation_base_dir / "distillation_dataset"
@@ -953,9 +961,10 @@ def start_distillation(
         print("Starting training and distillation from scratch")
     
     # Run training loop
-    train_loop(
+    return train_loop(
         num_epochs=EPOCHS,
         student_model=student_model,
+        student_yolo=student_yolo,  # Pass the YOLO model instance
         teacher_model=teacher_model,
         train_dataloader=train_dataloader,
         detection_trainer=detection_trainer,
@@ -970,6 +979,7 @@ def start_distillation(
         start_epoch=start_epoch,
         log_file=log_file,
         log_level=log_level,
+        final_model_dir=final_model_dir,
         debug=debug
     )
 
@@ -995,8 +1005,8 @@ if __name__ == "__main__":
         save_checkpoint_every=25,
         hyperparams=hyperparams,
         resume_checkpoint=None,
-        output_dir=Path(SCRIPT_DIR, "distillation_out"),
-        final_model_dir=Path(SCRIPT_DIR, "distillation_out"),
+        output_dir=Path("mock_io/model_registry/distilled"),
+        final_model_dir=Path("mock_io/model_registry/distilled/latest"),
         log_level="batch",
         debug=False,
         distillation_config=distillation_config
