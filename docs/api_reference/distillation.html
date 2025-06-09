@@ -62,11 +62,19 @@
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Distillation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.combine_losses"><code class="docutils literal notranslate"><span class="pre">combine_losses()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.compute_detection_loss"><code class="docutils literal notranslate"><span class="pre">compute_detection_loss()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.compute_distillation_loss"><code class="docutils literal notranslate"><span class="pre">compute_distillation_loss()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distill_model"><code class="docutils literal notranslate"><span class="pre">distill_model()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.train_distillation_step"><code class="docutils literal notranslate"><span class="pre">train_distillation_step()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.build_optimizer_and_scheduler"><code class="docutils literal notranslate"><span class="pre">build_optimizer_and_scheduler()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.calculate_gradient_norm"><code class="docutils literal notranslate"><span class="pre">calculate_gradient_norm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.compute_distillation_loss"><code class="docutils literal notranslate"><span class="pre">compute_distillation_loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.freeze_layers"><code class="docutils literal notranslate"><span class="pre">freeze_layers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.head_features_decoder"><code class="docutils literal notranslate"><span class="pre">head_features_decoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.load_checkpoint"><code class="docutils literal notranslate"><span class="pre">load_checkpoint()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.load_models"><code class="docutils literal notranslate"><span class="pre">load_models()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.log_training_metrics"><code class="docutils literal notranslate"><span class="pre">log_training_metrics()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.prepare_dataset"><code class="docutils literal notranslate"><span class="pre">prepare_dataset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.save_checkpoint"><code class="docutils literal notranslate"><span class="pre">save_checkpoint()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.start_distillation"><code class="docutils literal notranslate"><span class="pre">start_distillation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.train_epoch"><code class="docutils literal notranslate"><span class="pre">train_epoch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.distillation.distillation.train_loop"><code class="docutils literal notranslate"><span class="pre">train_loop()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
@@ -100,168 +108,280 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-src.pipeline.distillation">
-<span id="distillation"></span><h1>Distillation<a class="headerlink" href="#module-src.pipeline.distillation" title="Link to this heading"></a></h1>
-<p>Script for model optimization through distillation.</p>
-<p>This module implements knowledge distillation for YOLOv8 models, where a smaller student model
-learns from a larger teacher model. The distillation process combines standard detection loss
-with distillation loss to transfer knowledge effectively.</p>
+  <section id="module-src.pipeline.distillation.distillation">
+<span id="distillation"></span><h1>Distillation<a class="headerlink" href="#module-src.pipeline.distillation.distillation" title="Link to this heading"></a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.distillation.combine_losses">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">combine_losses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">detection_loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distillation_loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#combine_losses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.combine_losses" title="Link to this definition"></a></dt>
-<dd><p>Combine detection and distillation losses using weighted sum.</p>
-<p>This function implements the weighted combination of the standard detection
-loss and the distillation loss. The alpha parameter controls the trade-off
-between learning from ground truth and learning from the teacher model.</p>
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.build_optimizer_and_scheduler">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">build_optimizer_and_scheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DetectionModel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_trainer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DetectionTrainer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Optimizer</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LambdaLR</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#build_optimizer_and_scheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.build_optimizer_and_scheduler" title="Link to this definition"></a></dt>
+<dd><p>Build the optimizer and learning rate scheduler.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>detection_loss</strong> (<em>torch.Tensor</em>) – Standard detection loss between student
-predictions and ground truth</p></li>
-<li><p><strong>distillation_loss</strong> (<em>torch.Tensor</em>) – Distillation loss between student
-and teacher predictions</p></li>
-<li><p><strong>alpha</strong> (<em>float</em>) – Weight for detection loss (1-alpha for distillation).
-Should be between 0 and 1</p></li>
+<li><p><strong>model</strong> – DetectionModel instance</p></li>
+<li><p><strong>detection_trainer</strong> – DetectionTrainer instance</p></li>
+<li><p><strong>model_args</strong> – Model arguments</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Combined loss value</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
+<dd class="field-even"><p>Tuple of optimizer and learning rate scheduler</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.distillation.compute_detection_loss">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">compute_detection_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#compute_detection_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.compute_detection_loss" title="Link to this definition"></a></dt>
-<dd><p>Compute the standard detection loss between student predictions and ground truth.</p>
-<p>This function calculates the YOLO detection loss, which typically includes:
-- Objectness loss (whether an object exists)
-- Classification loss (what class the object belongs to)
-- Bounding box regression loss (where the object is located)</p>
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.calculate_gradient_norm">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">calculate_gradient_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#calculate_gradient_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.calculate_gradient_norm" title="Link to this definition"></a></dt>
+<dd><p>Calculate the total gradient norm across all parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>student_preds</strong> (<em>torch.Tensor</em>) – Predictions from the student model, containing
-objectness scores, class probabilities, and bounding box coordinates</p></li>
-<li><p><strong>ground_truth</strong> (<em>torch.Tensor</em>) – Ground truth labels in YOLO format, containing
-objectness, class labels, and bounding box coordinates</p></li>
-<li><p><strong>config</strong> (<em>Dict</em>) – Configuration containing loss parameters such as:
-- box_loss_weight: Weight for bounding box regression loss
-- cls_loss_weight: Weight for classification loss
-- obj_loss_weight: Weight for objectness loss</p></li>
-</ul>
+<dd class="field-odd"><p><strong>model</strong> – The model to calculate gradient norm for</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Total detection loss value</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
+<dd class="field-even"><p>Total gradient norm as a float</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.distillation.compute_distillation_loss">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">compute_distillation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#compute_distillation_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.compute_distillation_loss" title="Link to this definition"></a></dt>
-<dd><p>Compute the distillation loss between student and teacher predictions.</p>
-<p>This function implements knowledge distillation using KL divergence between
-the softened probability distributions of teacher and student models. The
-temperature parameter controls the softness of the probability distributions.</p>
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.compute_distillation_loss">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">compute_distillation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_preds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">80</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'batchmean'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'sum'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'batchmean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparams</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{'lambda_dist_ciou':</span> <span class="pre">1.0,</span> <span class="pre">'lambda_dist_kl':</span> <span class="pre">2.0}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#compute_distillation_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.compute_distillation_loss" title="Link to this definition"></a></dt>
+<dd><p>Compute the distillation loss between the student and teacher predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>student_preds</strong> (<em>torch.Tensor</em>) – Raw logits from the student model</p></li>
-<li><p><strong>teacher_preds</strong> (<em>torch.Tensor</em>) – Raw logits from the teacher model</p></li>
-<li><p><strong>temperature</strong> (<em>float</em>) – Temperature parameter for softening probabilities.
-Higher values make the distribution softer</p></li>
-<li><p><strong>config</strong> (<em>Dict</em>) – Configuration containing:
-- distillation_loss_weight: Weight for the distillation loss
-- feature_distillation: Whether to include feature-level distillation</p></li>
+<li><p><strong>student_preds</strong> – The student predictions</p></li>
+<li><p><strong>teacher_preds</strong> – The teacher predictions</p></li>
+<li><p><strong>args</strong> – Configuration arguments</p></li>
+<li><p><strong>nc</strong> – Number of classes</p></li>
+<li><p><strong>device</strong> – Device to perform computations on</p></li>
+<li><p><strong>eps</strong> – Small epsilon value for numerical stability</p></li>
+<li><p><strong>reduction</strong> – Reduction method for the loss (“batchmean” or “sum”)</p></li>
+<li><p><strong>hyperparams</strong> – Dictionary of hyperparameters for loss functions</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Distillation loss value</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
+<dd class="field-even"><p>Total distillation loss</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.distillation.distill_model">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">distill_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">teacher_model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">student_model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#distill_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distill_model" title="Link to this definition"></a></dt>
-<dd><p>Main function to perform model distillation.</p>
-<p>This function orchestrates the entire distillation process, including:
-- Loading teacher and student models
-- Setting up data loaders
-- Training loop with distillation
-- Model checkpointing
-- Performance evaluation</p>
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.freeze_layers">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">freeze_layers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#freeze_layers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.freeze_layers" title="Link to this definition"></a></dt>
+<dd><p>Freeze the first n layers of the model.
+For example, if num_layers = 10, the first 10 layers (The Backbone) will be frozen.
+<a class="reference external" href="https://community.ultralytics.com/t/guidance-on-freezing-layers-for-yolov8x-seg-transfer-learning/189/2">https://community.ultralytics.com/t/guidance-on-freezing-layers-for-yolov8x-seg-transfer-learning/189/2</a>
+<a class="reference external" href="https://github.com/ultralytics/ultralytics/blob/3e669d53067ff1ed97e0dad0a4063b156f66686d/ultralytics/engine/trainer.py#L258">https://github.com/ultralytics/ultralytics/blob/3e669d53067ff1ed97e0dad0a4063b156f66686d/ultralytics/engine/trainer.py#L258</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>teacher_model_path</strong> (<em>str</em>) – Path to the teacher model weights</p></li>
-<li><p><strong>student_model_path</strong> (<em>str</em>) – Path to the student model weights</p></li>
-<li><p><strong>train_data</strong> (<em>str</em>) – Path to training data configuration (YAML)</p></li>
-<li><p><strong>config</strong> (<em>Dict</em>) – Distillation configuration containing:
-- epochs: Number of training epochs
-- batch_size: Batch size for training
-- temperature: For softening probabilities
-- alpha: Weight for detection vs distillation loss
-- optimizer: Optimizer configuration
-- learning_rate: Learning rate for training
-- device: Device to use for training</p></li>
-<li><p><strong>output_dir</strong> (<em>Path</em>) – Directory to save the distilled model and logs</p></li>
+<li><p><strong>model</strong> – The model to freeze layers in</p></li>
+<li><p><strong>num_layers</strong> – Number of layers to freeze from the start</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.head_features_decoder">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">head_features_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">head_feats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_criterion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">v8DetectionLoss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strides</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[8,</span> <span class="pre">16,</span> <span class="pre">32]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#head_features_decoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.head_features_decoder" title="Link to this definition"></a></dt>
+<dd><p>Decode the head features into bounding boxes and class scores.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>head_feats</strong> – List of tensors, each representing a feature map from a detection head</p></li>
+<li><p><strong>nc</strong> – Number of classes</p></li>
+<li><p><strong>detection_criterion</strong> – Detection loss criterion</p></li>
+<li><p><strong>reg_max</strong> – Maximum number of bounding box parameters</p></li>
+<li><p><strong>strides</strong> – List of strides for the feature maps</p></li>
+<li><p><strong>device</strong> – Device to perform computations on</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Path to distilled model and dictionary containing</dt><dd><p>training metrics (loss history, validation performance, etc.)</p>
+<dt>pred_concatted: Concatenated bounding boxes and class raw logits scores</dt><dd><p>Shape is (batch_size, 4 + num_classes, total_predictions)</p>
 </dd>
 </dl>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[str, Dict]</p>
+<dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.distillation.train_distillation_step">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.</span></span><span class="sig-name descname"><span class="pre">train_distillation_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">YOLO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">YOLO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation.html#train_distillation_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.train_distillation_step" title="Link to this definition"></a></dt>
-<dd><p>Perform a single training step for knowledge distillation.</p>
-<p>This function executes one training iteration of the distillation process,
-including forward passes through both models, loss computation, and
-backpropagation. It handles the teacher model in evaluation mode and
-the student model in training mode.</p>
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.load_checkpoint">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">load_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkpoint_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">student_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate_scheduler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LambdaLR</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#load_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.load_checkpoint" title="Link to this definition"></a></dt>
+<dd><p>Load a checkpoint and restore model and optimizer state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>student_model</strong> (<em>YOLO</em>) – Student model to train, in training mode</p></li>
-<li><p><strong>teacher_model</strong> (<em>YOLO</em>) – Teacher model for guidance, in evaluation mode</p></li>
-<li><p><strong>batch</strong> (<em>torch.Tensor</em>) – Batch of input images</p></li>
-<li><p><strong>ground_truth</strong> (<em>torch.Tensor</em>) – Ground truth labels for the batch</p></li>
-<li><p><strong>config</strong> (<em>Dict</em>) – Training configuration containing:
-- temperature: For softening probabilities
-- alpha: Weight for detection vs distillation loss
-- optimizer: Optimizer configuration
-- learning_rate: Learning rate for training</p></li>
+<li><p><strong>checkpoint_path</strong> – Path to the checkpoint file</p></li>
+<li><p><strong>student_model</strong> – Student model to restore state to</p></li>
+<li><p><strong>optimizer</strong> – Optimizer to restore state to</p></li>
+<li><p><strong>learning_rate_scheduler</strong> – Learning rate scheduler to restore state to</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Combined loss and dictionary</dt><dd><p>containing individual loss components (detection_loss, distillation_loss)</p>
+<dd class="field-even"><p>The epoch number from the checkpoint</p>
 </dd>
 </dl>
-</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.load_models">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">load_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distillation_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">YOLO</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">YOLO</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#load_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.load_models" title="Link to this definition"></a></dt>
+<dd><p>Load teacher and student models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> – Device to load models on</p></li>
+<li><p><strong>base_dir</strong> – Base directory for model paths</p></li>
+<li><p><strong>distillation_config</strong> – Configuration dictionary for distillation</p></li>
+</ul>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[torch.Tensor, Dict[str, float]]</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (teacher_yolo, student_yolo) models</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.log_training_metrics">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">log_training_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">losses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad_norm_before</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad_norm_after</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_new_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'batch'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'epoch'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'epoch'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#log_training_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.log_training_metrics" title="Link to this definition"></a></dt>
+<dd><p>Log training metrics to a CSV file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log_file</strong> – Path to the log file</p></li>
+<li><p><strong>epoch</strong> – Current epoch number</p></li>
+<li><p><strong>batch_idx</strong> – Current batch index (None for epoch-level logging)</p></li>
+<li><p><strong>losses</strong> – Dictionary of loss values</p></li>
+<li><p><strong>grad_norm_before</strong> – Gradient norm before clipping</p></li>
+<li><p><strong>grad_norm_after</strong> – Gradient norm after clipping</p></li>
+<li><p><strong>is_new_file</strong> – Whether this is the first write to the file</p></li>
+<li><p><strong>log_level</strong> – Whether to log at batch or epoch level</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.prepare_dataset">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">prepare_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">student_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'train'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">YOLODataset</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DataLoader</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#prepare_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.prepare_dataset" title="Link to this definition"></a></dt>
+<dd><p>Prepare dataset and dataloader for training.</p>
+<p class="rubric">Notes</p>
+<p>number_of_objects_detected: the number of objects detected in all images in the batch
+batch_size: number of images in the batch</p>
+<ul class="simple">
+<li><p>each batch in the train_dataloader contains:</p></li>
+<li><dl class="simple">
+<dt>batch_idx:</dt><dd><p>tensor of shape (number_of_objects_detected),
+for each object, the value is 0, … batch_size - 1,
+depending on the index of the image that the object belongs to in the batch</p>
+</dd>
+</dl>
+</li>
+<li><p>img: image tensor of shape (batch_size, 3, 640, 640)</p></li>
+<li><p>bboxes: bboxes tensor of shape (number_of_objects_detected, 4),  4 is for normalized x1, y1, x2, y2</p></li>
+<li><p>cls: cls tensor of shape (number_of_objects_detected, 1), containing all class labels of the objects detected in the batch</p></li>
+<li><p>resized_shape: Resized 2D dim of the image. A list of tensor, first tensor is first dim, second tensor is second dim</p></li>
+<li><p>ori_shape: Original 2D dim of the image. Alist of tensor, first tensor is first dim, second tensor is second dim</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img_path</strong> – Directory containing images</p></li>
+<li><p><strong>student_model</strong> – Student model instance</p></li>
+<li><p><strong>batch_size</strong> – Batch size for training</p></li>
+<li><p><strong>mode</strong> – Dataset mode (“train” or “val”)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (dataset, dataloader)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.save_checkpoint">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">save_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkpoint_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">student_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate_scheduler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LambdaLR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">losses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#save_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.save_checkpoint" title="Link to this definition"></a></dt>
+<dd><p>Save model checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>checkpoint_dir</strong> – Directory to save checkpoint</p></li>
+<li><p><strong>epoch</strong> – Current epoch number</p></li>
+<li><p><strong>student_model</strong> – Student model to save</p></li>
+<li><p><strong>optimizer</strong> – Optimizer state to save</p></li>
+<li><p><strong>learning_rate_scheduler</strong> – Learning rate scheduler state to save</p></li>
+<li><p><strong>losses</strong> – Dictionary of loss values</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.start_distillation">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">start_distillation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">PosixPath('..')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">PosixPath('dataset')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_checkpoint_every</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frozen_layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparams</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{'lambda_detection':</span> <span class="pre">1.0,</span> <span class="pre">'lambda_dist_ciou':</span> <span class="pre">1.0,</span> <span class="pre">'lambda_dist_kl':</span> <span class="pre">2.0,</span> <span class="pre">'lambda_distillation':</span> <span class="pre">2.0}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resume_checkpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">PosixPath('distillation_out')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'batch'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'epoch'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'batch'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distillation_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pipeline_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#start_distillation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.start_distillation" title="Link to this definition"></a></dt>
+<dd><p>Start the distillation training process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> – Device to train on</p></li>
+<li><p><strong>base_dir</strong> – Base directory for paths (should be SCRIPT_DIR from main.py)</p></li>
+<li><p><strong>img_dir</strong> – Directory containing training images</p></li>
+<li><p><strong>save_checkpoint_every</strong> – Save checkpoint every n epochs</p></li>
+<li><p><strong>frozen_layers</strong> – Number of layers to freeze in the backbone</p></li>
+<li><p><strong>hyperparams</strong> – Dictionary of hyperparameters for loss functions</p></li>
+<li><p><strong>resume_checkpoint</strong> – Optional path to checkpoint to resume training from</p></li>
+<li><p><strong>output_dir</strong> – Directory to save output</p></li>
+<li><p><strong>log_level</strong> – Whether to log at batch or epoch level</p></li>
+<li><p><strong>debug</strong> – Whether to print debug information</p></li>
+<li><p><strong>distillation_config</strong> – Configuration dictionary for distillation</p></li>
+<li><p><strong>pipeline_config</strong> – Configuration dictionary for pipeline</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing lists of loss values for each epoch</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.train_epoch">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">train_epoch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataloader</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_trainer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DetectionTrainer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_criterion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">v8DetectionLoss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparams</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{'lambda_detection':</span> <span class="pre">1.0,</span> <span class="pre">'lambda_dist_ciou':</span> <span class="pre">1.0,</span> <span class="pre">'lambda_dist_kl':</span> <span class="pre">2.0,</span> <span class="pre">'lambda_distillation':</span> <span class="pre">2.0}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'batch'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'epoch'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'batch'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#train_epoch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.train_epoch" title="Link to this definition"></a></dt>
+<dd><p>Train for one epoch.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.distillation.distillation.train_loop">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.distillation.distillation.</span></span><span class="sig-name descname"><span class="pre">train_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">student_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataloader</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_trainer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DetectionTrainer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate_scheduler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LambdaLR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_criterion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">v8DetectionLoss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_checkpoint_every</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparams</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{'lambda_detection':</span> <span class="pre">1.0,</span> <span class="pre">'lambda_dist_ciou':</span> <span class="pre">1.0,</span> <span class="pre">'lambda_dist_kl':</span> <span class="pre">2.0,</span> <span class="pre">'lambda_distillation':</span> <span class="pre">2.0}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'batch'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'epoch'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'epoch'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/pipeline/distillation/distillation.html#train_loop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.distillation.distillation.train_loop" title="Link to this definition"></a></dt>
+<dd><p>Execute the complete training process including all epochs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_epochs</strong> – Number of epochs to train</p></li>
+<li><p><strong>student_model</strong> – Student model to train</p></li>
+<li><p><strong>teacher_model</strong> – Teacher model for distillation</p></li>
+<li><p><strong>train_dataloader</strong> – DataLoader for training data</p></li>
+<li><p><strong>detection_trainer</strong> – Detection trainer instance</p></li>
+<li><p><strong>optimizer</strong> – Optimizer for training</p></li>
+<li><p><strong>learning_rate_scheduler</strong> – Learning rate scheduler</p></li>
+<li><p><strong>detection_criterion</strong> – Detection loss criterion</p></li>
+<li><p><strong>config_dict</strong> – Configuration dictionary</p></li>
+<li><p><strong>device</strong> – Device to train on</p></li>
+<li><p><strong>checkpoint_dir</strong> – Directory to save checkpoints</p></li>
+<li><p><strong>save_checkpoint_every</strong> – Save checkpoint every n epochs</p></li>
+<li><p><strong>hyperparams</strong> – Dictionary of hyperparameters for loss functions</p></li>
+<li><p><strong>start_epoch</strong> – Start training from this epoch</p></li>
+<li><p><strong>log_file</strong> – Optional path to log file for metrics</p></li>
+<li><p><strong>log_level</strong> – Whether to log at batch or epoch level</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing lists of loss values for each epoch</p>
 </dd>
 </dl>
 </dd></dl>

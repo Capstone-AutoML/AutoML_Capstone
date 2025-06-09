@@ -64,6 +64,7 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Utility Scripts</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#src.utils.create_data_yaml"><code class="docutils literal notranslate"><span class="pre">create_data_yaml()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.utils.create_distill_yaml"><code class="docutils literal notranslate"><span class="pre">create_distill_yaml()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#src.utils.create_quantize_yaml"><code class="docutils literal notranslate"><span class="pre">create_quantize_yaml()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#src.utils.detect_device"><code class="docutils literal notranslate"><span class="pre">detect_device()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#src.utils.draw_yolo_bboxes"><code class="docutils literal notranslate"><span class="pre">draw_yolo_bboxes()</span></code></a></li>
@@ -120,6 +121,21 @@ Defaults to “output_dir/data.yaml”.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="src.utils.create_distill_yaml">
+<span class="sig-prename descclassname"><span class="pre">src.utils.</span></span><span class="sig-name descname"><span class="pre">create_distill_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yaml_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/utils.html#create_distill_yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.utils.create_distill_yaml" title="Link to this definition"></a></dt>
+<dd><p>Create a distillation_data.yaml file for distillation with absolute paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_dir</strong> (<em>str</em>) – Directory containing the distillation images and labels.</p></li>
+<li><p><strong>yaml_path</strong> (<em>str</em><em>, </em><em>optional</em>) – Output path for the YAML file.
+Defaults to “mock_io/data/distillation/distillation_data.yaml”.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="src.utils.create_quantize_yaml">
 <span class="sig-prename descclassname"><span class="pre">src.utils.</span></span><span class="sig-name descname"><span class="pre">create_quantize_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yaml_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/utils.html#create_quantize_yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.utils.create_quantize_yaml" title="Link to this definition"></a></dt>
 <dd><p>Create a quantize.yaml file for IMX quantization with absolute paths.</p>
@@ -150,13 +166,15 @@ Defaults to “src/quantize.yaml”.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="src.utils.draw_yolo_bboxes">
-<span class="sig-prename descclassname"><span class="pre">src.utils.</span></span><span class="sig-name descname"><span class="pre">draw_yolo_bboxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/utils.html#draw_yolo_bboxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.utils.draw_yolo_bboxes" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">src.utils.</span></span><span class="sig-name descname"><span class="pre">draw_yolo_bboxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/utils.html#draw_yolo_bboxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.utils.draw_yolo_bboxes" title="Link to this definition"></a></dt>
 <dd><p>Draw YOLO-format bounding boxes on an image.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>img_path</strong> (<em>Path</em><em> or </em><em>str</em>) – Path to the image file.</p></li>
-<li><p><strong>label_path</strong> (<em>Path</em><em> or </em><em>str</em>) – Path to the corresponding YOLO label file.</p></li>
+<li><p><strong>img</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>Path</em><em>, </em><em>np.ndarray</em><em>]</em>) – Either a path to an image file or a numpy array of the image</p></li>
+<li><p><strong>label</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>Path</em><em>, </em><em>np.ndarray</em><em>]</em>) – Either a path to a YOLO label file or a 2D array of YOLO format boxes
+(each row: [class_id, x_center, y_center, width, height])</p></li>
+<li><p><strong>label_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Dictionary mapping class IDs to class names, by default None</p></li>
 </ul>
 </dd>
 </dl>

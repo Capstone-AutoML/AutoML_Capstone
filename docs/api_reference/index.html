@@ -124,11 +124,19 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.combine_losses"><code class="docutils literal notranslate"><span class="pre">combine_losses()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.compute_detection_loss"><code class="docutils literal notranslate"><span class="pre">compute_detection_loss()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.compute_distillation_loss"><code class="docutils literal notranslate"><span class="pre">compute_distillation_loss()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distill_model"><code class="docutils literal notranslate"><span class="pre">distill_model()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.train_distillation_step"><code class="docutils literal notranslate"><span class="pre">train_distillation_step()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.build_optimizer_and_scheduler"><code class="docutils literal notranslate"><span class="pre">build_optimizer_and_scheduler()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.calculate_gradient_norm"><code class="docutils literal notranslate"><span class="pre">calculate_gradient_norm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.compute_distillation_loss"><code class="docutils literal notranslate"><span class="pre">compute_distillation_loss()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.freeze_layers"><code class="docutils literal notranslate"><span class="pre">freeze_layers()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.head_features_decoder"><code class="docutils literal notranslate"><span class="pre">head_features_decoder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.load_checkpoint"><code class="docutils literal notranslate"><span class="pre">load_checkpoint()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.load_models"><code class="docutils literal notranslate"><span class="pre">load_models()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.log_training_metrics"><code class="docutils literal notranslate"><span class="pre">log_training_metrics()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.prepare_dataset"><code class="docutils literal notranslate"><span class="pre">prepare_dataset()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.save_checkpoint"><code class="docutils literal notranslate"><span class="pre">save_checkpoint()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.start_distillation"><code class="docutils literal notranslate"><span class="pre">start_distillation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.train_epoch"><code class="docutils literal notranslate"><span class="pre">train_epoch()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#src.pipeline.distillation.distillation.train_loop"><code class="docutils literal notranslate"><span class="pre">train_loop()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a><ul>
@@ -140,6 +148,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utility Scripts</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="utils.html#src.utils.create_data_yaml"><code class="docutils literal notranslate"><span class="pre">create_data_yaml()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#src.utils.create_distill_yaml"><code class="docutils literal notranslate"><span class="pre">create_distill_yaml()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html#src.utils.create_quantize_yaml"><code class="docutils literal notranslate"><span class="pre">create_quantize_yaml()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html#src.utils.detect_device"><code class="docutils literal notranslate"><span class="pre">detect_device()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html#src.utils.draw_yolo_bboxes"><code class="docutils literal notranslate"><span class="pre">draw_yolo_bboxes()</span></code></a></li>

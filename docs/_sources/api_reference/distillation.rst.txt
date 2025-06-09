@@ -1,5 +1,5 @@
 Distillation
 ============
 
-.. automodule:: src.pipeline.distillation
+.. automodule:: src.pipeline.distillation.distillation
    :members:

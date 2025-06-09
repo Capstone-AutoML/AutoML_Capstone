@@ -90,6 +90,7 @@
  | <a href="#E"><strong>E</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
@@ -120,22 +121,26 @@
       <li><a href="api_reference/augmentation.html#src.pipeline.augmentation.build_augmentation_transform">build_augmentation_transform() (in module src.pipeline.augmentation)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.build_optimizer_and_scheduler">build_optimizer_and_scheduler() (in module src.pipeline.distillation.distillation)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_reference/distillation.html#src.pipeline.distillation.combine_losses">combine_losses() (in module src.pipeline.distillation)</a>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.calculate_gradient_norm">calculate_gradient_norm() (in module src.pipeline.distillation.distillation)</a>
 </li>
-      <li><a href="api_reference/distillation.html#src.pipeline.distillation.compute_detection_loss">compute_detection_loss() (in module src.pipeline.distillation)</a>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.compute_distillation_loss">compute_distillation_loss() (in module src.pipeline.distillation.distillation)</a>
 </li>
-      <li><a href="api_reference/distillation.html#src.pipeline.distillation.compute_distillation_loss">compute_distillation_loss() (in module src.pipeline.distillation)</a>
+      <li><a href="api_reference/matching_logic.html#src.pipeline.prelabelling.matching.compute_iou">compute_iou() (in module src.pipeline.prelabelling.matching)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_reference/matching_logic.html#src.pipeline.prelabelling.matching.compute_iou">compute_iou() (in module src.pipeline.prelabelling.matching)</a>
-</li>
       <li><a href="api_reference/utils.html#src.utils.create_data_yaml">create_data_yaml() (in module src.utils)</a>
+</li>
+      <li><a href="api_reference/utils.html#src.utils.create_distill_yaml">create_distill_yaml() (in module src.utils)</a>
 </li>
       <li><a href="api_reference/utils.html#src.utils.create_quantize_yaml">create_quantize_yaml() (in module src.utils)</a>
 </li>
@@ -149,8 +154,6 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distill_model">distill_model() (in module src.pipeline.distillation)</a>
-</li>
       <li><a href="api_reference/utils.html#src.utils.draw_yolo_bboxes">draw_yolo_bboxes() (in module src.utils)</a>
 </li>
   </ul></td>
@@ -173,6 +176,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_reference/quantization.html#src.pipeline.quantization.fp16_quantization">fp16_quantization() (in module src.pipeline.quantization)</a>
 </li>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.freeze_layers">freeze_layers() (in module src.pipeline.distillation.distillation)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -184,6 +189,14 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_reference/yolo_prelabelling.html#src.pipeline.prelabelling.yolo_prelabelling.generate_yolo_prelabelling">generate_yolo_prelabelling() (in module src.pipeline.prelabelling.yolo_prelabelling)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.head_features_decoder">head_features_decoder() (in module src.pipeline.distillation.distillation)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -203,11 +216,17 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.load_checkpoint">load_checkpoint() (in module src.pipeline.distillation.distillation)</a>
+</li>
       <li><a href="api_reference/utils.html#src.utils.load_config">load_config() (in module src.utils)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.load_models">load_models() (in module src.pipeline.distillation.distillation)</a>
+</li>
       <li><a href="api_reference/training.html#src.pipeline.train.load_train_config">load_train_config() (in module src.pipeline.train)</a>
+</li>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.log_training_metrics">log_training_metrics() (in module src.pipeline.distillation.distillation)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -225,7 +244,7 @@
       <ul>
         <li><a href="api_reference/augmentation.html#module-src.pipeline.augmentation">src.pipeline.augmentation</a>
 </li>
-        <li><a href="api_reference/distillation.html#module-src.pipeline.distillation">src.pipeline.distillation</a>
+        <li><a href="api_reference/distillation.html#module-src.pipeline.distillation.distillation">src.pipeline.distillation.distillation</a>
 </li>
         <li><a href="api_reference/human_in_loop.html#module-src.pipeline.human_intervention">src.pipeline.human_intervention</a>
 </li>
@@ -264,10 +283,12 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_reference/utils.html#src.utils.prepare_quantization_data">prepare_quantization_data() (in module src.utils)</a>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.prepare_dataset">prepare_dataset() (in module src.pipeline.distillation.distillation)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_reference/utils.html#src.utils.prepare_quantization_data">prepare_quantization_data() (in module src.utils)</a>
+</li>
       <li><a href="api_reference/utils.html#src.utils.prepare_training_data">prepare_training_data() (in module src.utils)</a>
 </li>
   </ul></td>
@@ -292,6 +313,8 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.save_checkpoint">save_checkpoint() (in module src.pipeline.distillation.distillation)</a>
+</li>
       <li><a href="api_reference/human_in_loop.html#src.pipeline.human_intervention.setup_label_studio">setup_label_studio() (in module src.pipeline.human_intervention)</a>
 </li>
       <li>
@@ -302,10 +325,10 @@
 </li>
       </ul></li>
       <li>
-    src.pipeline.distillation
+    src.pipeline.distillation.distillation
 
       <ul>
-        <li><a href="api_reference/distillation.html#module-src.pipeline.distillation">module</a>
+        <li><a href="api_reference/distillation.html#module-src.pipeline.distillation.distillation">module</a>
 </li>
       </ul></li>
       <li>
@@ -359,13 +382,17 @@
         <li><a href="api_reference/utils.html#module-src.utils">module</a>
 </li>
       </ul></li>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.start_distillation">start_distillation() (in module src.pipeline.distillation.distillation)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_reference/distillation.html#src.pipeline.distillation.train_distillation_step">train_distillation_step() (in module src.pipeline.distillation)</a>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.train_epoch">train_epoch() (in module src.pipeline.distillation.distillation)</a>
+</li>
+      <li><a href="api_reference/distillation.html#src.pipeline.distillation.distillation.train_loop">train_loop() (in module src.pipeline.distillation.distillation)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
