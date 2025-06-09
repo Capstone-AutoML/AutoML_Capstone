@@ -7,17 +7,18 @@ import os
 import argparse
 from pathlib import Path
 
+from ultralytics.utils import YAML
+
 from pipeline.fetch_data import fetch_and_organize_images
 from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
-#from pipeline.prelabelling.sam_prelabelling import generate_segmentation
 from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelabelling
 from pipeline.prelabelling.matching import match_and_filter
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
-from pipeline.distillation import distill_model
+from pipeline.distillation.distillation import start_distillation
 from pipeline.quantization import quantize_model
 from pipeline.save_model import register_models
-from utils import load_config, prepare_training_data
+from utils import load_config, prepare_training_data, detect_device
 
 # Get the directory containing this script
 SCRIPT_DIR = Path(__file__).parent
@@ -44,7 +45,7 @@ def main():
     # Parse command line arguments
     args = parse_args()
     
-    # Load configuration
+    # Load configurations
     if args.config:
         pipeline_config_path = Path(args.config)
     else:
@@ -55,6 +56,12 @@ def main():
     # Training configuration
     train_config_path = SCRIPT_DIR / "train_config.json"
     train_config = load_config(train_config_path)
+
+    # Distillation configuration
+    # distillation_config_path = SCRIPT_DIR / "distillation_config.json"
+    # distillation_config = load_config(distillation_config_path)
+    distillation_config_path = SCRIPT_DIR / "distillation_config.yaml"
+    distillation_config = YAML.load(distillation_config_path)
 
     # Define all paths
     base_dir = Path("mock_io")
@@ -97,88 +104,92 @@ def main():
     print(" --- Step 2: Generating YOLO prelabelling --- ")
     
     # 2. Generate predictions for raw images
-    generate_yolo_prelabelling(
-        raw_dir=raw_dir,
-        output_dir=prelabelled_dir / "yolo",
-        model_path=model_path,
-        config=config
-    )
-    
-    # print("-----------------------------------------------\n")
-    # print(" --- Step 3: Generating SAM prelabelling --- ")
-
-    # generate_segmentation(
+    # generate_yolo_prelabelling(
     #     raw_dir=raw_dir,
-    #     yolo_json_dir=prelabelled_dir / "yolo",
-    #     mask_output_dir=prelabelled_dir / "sam" / "masks",
-    #     metadata_output_dir=prelabelled_dir / "sam" / "metadata",
-    #     model_path=model_dir / "model" / "mobile_sam.pt",
+    #     output_dir=prelabelled_dir / "yolo",
+    #     model_path=model_path,
     #     config=config
     # )
     
-    print("-----------------------------------------------\n")
-    print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
-
+    # print("-----------------------------------------------\n")
+    # print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
     
-    generate_gd_prelabelling(
-        raw_dir=raw_dir,
-        output_dir=prelabelled_dir / "gdino",
-        config=config,
-        model_weights=model_dir / "model" / "groundingdino_swint_ogc.pth",
-        config_path=model_dir / "model" / "GroundingDINO_SwinT_OGC.py",
-        box_threshold=config.get("dino_box_threshold", 0.3),
-        text_threshold=config.get("dino_text_threshold", 0.25)
-    )
-
-
-    print("-----------------------------------------------\n")
-    print(" --- Step 4: Matching YOLO and GDINO predictions --- ")
-
-    match_and_filter(
-        yolo_dir=prelabelled_dir / "yolo",
-        dino_dir=prelabelled_dir / "gdino",
-       labeled_dir=Path("mock_io/data/labeled"),
-        pending_dir=Path("mock_io/data/mismatched/pending"),
-        config=config
-    )
-
-
-    print("-----------------------------------------------\n")
-    print(" --- Step 5: Data augmentation --- ")
-
-    # 5. Data augmentation
-    augment_dataset(
-        image_dir=raw_dir,
-        output_dir=augmented_dir,
-        config=config.get('augmentation_config', {})
-    )
-
-    print("-----------------------------------------------\n")
-    print(" --- Step 6: Model training --- ")
-
-    # 6. Model training
-    prepare_training_data(config)
-    model_path = train_model(train_config)
-
-    print("-----------------------------------------------\n")
-    print(" --- Step 7: Model optimization --- ")
-
-    # 7. Model optimization
-
-    # Commented out for now to ensure the pipeline runs without distillation
-    # distilled_model_path, distill_config_path = distill_model(
-    #     model_path=model_path,
-    #     distillation_images=distillation_dir,
+    # generate_gd_prelabelling(
+    #     raw_dir=raw_dir,
+    #     output_dir=prelabelled_dir / "gdino",
     #     config=config,
-    #     output_dir=distilled_output_dir,
-    #     config_registry_path=config_dir
+    #     model_weights=model_dir / "model" / "groundingdino_swint_ogc.pth",
+    #     config_path=model_dir / "model" / "GroundingDINO_SwinT_OGC.py",
+    #     box_threshold=config.get("dino_box_threshold", 0.3),
+    #     text_threshold=config.get("dino_text_threshold", 0.25)
     # )
+
+
+    # print("-----------------------------------------------\n")
+    # print(" --- Step 4: Matching YOLO and GDINO predictions --- ")
+
+    # match_and_filter(
+    #     yolo_dir=prelabelled_dir / "yolo",
+    #     dino_dir=prelabelled_dir / "gdino",
+    #    labeled_dir=Path("mock_io/data/labeled"),
+    #     pending_dir=Path("mock_io/data/mismatched/pending"),
+    #     config=config
+    # )
+
+
+    # print("-----------------------------------------------\n")
+    # print(" --- Step 5: Data augmentation --- ")
+
+    # # 5. Data augmentation
+    # augment_dataset(
+    #     image_dir=raw_dir,
+    #     output_dir=augmented_dir,
+    #     config=config.get('augmentation_config', {})
+    # )
+
+    # print("-----------------------------------------------\n")
+    # print(" --- Step 6: Model training --- ")
+
+    # # 6. Model training
+    # prepare_training_data(config)
+    # model_path = train_model(train_config)
+
+    print("-----------------------------------------------\n")
+    print(" --- Step 7: Model Distillation --- ")
+
+    # 7. Model Distillation
+    # Define distillation hyperparameters
+    distillation_hyperparams = {
+        "lambda_distillation": 2.0,
+        "lambda_detection": 1.0,
+        "lambda_dist_ciou": 1.0,
+        "lambda_dist_kl": 2.0,
+        "temperature": 2.0
+    }
+    
+    # Start distillation process
+    start_distillation(
+        device=config.get("torch_device", "cpu") if config.get("torch_device", "cpu") else detect_device(),
+        base_dir=SCRIPT_DIR,
+        img_dir=distillation_dir / "distillation_dataset",
+        frozen_layers=10,  # Freeze backbone layers
+        save_checkpoint_every=25,
+        hyperparams=distillation_hyperparams,
+        resume_checkpoint=None,  # Can be set to resume from a checkpoint if needed
+        output_dir=distilled_output_dir,
+        log_level="batch",
+        debug=False,
+        distillation_config=distillation_config,
+        pipeline_config=config
+    )
+    
+    # Get the path to the distilled model
+    distilled_model_path = distilled_output_dir / "latest" / "model.pt"
 
     print("-----------------------------------------------\n")
     print(" --- Step 8: Model quantization --- ")
     # 8. Model quantization
     # Replace with distilled_model, this is for testing using the full model
-    distilled_model_path = model_dir / "model" / "nano_trained_model.pt"
     quantized_model_path = quantize_model(
         model_path=distilled_model_path,
         config={
