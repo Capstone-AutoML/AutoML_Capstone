@@ -1,6 +1,7 @@
 services:
   capstone:
-    image: celt313/automl_capstone:v0.0.1
+    image: celt313/automl_capstone:v0.0.2
+    shm_size: "4gb"
     container_name: automl_capstone
     working_dir: /app
     entrypoint: bash
@@ -19,7 +20,7 @@ services:
               capabilities: [gpu]
 
   generate_box:
-    image: celt313/automl_capstone:v0.0.1
+    image: celt313/automl_capstone:v0.0.2
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/generate_boxed_images.py"
@@ -27,7 +28,7 @@ services:
       - .:/app
 
   human_intervention:
-    image: celt313/automl_capstone:v0.0.1
+    image: celt313/automl_capstone:v0.0.2
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/pipeline/human_intervention.py"
@@ -35,7 +36,7 @@ services:
       - .:/app
 
   test:
-    image: celt313/automl_capstone:v0.0.1
+    image: celt313/automl_capstone:v0.0.2
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && pytest tests/"

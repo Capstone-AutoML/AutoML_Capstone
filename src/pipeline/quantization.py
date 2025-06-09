@@ -18,6 +18,8 @@ def imx_quantization(model, output_path, quantize_yaml):
     """
     Apply IMX post training quantization to the model.
 
+    Note - 300+ images recommended for IMX INT8 calibration.
+
     Args:
         model: YOLO model to quantize
         output_path: Path to save the quantized model
