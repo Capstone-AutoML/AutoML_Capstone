@@ -38,7 +38,7 @@ from ultralytics.utils.ops import non_max_suppression
 from ultralytics.utils.torch_utils import one_cycle
 
 # Custom modules
-from utils import load_config, detect_device
+from utils import load_config, detect_device, create_distill_yaml
 
 SCRIPT_DIR = Path(__file__).parent
 
@@ -846,7 +846,23 @@ def start_distillation(
     """
     if distillation_config is None:
         raise ValueError("distillation_config is required")
-        
+
+    # Ensure distillation dataset directories exist
+    distillation_base_dir = Path(distillation_config["distillation_dataset"])
+    distillation_dataset_dir = distillation_base_dir / "distillation_dataset"
+    distillation_dataset_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create train and valid directories if they don't exist
+    (distillation_dataset_dir / "train").mkdir(exist_ok=True)
+    (distillation_dataset_dir / "valid").mkdir(exist_ok=True)
+
+    # Create the distillation_data.yaml file
+    yaml_path = distillation_base_dir / "distillation_data.yaml"
+    create_distill_yaml(
+        output_dir=str(distillation_dataset_dir),
+        yaml_path=str(yaml_path)
+    )
+
     # Create output directory structure
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_dir = base_dir / output_dir / timestamp
