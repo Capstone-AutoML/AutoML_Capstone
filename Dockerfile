@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y wget bzip2 curl make unzip git && \
     rm Miniconda3-latest-Linux-x86_64.sh && \
     /opt/conda/bin/conda init bash
 
+# Install Java (needed for IMX export)
+RUN apt-get update && apt-get install -y openjdk-21-jre && apt-get clean
+
 # Set working directory
 WORKDIR /app
 
