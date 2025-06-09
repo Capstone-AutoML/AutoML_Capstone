@@ -91,7 +91,7 @@ nms: False # (bool) CoreML: add NMS
 lr0: 0.005 # (float) initial learning rate (i.e. SGD=1E-2, Adam=1E-3)
 lrf: 0.005 # (float) final learning rate (lr0 * lrf)
 momentum: 0.937 # (float) SGD momentum/Adam beta1
-weight_decay: 0.001 # (float) optimizer weight decay 5e-4
+weight_decay: 0.0005 # (float) optimizer weight decay 5e-4
 warmup_epochs: 3.0 # (float) warmup epochs (fractions ok)
 warmup_momentum: 0.8 # (float) warmup initial momentum
 warmup_bias_lr: 0.1 # (float) warmup initial bias lr
