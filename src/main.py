@@ -104,55 +104,55 @@ def main():
     print(" --- Step 2: Generating YOLO prelabelling --- ")
     
     # 2. Generate predictions for raw images
-    # generate_yolo_prelabelling(
-    #     raw_dir=raw_dir,
-    #     output_dir=prelabelled_dir / "yolo",
-    #     model_path=model_path,
-    #     config=config
-    # )
+    generate_yolo_prelabelling(
+        raw_dir=raw_dir,
+        output_dir=prelabelled_dir / "yolo",
+        model_path=model_path,
+        config=config
+    )
     
-    # print("-----------------------------------------------\n")
-    # print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
+    print("-----------------------------------------------\n")
+    print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
     
-    # generate_gd_prelabelling(
-    #     raw_dir=raw_dir,
-    #     output_dir=prelabelled_dir / "gdino",
-    #     config=config,
-    #     model_weights=model_dir / "model" / "groundingdino_swint_ogc.pth",
-    #     config_path=model_dir / "model" / "GroundingDINO_SwinT_OGC.py",
-    #     box_threshold=config.get("dino_box_threshold", 0.3),
-    #     text_threshold=config.get("dino_text_threshold", 0.25)
-    # )
+    generate_gd_prelabelling(
+        raw_dir=raw_dir,
+        output_dir=prelabelled_dir / "gdino",
+        config=config,
+        model_weights=model_dir / "model" / "groundingdino_swint_ogc.pth",
+        config_path=model_dir / "model" / "GroundingDINO_SwinT_OGC.py",
+        box_threshold=config.get("dino_box_threshold", 0.3),
+        text_threshold=config.get("dino_text_threshold", 0.25)
+    )
 
 
-    # print("-----------------------------------------------\n")
-    # print(" --- Step 4: Matching YOLO and GDINO predictions --- ")
+    print("-----------------------------------------------\n")
+    print(" --- Step 4: Matching YOLO and GDINO predictions --- ")
 
-    # match_and_filter(
-    #     yolo_dir=prelabelled_dir / "yolo",
-    #     dino_dir=prelabelled_dir / "gdino",
-    #    labeled_dir=Path("mock_io/data/labeled"),
-    #     pending_dir=Path("mock_io/data/mismatched/pending"),
-    #     config=config
-    # )
+    match_and_filter(
+        yolo_dir=prelabelled_dir / "yolo",
+        dino_dir=prelabelled_dir / "gdino",
+       labeled_dir=Path("mock_io/data/labeled"),
+        pending_dir=Path("mock_io/data/mismatched/pending"),
+        config=config
+    )
 
 
-    # print("-----------------------------------------------\n")
-    # print(" --- Step 5: Data augmentation --- ")
+    print("-----------------------------------------------\n")
+    print(" --- Step 5: Data augmentation --- ")
 
-    # # 5. Data augmentation
-    # augment_dataset(
-    #     image_dir=raw_dir,
-    #     output_dir=augmented_dir,
-    #     config=config.get('augmentation_config', {})
-    # )
+    # 5. Data augmentation
+    augment_dataset(
+        image_dir=raw_dir,
+        output_dir=augmented_dir,
+        config=config.get('augmentation_config', {})
+    )
 
-    # print("-----------------------------------------------\n")
-    # print(" --- Step 6: Model training --- ")
+    print("-----------------------------------------------\n")
+    print(" --- Step 6: Model training --- ")
 
-    # # 6. Model training
-    # prepare_training_data(config)
-    # model_path = train_model(train_config)
+    # 6. Model training
+    prepare_training_data(config)
+    model_path = train_model(train_config)
 
     print("-----------------------------------------------\n")
     print(" --- Step 7: Model Distillation --- ")
@@ -190,12 +190,11 @@ def main():
     print(" --- Step 8: Model quantization --- ")
     # 8. Model quantization
     # Replace with distilled_model, this is for testing using the full model
+    distilled_model_path = model_dir / "model" / "nano_trained_model.pt"
+    quantize_config_path = SCRIPT_DIR / "quantize_config.json"
     quantized_model_path = quantize_model(
-        model_path=distilled_model_path,
-        config={
-            'method': config.get('quantization_method'),
-            'output_dir': str(quantized_output_dir)
-        }
+        model_path=str(distilled_model_path),
+        quantize_config_path=str(quantize_config_path)
     )
 
     print("-----------------------------------------------\n")

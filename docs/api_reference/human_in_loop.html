@@ -20,7 +20,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Augmentation and Training" href="training.html" />
+    <link rel="next" title="Augmentation" href="augmentation.html" />
     <link rel="prev" title="Matching Logic" href="matching_logic.html" /> 
 </head>
 
@@ -58,8 +58,16 @@
 <li class="toctree-l1"><a class="reference internal" href="../evaluation.html">Evaluation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Code Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="prelabeling.html">Prelabeling Modules</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Human-in-the-Loop Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="training.html">Augmentation and Training</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Human-in-the-Loop Module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.human_intervention.export_versioned_results"><code class="docutils literal notranslate"><span class="pre">export_versioned_results()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.human_intervention.import_tasks_to_project"><code class="docutils literal notranslate"><span class="pre">import_tasks_to_project()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.human_intervention.run_human_review"><code class="docutils literal notranslate"><span class="pre">run_human_review()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.human_intervention.setup_label_studio"><code class="docutils literal notranslate"><span class="pre">setup_label_studio()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.human_intervention.transform_reviewed_results_to_labeled"><code class="docutils literal notranslate"><span class="pre">transform_reviewed_results_to_labeled()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="training.html">Augmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation and Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Scripts</a></li>
 </ul>
@@ -91,8 +99,111 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="human-in-the-loop-module">
-<h1>Human-in-the-Loop Module<a class="headerlink" href="#human-in-the-loop-module" title="Link to this heading"></a></h1>
+  <section id="module-src.pipeline.human_intervention">
+<span id="human-in-the-loop-module"></span><h1>Human-in-the-Loop Module<a class="headerlink" href="#module-src.pipeline.human_intervention" title="Link to this heading"></a></h1>
+<p>Script for human review of the unmatched YOLO and SAM results.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.human_intervention.export_versioned_results">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.human_intervention.</span></span><span class="sig-name descname"><span class="pre">export_versioned_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/src/pipeline/human_intervention.html#export_versioned_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.human_intervention.export_versioned_results" title="Link to this definition"></a></dt>
+<dd><p>Export human review results to a versioned file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>project_id</strong> – Label Studio project identifier.</p></li>
+<li><p><strong>output_dir</strong> – Directory to save human review results.</p></li>
+<li><p><strong>version</strong> – Version string for the output file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Human review results.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.human_intervention.import_tasks_to_project">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.human_intervention.</span></span><span class="sig-name descname"><span class="pre">import_tasks_to_project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tasks_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/src/pipeline/human_intervention.html#import_tasks_to_project"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.human_intervention.import_tasks_to_project" title="Link to this definition"></a></dt>
+<dd><p>Import tasks from a JSON file into a Label Studio project.</p>
+<p>Loads pre-annotated tasks into the given project for human review.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_url</strong> – Label Studio server URL.</p></li>
+<li><p><strong>headers</strong> – HTTP headers with the API token.</p></li>
+<li><p><strong>project_id</strong> – ID of the target project.</p></li>
+<li><p><strong>tasks_file</strong> – Path to the JSON file with tasks.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if import succeeded, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.human_intervention.run_human_review">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.human_intervention.</span></span><span class="sig-name descname"><span class="pre">run_human_review</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'AutoML-Human-Intervention'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_results_flag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/src/pipeline/human_intervention.html#run_human_review"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.human_intervention.run_human_review" title="Link to this definition"></a></dt>
+<dd><p>Run the complete human review workflow.</p>
+<p>This function processes JSON files from the pending directory,
+creates a Label Studio project, and handles the human review workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>project_name</strong> – Name of the Label Studio project</p></li>
+<li><p><strong>export_results_flag</strong> – Whether to export results (None = ask user)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing the results of the human review process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.human_intervention.setup_label_studio">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.human_intervention.</span></span><span class="sig-name descname"><span class="pre">setup_label_studio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/src/pipeline/human_intervention.html#setup_label_studio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.human_intervention.setup_label_studio" title="Link to this definition"></a></dt>
+<dd><p>Setup a Label Studio project for human review.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>project_name</strong> – Name of the Label Studio project.</p></li>
+<li><p><strong>output_dir</strong> – Directory to store Label Studio data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with project configuration details.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.human_intervention.transform_reviewed_results_to_labeled">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.human_intervention.</span></span><span class="sig-name descname"><span class="pre">transform_reviewed_results_to_labeled</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">export_results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labeled_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/src/pipeline/human_intervention.html#transform_reviewed_results_to_labeled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.human_intervention.transform_reviewed_results_to_labeled" title="Link to this definition"></a></dt>
+<dd><p>Transform reviewed Label Studio results to labeled directory.
+Removes original pending files and saves human-reviewed data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>export_results</strong> (<em>list</em>) – List of results from Label Studio export</p></li>
+<li><p><strong>labeled_dir</strong> (<em>Path</em>) – Directory to save labeled files</p></li>
+<li><p><strong>image_dir</strong> (<em>Path</em>) – Directory containing images</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of files transformed</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -100,7 +211,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="matching_logic.html" class="btn btn-neutral float-left" title="Matching Logic" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="training.html" class="btn btn-neutral float-right" title="Augmentation and Training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="augmentation.html" class="btn btn-neutral float-right" title="Augmentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

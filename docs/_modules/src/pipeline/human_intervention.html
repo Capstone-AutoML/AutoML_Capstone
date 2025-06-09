@@ -1,0 +1,1091 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.pipeline.human_intervention &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=a49bda7b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AutoML CI/CD/CT: Continuous Training and Deployment Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../setup_guide.html">Setup Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pipeline_overview.html">Pipeline Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../distillation_quantization.html">Distillation and Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_reference/index.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AutoML CI/CD/CT: Continuous Training and Deployment Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.pipeline.human_intervention</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.pipeline.human_intervention</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Script for human review of the unmatched YOLO and SAM results.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+
+
+<span class="n">mismatch_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/mismatched&quot;</span><span class="p">)</span>
+<span class="n">mismatch_pending_dir</span> <span class="o">=</span> <span class="n">mismatch_dir</span> <span class="o">/</span> <span class="s2">&quot;pending&quot;</span>
+<span class="n">reviewed_dir</span> <span class="o">=</span> <span class="n">mismatch_dir</span> <span class="o">/</span> <span class="s2">&quot;reviewed_results&quot;</span>
+<span class="n">image_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/raw/images&quot;</span><span class="p">)</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/ls_tasks&quot;</span><span class="p">)</span>
+<span class="n">labeled_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/labeled&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_directories</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create necessary directories for the human intervention workflow.</span>
+
+<span class="sd">    This function creates all required directories if they don&#39;t exist.</span>
+<span class="sd">    Called only when the script is actually running.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">directories</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">mismatch_dir</span><span class="p">,</span>
+        <span class="n">mismatch_pending_dir</span><span class="p">,</span>
+        <span class="n">reviewed_dir</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="p">,</span>
+        <span class="n">labeled_dir</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">directories</span><span class="p">:</span>
+        <span class="n">directory</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_find_image_path</span><span class="p">(</span><span class="n">stem</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Finds image file in image_dir by stem.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        stem (str): The filename without extension.</span>
+<span class="sd">        image_dir (Path): Directory where images are stored.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path: Path to the image file if found, else None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;.jpeg&quot;</span><span class="p">,</span> <span class="s2">&quot;.png&quot;</span><span class="p">]:</span>
+        <span class="n">img_path</span> <span class="o">=</span> <span class="n">image_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stem</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">img_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">img_path</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_label_status</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the label_status field in a JSON file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file_path (Path): Path to the JSON file.</span>
+<span class="sd">        status (int): Label status value.</span>
+<span class="sd">            - 0: Unimported</span>
+<span class="sd">            - 1: Imported &amp; Unlabeled</span>
+<span class="sd">            - 2: Imported &amp; Labeled</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to update label status for </span><span class="si">{</span><span class="n">file_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_initialize_json_files</span><span class="p">(</span><span class="n">json_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize all JSON files label_status=0 if they don&#39;t have one yet.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        json_dir (Path): Directory containing JSON files to initialize</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Number of files initialized</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">json_file</span> <span class="ow">in</span> <span class="n">json_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.json&quot;</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;label_status&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to initialize status for </span><span class="si">{</span><span class="n">json_file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Initialized </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> files with status = 0&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">count</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_bbox_to_percent</span><span class="p">(</span><span class="n">bbox</span><span class="p">,</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">img_height</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts bounding box coordinates to percentage.</span>
+<span class="sd">    This is Label Studio&#39;s expected format for bounding boxes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        bbox (list): Bounding box in [x1, y1, x2, y2] pixel format.</span>
+<span class="sd">        img_width (int): Width of the image in pixels.</span>
+<span class="sd">        img_height (int): Height of the image in pixels.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Bounding box with relative x, y, width, and height (0–100).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">bbox</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span> <span class="o">/</span> <span class="n">img_width</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">y1</span> <span class="o">/</span> <span class="n">img_height</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="p">((</span><span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span><span class="p">)</span> <span class="o">/</span> <span class="n">img_width</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="p">((</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span><span class="p">)</span> <span class="o">/</span> <span class="n">img_height</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+        <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="n">width</span><span class="p">,</span>
+        <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="n">height</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_bbox_from_percent</span><span class="p">(</span><span class="n">bbox_dict</span><span class="p">,</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">img_height</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts bounding box coordinates from percentage back to pixel format.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        bbox_dict (dict): Bbox with x, y, width, height in percentages</span>
+<span class="sd">        img_width (int): Width of the image in pixels</span>
+<span class="sd">        img_height (int): Height of the image in pixels</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Bounding box in [x1, y1, x2, y2] pixel format</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_percent</span> <span class="o">=</span> <span class="n">bbox_dict</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
+    <span class="n">y_percent</span> <span class="o">=</span> <span class="n">bbox_dict</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>
+    <span class="n">width_percent</span> <span class="o">=</span> <span class="n">bbox_dict</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]</span>
+    <span class="n">height_percent</span> <span class="o">=</span> <span class="n">bbox_dict</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span>
+
+    <span class="n">x1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_percent</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="n">img_width</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_percent</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="n">img_height</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">+</span> <span class="p">(</span><span class="n">width_percent</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="n">img_width</span>
+    <span class="n">y2</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">+</span> <span class="p">(</span><span class="n">height_percent</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="n">img_height</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_generate_ls_tasks</span><span class="p">(</span><span class="n">json_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts mismatched YOLOv8 prediction JSON files into a single</span>
+<span class="sd">    Label Studio import file for human review, using base64 encoding.</span>
+
+<span class="sd">    This function only processes files with label_status = 0 (unimported).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        json_dir (Path): Directory containing pending YOLO prediction `.json` files.</span>
+<span class="sd">        image_dir (Path): Directory containing the corresponding image files.</span>
+<span class="sd">        output_dir (Path): Path to save the generated `tasks.json` for LS.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create a version ID based on the current date and time</span>
+    <span class="n">version_id</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S&quot;</span><span class="p">)</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">processed_files</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">json_file</span> <span class="ow">in</span> <span class="n">json_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.json&quot;</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">original</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="c1"># Skip files that are already imported (status &gt; 0)</span>
+            <span class="n">label_status</span> <span class="o">=</span> <span class="n">original</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label_status&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">label_status</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">stem</span> <span class="o">=</span> <span class="n">json_file</span><span class="o">.</span><span class="n">stem</span>
+            <span class="n">image_path</span> <span class="o">=</span> <span class="n">_find_image_path</span><span class="p">(</span><span class="n">stem</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">image_path</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Skip] Image not found for: </span><span class="si">{</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">with</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">img</span><span class="p">:</span>
+                <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span>
+
+            <span class="c1"># Convert YOLOv8 predictions to Label Studio task format</span>
+            <span class="n">prediction_data</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">original</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;predictions&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="n">box</span> <span class="o">=</span> <span class="n">_convert_bbox_to_percent</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">],</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+                <span class="n">box</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                    <span class="s2">&quot;rectanglelabels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;class&quot;</span><span class="p">]]</span>
+                <span class="p">})</span>
+                <span class="n">prediction_data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s2">&quot;from_name&quot;</span><span class="p">:</span> <span class="s2">&quot;bbox&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;to_name&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;rectanglelabels&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">box</span><span class="p">,</span>
+                    <span class="s2">&quot;meta&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                        <span class="s2">&quot;confidence_flag&quot;</span><span class="p">:</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence_flag&quot;</span><span class="p">,</span> <span class="s2">&quot;N.A.&quot;</span><span class="p">)</span>
+                    <span class="p">}</span>
+                <span class="p">})</span>
+
+            <span class="c1"># Encode image to base64</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">img_file</span><span class="p">:</span>
+                <span class="n">img_data</span> <span class="o">=</span> <span class="n">img_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="n">img_base64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">img_data</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Get format from file extension</span>
+            <span class="n">img_format</span> <span class="o">=</span> <span class="n">image_path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">img_format</span><span class="p">:</span>
+                <span class="n">img_format</span> <span class="o">=</span> <span class="s1">&#39;jpeg&#39;</span> <span class="k">if</span> <span class="n">img_format</span> <span class="o">==</span> <span class="s1">&#39;jpg&#39;</span> <span class="k">else</span> <span class="n">img_format</span>
+
+            <span class="c1"># Create task with base64 encoded image and metadata</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;data:image/</span><span class="si">{</span><span class="n">img_format</span><span class="si">}</span><span class="s2">;base64,</span><span class="si">{</span><span class="n">img_base64</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">image_path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;import_timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+                    <span class="s2">&quot;original_filename&quot;</span><span class="p">:</span> <span class="n">json_file</span><span class="o">.</span><span class="n">name</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+
+            <span class="k">if</span> <span class="n">prediction_data</span><span class="p">:</span>
+                <span class="n">task</span><span class="p">[</span><span class="s2">&quot;predictions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[{</span>
+                    <span class="s2">&quot;model_version&quot;</span><span class="p">:</span> <span class="s2">&quot;yolov8-prelabel-mismatch&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="n">prediction_data</span>
+                <span class="p">}]</span>
+
+            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
+            <span class="c1"># Track this file as successfully processed</span>
+            <span class="n">processed_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json_file</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to process </span><span class="si">{</span><span class="n">json_file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tasks</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Info] No new files to process (all files have label_status &gt; 0)&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="p">[]</span>
+
+    <span class="c1"># Save the task file with version ID</span>
+    <span class="n">versioned_file</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;tasks_</span><span class="si">{</span><span class="n">version_id</span><span class="si">}</span><span class="s2">.json&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">versioned_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[√] Exported </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span><span class="si">}</span><span class="s2"> tasks to </span><span class="si">{</span><span class="n">versioned_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">versioned_file</span><span class="p">,</span> <span class="n">processed_files</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_processed_files_status</span><span class="p">(</span><span class="n">files_to_update</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update successfully processed JSON files to label_status = 1 (imported).</span>
+
+<span class="sd">    This tracks processing status in the JSON files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        files_to_update: List of Path objects representing JSON files to update</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">updated_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">files_to_update</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_update_label_status</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">updated_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Imported </span><span class="si">{</span><span class="n">updated_count</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">files_to_update</span><span class="p">)</span><span class="si">}</span><span class="s2"> files&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># def _move_files_to_imported(files_to_move: list):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Move successfully processed JSON files</span>
+<span class="c1">#     from &#39;pending&#39; directory to &#39;imported&#39; directory.</span>
+
+<span class="c1">#     This helps track which files have already been imported into Label Studio</span>
+<span class="c1">#     and prevents processing the same files twice.</span>
+
+<span class="c1">#     Args:</span>
+<span class="c1">#         files_to_move: List of Path objects representing JSON files to move</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     for file_path in files_to_move:</span>
+<span class="c1">#         dest_path = mismatch_imported_dir / file_path.name</span>
+<span class="c1">#         try:</span>
+<span class="c1">#             shutil.move(str(file_path), str(dest_path))</span>
+<span class="c1">#         except Exception as e:</span>
+<span class="c1">#             print(f&quot;[Error] Failed to move {file_path.name}: {e}&quot;)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_label_studio_running</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Start Label Studio if it&#39;s not already running.</span>
+
+<span class="sd">    This function checks if Label Studio is running on port 8080, and if not,</span>
+<span class="sd">    starts it with the proper settings for accessing local files.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if Label Studio is running successfully, False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get absolute path to data directory</span>
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+
+    <span class="c1"># Check if Label Studio is already running</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">base_url</span> <span class="o">=</span> <span class="s2">&quot;http://localhost:8080&quot;</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/health&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[✓] Label Studio is already running&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Info] Starting Label Studio...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Set environment variables for the subprocess</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">env</span><span class="p">[</span><span class="s2">&quot;LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;true&quot;</span>
+    <span class="n">env</span><span class="p">[</span><span class="s2">&quot;LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_dir</span>
+
+    <span class="c1"># Start Label Studio based on operating system</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;win32&#39;</span><span class="p">:</span>  <span class="c1"># Windows</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s2">&quot;label-studio&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">],</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">,</span> <span class="n">creationflags</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">CREATE_NEW_CONSOLE</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Linux, macOS, etc.</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s2">&quot;label-studio&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">],</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span><span class="p">)</span>
+
+    <span class="c1"># Wait for Label Studio to start</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Info] Waiting for Label Studio to start...&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http://localhost:8080/health&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[✓] Label Studio started&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Warning] Label Studio may not have started correctly&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_find_or_create_project</span><span class="p">(</span><span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                            <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find an existing Label Studio project by name or create a new one.</span>
+
+<span class="sd">    First checks if a project with the specified name exists. If found,</span>
+<span class="sd">    returns its ID. Otherwise, creates a new project with the given name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base_url: Label Studio server URL</span>
+<span class="sd">        headers: HTTP headers including the API key</span>
+<span class="sd">        project_name: Name of the project</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Project ID if successful, None if failed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Get projects list</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/projects&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="n">projects</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;results&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Look for matching project</span>
+        <span class="k">for</span> <span class="n">project</span> <span class="ow">in</span> <span class="n">projects</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">project</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">project_name</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Using existing project: </span><span class="si">{</span><span class="n">project_name</span><span class="si">}</span><span class="s2"> (ID: </span><span class="si">{</span><span class="n">project</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">project</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Debug] No project with title &#39;</span><span class="si">{</span><span class="n">project_name</span><span class="si">}</span><span class="s2">&#39; found, creating new one&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to retrieve projects: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create new project</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">project_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">project_name</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Human review of mismatched YOLO and SAM detection results&quot;</span>
+        <span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/projects&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+            <span class="n">json</span><span class="o">=</span><span class="n">project_data</span>
+        <span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="n">project_id</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Created new project: </span><span class="si">{</span><span class="n">project_name</span><span class="si">}</span><span class="s2"> (ID: </span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">project_id</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to create project: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_configure_interface</span><span class="p">(</span><span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                         <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configure the labeling interface for the project.</span>
+
+<span class="sd">    Sets up the configuration for the Label Studio interface.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base_url: Label Studio server URL</span>
+<span class="sd">        headers: HTTP headers including the API authorization token</span>
+<span class="sd">        project_id: ID of the project to configure</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if successful, False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">labeling_config</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &lt;View&gt;</span>
+<span class="s2">          &lt;Header value=&quot;Verify bounding boxes for the labeled objects&quot;/&gt;</span>
+<span class="s2">          &lt;Image name=&quot;image&quot; value=&quot;$image&quot; zoom=&quot;true&quot;/&gt;</span>
+
+<span class="s2">          &lt;RectangleLabels name=&quot;bbox&quot; toName=&quot;image&quot;&gt;</span>
+<span class="s2">            &lt;Label value=&quot;FireBSI&quot; background=&quot;red&quot; hotkey=&quot;f&quot;/&gt;</span>
+<span class="s2">            &lt;Label value=&quot;SmokeBSI&quot; background=&quot;gray&quot; hotkey=&quot;s&quot;/&gt;</span>
+<span class="s2">            &lt;Label value=&quot;LightningBSI&quot; background=&quot;purple&quot; hotkey=&quot;l&quot;/&gt;</span>
+<span class="s2">            &lt;Label value=&quot;VehicleBSI&quot; background=&quot;green&quot; hotkey=&quot;v&quot;/&gt;</span>
+<span class="s2">            &lt;Label value=&quot;PersonBSI&quot; background=&quot;orange&quot; hotkey=&quot;p&quot;/&gt;</span>
+<span class="s2">          &lt;/RectangleLabels&gt;</span>
+
+<span class="s2">          &lt;TextArea name=&quot;comments&quot; toName=&quot;image&quot;</span>
+<span class="s2">                   placeholder=&quot;Optional: Add notes about this image...&quot;</span>
+<span class="s2">                   maxSubmissions=&quot;1&quot; editable=&quot;true&quot; /&gt;</span>
+<span class="s2">        &lt;/View&gt;</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+            <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;label_config&quot;</span><span class="p">:</span> <span class="n">labeling_config</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Configured labeling interface&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to configure interface: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_connect_local_storage</span><span class="p">(</span><span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                           <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                           <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Connect a Label Studio project to the local file system.</span>
+
+<span class="sd">    This sets up or reuses a local storage so the project can access images</span>
+<span class="sd">    from a specified directory. It then triggers a sync to load files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base_url: Label Studio server URL.</span>
+<span class="sd">        headers: HTTP headers with the API token.</span>
+<span class="sd">        project_id: ID of the Label Studio project.</span>
+<span class="sd">        project_name: Name of the project (used as the storage title).</span>
+<span class="sd">        output_dir: Path to the local directory with image files.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: The storage ID if successful, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Check if storage already exists</span>
+        <span class="n">storage_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/storages/localfiles?project=</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span>
+        <span class="p">)</span>
+        <span class="n">storage_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="n">storages</span> <span class="o">=</span> <span class="n">storage_response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">storages</span><span class="p">:</span>
+            <span class="n">storage_id</span> <span class="o">=</span> <span class="n">storages</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Using existing storage (ID: </span><span class="si">{</span><span class="n">storage_id</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">document_root</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Debug] Setting up storage with path: </span><span class="si">{</span><span class="n">document_root</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Create storage pointing to the parent directory</span>
+            <span class="n">storage_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;project&quot;</span><span class="p">:</span> <span class="n">project_id</span><span class="p">,</span>
+                <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">project_name</span><span class="si">}</span><span class="s2"> Local Storage&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">document_root</span><span class="p">,</span>  <span class="c1"># Keep this at mock_io/data level</span>
+                <span class="s2">&quot;regex_filter&quot;</span><span class="p">:</span> <span class="s2">&quot;.*</span><span class="se">\\</span><span class="s2">.(jpg|jpeg|png)$&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;use_blob_urls&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;presign&quot;</span><span class="p">:</span> <span class="kc">False</span>
+            <span class="p">}</span>
+
+            <span class="n">storage_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/storages/localfiles&quot;</span><span class="p">,</span>
+                <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> 
+                <span class="n">json</span><span class="o">=</span><span class="n">storage_data</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Print full response for debugging</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Debug] Storage setup response: </span><span class="si">{</span><span class="n">storage_response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">storage_response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">&gt;=</span> <span class="mi">400</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Debug] Error response: </span><span class="si">{</span><span class="n">storage_response</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Warning] Could not set up local storage. Make sure Label Studio is running with:&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Warning] LOCAL_FILES_SERVING_ENABLED=true label-studio start&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+            <span class="n">storage_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="n">storage_id</span> <span class="o">=</span> <span class="n">storage_response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Created new storage (ID: </span><span class="si">{</span><span class="n">storage_id</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Sync storage</span>
+        <span class="n">sync_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/storages/localfiles/</span><span class="si">{</span><span class="n">storage_id</span><span class="si">}</span><span class="s2">/sync&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span>
+        <span class="p">)</span>
+        <span class="n">sync_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[✓] Storage sync initiated&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">storage_id</span>
+
+    <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to set up storage: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="setup_label_studio">
+<a class="viewcode-back" href="../../../api_reference/human_in_loop.html#src.pipeline.human_intervention.setup_label_studio">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_label_studio</span><span class="p">(</span><span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Setup a Label Studio project for human review.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        project_name: Name of the Label Studio project.</span>
+<span class="sd">        output_dir: Directory to store Label Studio data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary with project configuration details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;LABEL_STUDIO_API_KEY&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">api_key</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Error] LABEL_STUDIO_API_KEY environment variable not set&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">base_url</span> <span class="o">=</span> <span class="s2">&quot;http://localhost:8080&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Token </span><span class="si">{</span><span class="n">api_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span>
+    <span class="p">}</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connecting to Label Studio at: </span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Find or create project</span>
+    <span class="n">project_id</span> <span class="o">=</span> <span class="n">_find_or_create_project</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">project_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">project_id</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="c1"># Configure labeling interface</span>
+    <span class="n">_configure_interface</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">project_id</span><span class="p">)</span>
+
+    <span class="c1"># Setup storage</span>
+    <span class="n">storage_id</span> <span class="o">=</span> <span class="n">_connect_local_storage</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">project_id</span><span class="p">,</span> <span class="n">project_name</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;project_id&quot;</span><span class="p">:</span> <span class="n">project_id</span><span class="p">,</span>
+        <span class="s2">&quot;storage_id&quot;</span><span class="p">:</span> <span class="n">storage_id</span><span class="p">,</span>
+        <span class="s2">&quot;project_url&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/data&quot;</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="export_versioned_results">
+<a class="viewcode-back" href="../../../api_reference/human_in_loop.html#src.pipeline.human_intervention.export_versioned_results">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_versioned_results</span><span class="p">(</span><span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Export human review results to a versioned file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        project_id: Label Studio project identifier.</span>
+<span class="sd">        output_dir: Directory to save human review results.</span>
+<span class="sd">        version: Version string for the output file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Human review results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;LABEL_STUDIO_API_KEY&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">api_key</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Error] LABEL_STUDIO_API_KEY environment variable not set&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">base_url</span> <span class="o">=</span> <span class="s2">&quot;http://localhost:8080&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Token </span><span class="si">{</span><span class="n">api_key</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">}</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get the list of tasks that have been labeled</span>
+        <span class="n">tasks_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/tasks&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span>
+        <span class="p">)</span>
+        <span class="n">tasks_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="n">tasks_response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+
+        <span class="c1"># Tasks that have been labeled (for status updating)</span>
+        <span class="n">labeled_task_ids</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">task</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span> 
+            <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;annotations&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">[</span><span class="s2">&quot;annotations&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Update status for labeled files</span>
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">task</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">labeled_task_ids</span><span class="p">:</span>
+                <span class="n">original_filename</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;original_filename&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">original_filename</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">json_file</span> <span class="ow">in</span> <span class="n">mismatch_pending_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*</span><span class="si">{</span><span class="n">original_filename</span><span class="si">}</span><span class="s2">*&quot;</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">_update_label_status</span><span class="p">(</span><span class="n">json_file</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+                            <span class="k">break</span>
+
+        <span class="c1"># Export all results</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/export?exportType=JSON&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span>
+        <span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+
+        <span class="c1"># Remove base64 image data</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># Save results with version in filename</span>
+        <span class="n">results_path</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;review_results_</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">.json&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">results_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Count how many of the results are labeled</span>
+        <span class="n">labeled_results_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">labeled_task_ids</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[✓] Exported results:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    - </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2"> tasks (</span><span class="si">{</span><span class="n">labeled_results_count</span><span class="si">}</span><span class="s2"> labeled): </span><span class="si">{</span><span class="n">results_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Transform results to labeled directory</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">transformed_count</span> <span class="o">=</span> <span class="n">transform_reviewed_results_to_labeled</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">labeled_dir</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">transformed_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Auto-transformed </span><span class="si">{</span><span class="n">transformed_count</span><span class="si">}</span><span class="s2"> files to labeled directory&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Warning] Failed to auto-transform results: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to export results: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_confidence_from_results</span><span class="p">(</span><span class="n">export_result</span><span class="p">,</span> <span class="n">bbox_index</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract confidence info from original prediction metadata.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        export_result (dict): Single result from Label Studio export</span>
+<span class="sd">        bbox_index (int): Index of the bounding box</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: (confidence, confidence_flag)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">annotations</span> <span class="o">=</span> <span class="n">export_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;annotations&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">annotations</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;human&quot;</span>
+
+    <span class="n">latest_annotation</span> <span class="o">=</span> <span class="n">annotations</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Check if there&#39;s prediction data in the annotation</span>
+    <span class="k">if</span> <span class="s2">&quot;prediction&quot;</span> <span class="ow">in</span> <span class="n">latest_annotation</span><span class="p">:</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">latest_annotation</span><span class="p">[</span><span class="s2">&quot;prediction&quot;</span><span class="p">]</span>
+        <span class="n">result_items</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="n">bbox_index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_items</span><span class="p">):</span>
+            <span class="n">prediction_item</span> <span class="o">=</span> <span class="n">result_items</span><span class="p">[</span><span class="n">bbox_index</span><span class="p">]</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="n">prediction_item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meta&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">confidence</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">confidence_flag</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence_flag&quot;</span><span class="p">,</span> <span class="s2">&quot;human&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">confidence_flag</span>
+
+    <span class="k">return</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;human&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_transform_ls_result_to_original_format</span><span class="p">(</span><span class="n">export_result</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transform Label Studio export result back to original JSON format.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        export_result (dict): Single result from Label Studio export</span>
+<span class="sd">        image_dir (Path): Directory containing images</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Transformed data or None if failed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Get annotations from export result</span>
+        <span class="n">annotations</span> <span class="o">=</span> <span class="n">export_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;annotations&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">annotations</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">latest_annotation</span> <span class="o">=</span> <span class="n">annotations</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">latest_annotation</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;was_cancelled&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Extract filename info</span>
+        <span class="n">original_filename</span> <span class="o">=</span> <span class="n">export_result</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;original_filename&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">original_filename</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Transform annotations to original format</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">result_items</span> <span class="o">=</span> <span class="n">latest_annotation</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">annotation_item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">result_items</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">annotation_item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;rectanglelabels&quot;</span> <span class="ow">and</span> <span class="s2">&quot;value&quot;</span> <span class="ow">in</span> <span class="n">annotation_item</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">annotation_item</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rectanglelabels&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">labels</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Get image dimensions from annotation</span>
+                <span class="n">img_width</span> <span class="o">=</span> <span class="n">annotation_item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;original_width&quot;</span><span class="p">)</span>
+                <span class="n">img_height</span> <span class="o">=</span> <span class="n">annotation_item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;original_height&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">img_width</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">img_height</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Convert bbox from percentage to pixels</span>
+                <span class="n">bbox_pixels</span> <span class="o">=</span> <span class="n">_convert_bbox_from_percent</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">img_height</span><span class="p">)</span>
+
+                <span class="c1"># Get confidence from original prediction</span>
+                <span class="n">confidence</span><span class="p">,</span> <span class="n">confidence_flag</span> <span class="o">=</span> <span class="n">_extract_confidence_from_results</span><span class="p">(</span><span class="n">export_result</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+
+                <span class="n">prediction</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;bbox&quot;</span><span class="p">:</span> <span class="n">bbox_pixels</span><span class="p">,</span>
+                    <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">confidence</span><span class="p">,</span>
+                    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s2">&quot;confidence_flag&quot;</span><span class="p">:</span> <span class="n">confidence_flag</span>
+                <span class="p">}</span>
+                <span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;predictions&quot;</span><span class="p">:</span> <span class="n">predictions</span><span class="p">,</span>
+                <span class="s2">&quot;label_status&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s2">&quot;reviewed_timestamp&quot;</span><span class="p">:</span> <span class="n">latest_annotation</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;annotation_id&quot;</span><span class="p">:</span> <span class="n">latest_annotation</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;result_id&quot;</span><span class="p">:</span> <span class="n">export_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;original_filename&quot;</span><span class="p">:</span> <span class="n">original_filename</span>
+        <span class="p">}</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to transform </span><span class="si">{</span><span class="n">export_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="import_tasks_to_project">
+<a class="viewcode-back" href="../../../api_reference/human_in_loop.html#src.pipeline.human_intervention.import_tasks_to_project">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">import_tasks_to_project</span><span class="p">(</span><span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                            <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tasks_file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Import tasks from a JSON file into a Label Studio project.</span>
+
+<span class="sd">    Loads pre-annotated tasks into the given project for human review.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base_url: Label Studio server URL.</span>
+<span class="sd">        headers: HTTP headers with the API token.</span>
+<span class="sd">        project_id: ID of the target project.</span>
+<span class="sd">        tasks_file: Path to the JSON file with tasks.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if import succeeded, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tasks_file</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tasks_file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="s1">&#39;application/json&#39;</span><span class="p">)}</span>
+
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/import&quot;</span><span class="p">,</span>
+                <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;Content-Type&#39;</span><span class="p">},</span>
+                <span class="n">files</span><span class="o">=</span><span class="n">files</span>
+            <span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[✓] Imported tasks to project&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">except</span> <span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">RequestException</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to import tasks: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="transform_reviewed_results_to_labeled">
+<a class="viewcode-back" href="../../../api_reference/human_in_loop.html#src.pipeline.human_intervention.transform_reviewed_results_to_labeled">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_reviewed_results_to_labeled</span><span class="p">(</span><span class="n">export_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+                                          <span class="n">labeled_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                                          <span class="n">image_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transform reviewed Label Studio results to labeled directory.</span>
+<span class="sd">    Removes original pending files and saves human-reviewed data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        export_results (list): List of results from Label Studio export</span>
+<span class="sd">        labeled_dir (Path): Directory to save labeled files</span>
+<span class="sd">        image_dir (Path): Directory containing images</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Number of files transformed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">labeled_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">labeled_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/labeled&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">image_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">image_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/raw/images&quot;</span><span class="p">)</span>
+    <span class="n">transformed_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Transform results to original format</span>
+    <span class="k">for</span> <span class="n">export_result</span> <span class="ow">in</span> <span class="n">export_results</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">export_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;annotations&quot;</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="n">transformed</span> <span class="o">=</span> <span class="n">_transform_ls_result_to_original_format</span><span class="p">(</span><span class="n">export_result</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">transformed</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">original_filename</span> <span class="o">=</span> <span class="n">transformed</span><span class="p">[</span><span class="s2">&quot;original_filename&quot;</span><span class="p">]</span>
+        <span class="n">labeled_file</span> <span class="o">=</span> <span class="n">labeled_dir</span> <span class="o">/</span> <span class="n">original_filename</span>
+
+        <span class="c1"># Skip if file exists in labeled/</span>
+        <span class="k">if</span> <span class="n">labeled_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">continue</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Save human-corrected data to labeled directory</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">labeled_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">transformed</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">],</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="c1"># Remove original file from pending directory</span>
+            <span class="n">pending_file</span> <span class="o">=</span> <span class="n">mismatch_pending_dir</span> <span class="o">/</span> <span class="n">original_filename</span>
+            <span class="k">if</span> <span class="n">pending_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">pending_file</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+            <span class="n">transformed_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to save </span><span class="si">{</span><span class="n">original_filename</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Transformed </span><span class="si">{</span><span class="n">transformed_count</span><span class="si">}</span><span class="s2"> new labeled files&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">transformed_count</span></div>
+
+
+
+<div class="viewcode-block" id="run_human_review">
+<a class="viewcode-back" href="../../../api_reference/human_in_loop.html#src.pipeline.human_intervention.run_human_review">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_human_review</span><span class="p">(</span><span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;AutoML-Human-Intervention&quot;</span><span class="p">,</span>
+                     <span class="n">export_results_flag</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the complete human review workflow.</span>
+
+<span class="sd">    This function processes JSON files from the pending directory,</span>
+<span class="sd">    creates a Label Studio project, and handles the human review workflow.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        project_name: Name of the Label Studio project</span>
+<span class="sd">        export_results_flag: Whether to export results (None = ask user)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Dictionary containing the results of the human review process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Ensure directories exist</span>
+    <span class="n">_ensure_directories</span><span class="p">()</span>
+
+    <span class="c1"># Initialize JSON files in the pending folder</span>
+    <span class="n">_initialize_json_files</span><span class="p">(</span><span class="n">mismatch_pending_dir</span><span class="p">)</span>
+
+    <span class="c1"># Make sure Label Studio is running</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_ensure_label_studio_running</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Error] Could not start Label Studio&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="c1"># 1. Setup Label Studio project regardless of new files</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Setting up Label Studio project...&quot;</span><span class="p">)</span>
+    <span class="n">project_details</span> <span class="o">=</span> <span class="n">setup_label_studio</span><span class="p">(</span><span class="n">project_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">project_details</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Error] Failed to set up Label Studio project&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="c1"># Check if there are files in the pending folder</span>
+    <span class="n">has_pending_files</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">mismatch_pending_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.json&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">has_pending_files</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Warning] No JSON files found in </span><span class="si">{</span><span class="n">mismatch_pending_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 2. Generate tasks from pending files (with status=0)</span>
+    <span class="n">versioned_file</span><span class="p">,</span> <span class="n">processed_files</span> <span class="o">=</span> <span class="n">_generate_ls_tasks</span><span class="p">(</span><span class="n">mismatch_pending_dir</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+
+    <span class="c1"># 3. Import new tasks if we have any</span>
+    <span class="k">if</span> <span class="n">versioned_file</span> <span class="ow">and</span> <span class="n">processed_files</span><span class="p">:</span>
+        <span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;LABEL_STUDIO_API_KEY&quot;</span><span class="p">)</span>
+        <span class="n">base_url</span> <span class="o">=</span> <span class="s2">&quot;http://localhost:8080&quot;</span>  
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Token </span><span class="si">{</span><span class="n">api_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span>
+        <span class="p">}</span>
+
+        <span class="n">import_success</span> <span class="o">=</span> <span class="n">import_tasks_to_project</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">project_details</span><span class="p">[</span><span class="s2">&quot;project_id&quot;</span><span class="p">],</span> <span class="n">versioned_file</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">import_success</span><span class="p">:</span>
+            <span class="n">_update_processed_files_status</span><span class="p">(</span><span class="n">processed_files</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Error] Task import failed&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 4. Notify user to complete review</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">===== Label Studio Project Ready =====&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project URL: </span><span class="si">{</span><span class="n">project_details</span><span class="p">[</span><span class="s1">&#39;project_url&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">should_export</span> <span class="o">=</span> <span class="n">export_results_flag</span>
+    <span class="k">if</span> <span class="n">should_export</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">choice</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Do you want to wait for review completion and export results now? (y/n): &quot;</span><span class="p">)</span>
+        <span class="n">should_export</span> <span class="o">=</span> <span class="n">choice</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span>
+
+    <span class="k">if</span> <span class="n">should_export</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please complete the human review in Label Studio, then press Enter to export results.&quot;</span><span class="p">)</span>
+        <span class="nb">input</span><span class="p">()</span>
+
+        <span class="c1"># 5. Export the human reviewed results with versioned filename</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S&quot;</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">export_versioned_results</span><span class="p">(</span><span class="n">project_details</span><span class="p">[</span><span class="s2">&quot;project_id&quot;</span><span class="p">],</span> <span class="n">reviewed_dir</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project URL: </span><span class="si">{</span><span class="n">project_details</span><span class="p">[</span><span class="s1">&#39;project_url&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">project_details</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># Load environment variables including API key</span>
+    <span class="n">load_dotenv</span><span class="p">()</span>
+
+    <span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;LABEL_STUDIO_API_KEY&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">api_key</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please set LABEL_STUDIO_API_KEY in the .env file&quot;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">export_flag</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;--export&quot;</span><span class="p">:</span>
+        <span class="n">export_flag</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Run the complete workflow</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">run_human_review</span><span class="p">(</span><span class="n">export_results_flag</span><span class="o">=</span><span class="n">export_flag</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">===== Human review completed and results exported! =====&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results saved to: </span><span class="si">{</span><span class="n">reviewed_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Show project_details</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">===== Human review setup completed! =====&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project URL: </span><span class="si">{</span><span class="n">results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;project_url&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Error] Human review process failed or was cancelled&quot;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Elshaday Yoseph, Nhan Tien Nguyen, Rongze Liu and Sepehr Heydarian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

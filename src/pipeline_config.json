@@ -28,6 +28,5 @@
   "true_negative_images_path": "mock_io/data/augmented/no_prediction_images",
   "training_output_path": "mock_io/data/training",
   "train_val_split": [0.7, 0.2, 0.1],
-  "data_yaml_path": "mock_io/data/training/data.yaml",
-  "quantization_method": "ONNX"
+  "data_yaml_path": "mock_io/data/training/data.yaml"
 }

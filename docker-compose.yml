@@ -1,15 +1,26 @@
 services:
   capstone:
-    image: elshu13/capstone:v1.0.1
+    image: celt313/automl_capstone:v0.0.2
+    shm_size: "4gb"
     container_name: automl_capstone
     working_dir: /app
     entrypoint: bash
     command: -c "source activate capstone_env && ./fetch_dataset.sh && python src/main.py"
     volumes:
       - .:/app
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   generate_box:
-    image: elshu13/capstone:v1.0.1
+    image: celt313/automl_capstone:v0.0.2
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/generate_boxed_images.py"
@@ -17,7 +28,7 @@ services:
       - .:/app
 
   human_intervention:
-    image: elshu13/capstone:v1.0.1
+    image: celt313/automl_capstone:v0.0.2
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/pipeline/human_intervention.py"
@@ -25,7 +36,7 @@ services:
       - .:/app
 
   test:
-    image: elshu13/capstone:v1.0.1
+    image: celt313/automl_capstone:v0.0.2
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && pytest tests/"

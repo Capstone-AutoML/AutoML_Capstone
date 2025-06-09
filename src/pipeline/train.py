@@ -3,21 +3,26 @@ from pathlib import Path
 from datetime import datetime
 import json
 
+from pathlib import Path
+
 def find_latest_model(model_dir: str, fallback_model: str) -> str:
     """
-    Finds the most recently modified YOLO model in the specified directory.
-    If no model is found, returns the fallback model path.
+    Finds the YOLO model with the latest date in the filename.
+    If none found, returns the fallback model.
 
     Args:
         model_dir (str): Directory containing YOLO model `.pt` files.
         fallback_model (str): Path to fallback model (used if none found).
 
     Returns:
-        str: Path to the most recent model or the fallback model.   
+        str: Path to the latest-dated model or the fallback model.
     """
     model_dir = Path(model_dir)
-    # Search for all .pt files sorted by modification time (most recent first)
-    models = sorted(model_dir.glob("*_updated_yolo.pt"), key=lambda x: x.stat().st_mtime, reverse=True)
+    models = sorted(
+        model_dir.glob("*_updated_yolo.pt"),
+        key=lambda x: x.stem,
+        reverse=True
+    )
 
     if models:
         return str(models[0])

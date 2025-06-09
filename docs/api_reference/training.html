@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Augmentation and Training &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+  <title>Training &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a49bda7b" />
@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Distillation and Quantization" href="distillation.html" />
-    <link rel="prev" title="Human-in-the-Loop Module" href="human_in_loop.html" /> 
+    <link rel="prev" title="Augmentation" href="augmentation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -59,10 +59,11 @@
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Code Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="prelabeling.html">Prelabeling Modules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop Module</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Augmentation and Training</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.augmentation.augment_dataset"><code class="docutils literal notranslate"><span class="pre">augment_dataset()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.augmentation.augment_images"><code class="docutils literal notranslate"><span class="pre">augment_images()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.augmentation.build_augmentation_transform"><code class="docutils literal notranslate"><span class="pre">build_augmentation_transform()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Training</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.train.find_latest_model"><code class="docutils literal notranslate"><span class="pre">find_latest_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.train.load_train_config"><code class="docutils literal notranslate"><span class="pre">load_train_config()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.train.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation and Quantization</a></li>
@@ -86,7 +87,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">Code Reference</a></li>
-      <li class="breadcrumb-item active">Augmentation and Training</li>
+      <li class="breadcrumb-item active">Training</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api_reference/training.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -96,28 +97,64 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-src.pipeline.augmentation">
-<span id="augmentation-and-training"></span><h1>Augmentation and Training<a class="headerlink" href="#module-src.pipeline.augmentation" title="Link to this heading"></a></h1>
+  <section id="module-src.pipeline.train">
+<span id="training"></span><h1>Training<a class="headerlink" href="#module-src.pipeline.train" title="Link to this heading"></a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.augmentation.augment_dataset">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.augmentation.</span></span><span class="sig-name descname"><span class="pre">augment_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/pipeline/augmentation.html#augment_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.augmentation.augment_dataset" title="Link to this definition"></a></dt>
-<dd><p>Orchestrates augmentation pipeline.
-image_dir: path to labeled images
-output_dir: root output directory (will contain ‘images’ and ‘labels’)
-config: dictionary of augmentation settings</p>
+<dt class="sig sig-object py" id="src.pipeline.train.find_latest_model">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.train.</span></span><span class="sig-name descname"><span class="pre">find_latest_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/src/pipeline/train.html#find_latest_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.train.find_latest_model" title="Link to this definition"></a></dt>
+<dd><p>Finds the most recently modified YOLO model in the specified directory.
+If no model is found, returns the fallback model path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_dir</strong> (<em>str</em>) – Directory containing YOLO model <cite>.pt</cite> files.</p></li>
+<li><p><strong>fallback_model</strong> (<em>str</em>) – Path to fallback model (used if none found).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the most recent model or the fallback model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.augmentation.augment_images">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.augmentation.</span></span><span class="sig-name descname"><span class="pre">augment_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matched_pairs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Compose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_img_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_json_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_augmentations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/pipeline/augmentation.html#augment_images"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.augmentation.augment_images" title="Link to this definition"></a></dt>
-<dd><p>Applies augmentations to each image N times and saves results.
-Also saves un-augmented images with no predictions into separate folders.</p>
+<dt class="sig sig-object py" id="src.pipeline.train.load_train_config">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.train.</span></span><span class="sig-name descname"><span class="pre">load_train_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/src/pipeline/train.html#load_train_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.train.load_train_config" title="Link to this definition"></a></dt>
+<dd><p>Loads training configuration from JSON file.
+:param config_path: Path to the train_config.json file.
+:type config_path: str</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>configuration dictionary</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="src.pipeline.augmentation.build_augmentation_transform">
-<span class="sig-prename descclassname"><span class="pre">src.pipeline.augmentation.</span></span><span class="sig-name descname"><span class="pre">build_augmentation_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Compose</span></span></span><a class="reference internal" href="../_modules/src/pipeline/augmentation.html#build_augmentation_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.augmentation.build_augmentation_transform" title="Link to this definition"></a></dt>
-<dd><p>Build the augmentation transform pipeline from config.</p>
+<dt class="sig sig-object py" id="src.pipeline.train.train_model">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.train.</span></span><span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/src/pipeline/train.html#train_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.train.train_model" title="Link to this definition"></a></dt>
+<dd><p>Trains a YOLOv8 model using the Ultralytics library and saves the trained model and metadata.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<em>dict</em>) – Loaded config dictionary from train_config.json, containing:
+- data_yaml_path (str): Path to <cite>data.yaml</cite>
+- torch_device (str): ‘cpu’ or ‘cuda’
+- training_config (dict): eg., epochs, lr0, imgsz, batch, workers, etc
+- model_path (str): (Optional) Path to a pre-trained model to fine-tune.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the saved trained model (.pt)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -126,7 +163,7 @@ Also saves un-augmented images with no predictions into separate folders.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="human_in_loop.html" class="btn btn-neutral float-left" title="Human-in-the-Loop Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="augmentation.html" class="btn btn-neutral float-left" title="Augmentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="distillation.html" class="btn btn-neutral float-right" title="Distillation and Quantization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
