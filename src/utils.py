@@ -412,6 +412,37 @@ def prepare_quantization_data(config: dict, image_dir: Path, calibration_samples
     create_quantize_yaml(quant_dir)
 
 
+def create_distill_yaml(output_dir: str, yaml_path: str = None):
+    """
+    Create a distillation_data.yaml file for distillation with absolute paths.
+
+    Args:
+        output_dir (str): Directory containing the distillation images and labels.
+        yaml_path (str, optional): Output path for the YAML file.
+                                  Defaults to "src/distillation/distillation_data.yaml".
+    """
+    if yaml_path is None:
+        yaml_path = "src/distillation/distillation_data.yaml"
+
+    # Resolve absolute paths
+    train_path = os.path.abspath(os.path.join(output_dir, "train"))
+    val_path = os.path.abspath(os.path.join(output_dir, "valid"))
+
+    # YAML content
+    distill_yaml = {
+        "train": train_path,
+        "val": val_path,
+        "nc": 5,
+        "names": ["FireBSI", "LightningBSI", "PersonBSI", "SmokeBSI", "VehicleBSI"]
+    }
+
+    # Write YAML file
+    with open(yaml_path, "w") as f:
+        yaml.dump(distill_yaml, f, sort_keys=False, default_flow_style=None)
+
+    print(f"[INFO] distillation_data.yaml saved to: {yaml_path}")
+
+
 def create_quantize_yaml(output_dir: str, yaml_path: str = None):
     """
     Create a quantize.yaml file for IMX quantization with absolute paths.
