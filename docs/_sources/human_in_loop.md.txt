@@ -14,29 +14,68 @@ This module handles the **human intervention workflow** for reviewing mismatches
 
 ---
 
-## Workflow Outline
+## Setup Instructions
 
-### 1. Directory Setup
+### 1. Environment Setup
+
+**Step 1**: Ensure that required dependencies are installed
+
+If you haven't installed all dependencies in the `environment.yml` or you only want to go through the human-in-the-loop process, install the dependencies in the `human_review_env.yml`:
+
+```bash
+conda env create -f human_review_env.yml
+conda activate human_review_env
+```
+
+**Step 2**: Set up the Label Studio API key
+
+1. Start Label Studio: `label-studio start`.
+2. In the web UI, go to: **☰ Hamburger menu** → **Organization** → **API Token Settings**.
+3. If **Legacy Tokens** are not enabled, turn them on.
+4. Then navigate to: Top-right → **Account & Settings** → **Legacy Token**.
+5. Copy the token and create a `.env` file in the project root with the following content: `LABEL_STUDIO_API_KEY=your_token_here`.
+
+---
+
+### 2. Directory Setup
 
 The following folders are initialized automatically if not present:
 
-- `mock_io/data/mismatched/pending`: YOLO predictions needing review
-- `mock_io/data/mismatched/reviewed_results`: Final output directory
-- `mock_io/data/ls_tasks`: Temporary task export folder
+```bash
+mock_io/
+├── data/
+│   ├── mismatched/
+│   │   ├── pending/           # Place raw YOLO output JSONs here
+│   │   └── reviewed_results/  # Human-reviewed output ends up here
+│   ├── raw/
+│   │   └── images/            # All referenced images
+│   └── ls_tasks/              # Temporary task JSONs for import
+.env                           # Put your API key here
+```
+
+## Workflow
+
+### 1. Status Tracking with `label_status`
+
+Each JSON file in the `pending/` folder includes a `label_status` field that tracks its progress through the review pipeline:
+
+| `label_status` | Description                                |
+| -------------- | ------------------------------------------ |
+| `0`            | Unprocessed - ready to be imported         |
+| `1`            | Imported to Label Studio, pending labeling |
+| `2`            | Human-reviewed and labeled                 |
+
+This status field is updated automatically by the script:
+
+- New files (without `label_status`) are assigned `0`.
+- Once imported into Label Studio, status becomes `1`.
+- After review and export, it updates to `2`.
+
+This makes it easy to resume or rerun reviews without duplicating work.
 
 ---
 
-### 2. Label Status Tracking
-
-The system uses `label_status` in each JSON file to track processing stages:
-
-- `0`: Unprocessed (ready to import)
-- `1`: Imported to Label Studio
-- `2`: Labeled by a human
-
----
-
-### 3. Main Functions
+### 2. Main Functions
 
 #### `_generate_ls_tasks()`
 
@@ -68,46 +107,52 @@ The system uses `label_status` in each JSON file to track processing stages:
 
 ---
 
-### 4. Complete Workflow
+## Full Review Pipeline Usage
+
+### 1. Place Files for Review
+
+- Put JSON files in `mock_io/data/mismatched/pending/`
+- Ensure referenced images exist in `mock_io/data/raw/images/`
+
+### 2. Run the Review Pipeline
 
 Run the full review pipeline via:
 
-```python
-run_human_review(project_name="AutoML-Human-Intervention")
+```bash
+# Run without export
+python src/pipeline/human_intervention.py
+
+# Run and immediately export after human review
+python src/pipeline/human_intervention.py --export
 ```
 
-Or export immediately after review:
+### 3. Review in Label Studio
 
-```python
-run_human_review(project_name="AutoML-Human-Intervention", export_results_flag=True)
-```
+- Follow the URL shown in terminal (`http://localhost:8080/projects/...`)
+- Review bounding boxes and assign labels
+- Press Enter in terminal to finish once labeling is done
 
 ---
 
-## Environment Setup
+## Input and Output
 
-Make sure to add your Label Studio API token to a `.env` file:
+### Example JSON (YOLO prediction output)
 
+```json
+{
+  "predictions": [
+    {
+      "bbox": [
+        51.57196044921875, 165.7647247314453, 402.517578125, 459.77508544921875
+      ],
+      "confidence": 0.597667932510376,
+      "class": "FireBSI"
+    }
+  ],
+  "label_status": 0 // 0 = unimported, 1 = imported (unreviewed), 2 = human reviewed
+}
 ```
-LABEL_STUDIO_API_KEY=your_api_key_here
-```
 
-Install Label Studio (if not already):
-
-```bash
-pip install label-studio
-```
-
-Start it with local file access enabled:
-
-```bash
-LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true label-studio start
-```
-
----
-
-## Output Summary
-
-- Tasks successfully processed and imported
-- Project accessible at `http://localhost:8080/projects/{project_id}/data`
-- Final reviewed results saved under `mock_io/data/mismatched/reviewed_results`
+- `image_path`: Must point to a valid file in `raw/images`
+- `bbox`: Format is `[x_min, y_min, x_max, y_max]` in pixels
+- Final reviewed results will be saved under `mock_io/data/mismatched/reviewed_results`

@@ -48,13 +48,15 @@
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Setup Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#clone-the-repository">1. Clone the Repository</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#run-the-pipeline">2. Run the Pipeline</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#run-tests-optional">3. Run Tests (Optional)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#gpu-support-optional">4. GPU Support (Optional)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#change-the-following-key-in-each-file">Change the following key in each file:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-pipeline">2. Run the Pipeline</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#if-you-have-a-gpu-cuda-supported">💻 If You Have a GPU (CUDA Supported)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#if-you-have-a-cpu-only-machine-no-nvidia-gpu">💻 If You Have a CPU-Only Machine (No NVIDIA GPU)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration-files">5. Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-tests-optional">3. Run Tests (Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#generate-bounding-box-visualizations-optional">4. Generate Bounding Box Visualizations (Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#human-review-with-label-studio">5. Human Review with Label Studio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-files">6. Configuration Files</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
@@ -64,8 +66,8 @@
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -98,7 +100,6 @@
 <p>This guide will walk you through setting up and running the AutoML CI/CD/CT: Continuous Training and Deployment Pipeline project.</p>
 <section id="clone-the-repository">
 <h2>1. Clone the Repository<a class="headerlink" href="#clone-the-repository" title="Link to this heading"></a></h2>
-<p>First, clone the GitHub repository and navigate into the project directory:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Capstone-AutoML/AutoML_Capstone.git
 <span class="nb">cd</span><span class="w"> </span>AutoML_Capstone
 </pre></div>
@@ -106,52 +107,111 @@
 </section>
 <section id="run-the-pipeline">
 <h2>2. Run the Pipeline<a class="headerlink" href="#run-the-pipeline" title="Link to this heading"></a></h2>
-<p>Launch the entire pipeline using Docker Compose:</p>
+<section id="if-you-have-a-gpu-cuda-supported">
+<h3>💻 If You Have a GPU (CUDA Supported)<a class="headerlink" href="#if-you-have-a-gpu-cuda-supported" title="Link to this heading"></a></h3>
+<p>You can simply run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up
 </pre></div>
 </div>
 <p>This command will:</p>
 <ul class="simple">
-<li><p>Download the necessary datasets and model files (only on first run, unless the <code class="docutils literal notranslate"><span class="pre">mock_io/data/sampled_dataset/</span></code> or <code class="docutils literal notranslate"><span class="pre">mock_io/model_registry/model</span></code> folders are removed.)</p></li>
-<li><p>Initialize and run the full automated pipeline.</p></li>
+<li><p>Download necessary datasets and models on first run (unless <code class="docutils literal notranslate"><span class="pre">mock_io/data/</span></code>, <code class="docutils literal notranslate"><span class="pre">mock_io/data/distillation/</span></code>, or <code class="docutils literal notranslate"><span class="pre">mock_io/model_registry/model/</span></code> are removed).</p></li>
+<li><p>Automatically use your GPU <strong>if</strong> the following key is updated in <strong>both</strong> <code class="docutils literal notranslate"><span class="pre">train_config.json</span></code> and <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>:</p></li>
 </ul>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;torch_device&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cuda&quot;</span>
+</pre></div>
+</div>
+<blockquote>
+<div><p>Default is <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code>, which will force CPU-only execution.</p>
+</div></blockquote>
 </section>
+<hr class="docutils" />
+<section id="if-you-have-a-cpu-only-machine-no-nvidia-gpu">
+<h3>💻 If You Have a CPU-Only Machine (No NVIDIA GPU)<a class="headerlink" href="#if-you-have-a-cpu-only-machine-no-nvidia-gpu" title="Link to this heading"></a></h3>
+<p>Before running, <strong>replace</strong> your <code class="docutils literal notranslate"><span class="pre">docker-compose.yaml</span></code> file with:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">capstone</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.2</span>
+<span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">automl_capstone</span>
+<span class="w">    </span><span class="nt">shm_size</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;4gb&quot;</span>
+<span class="w">    </span><span class="nt">working_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/app</span>
+<span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; ./fetch_dataset.sh &amp;&amp; python src/main.py&quot;</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.:/app</span>
+
+<span class="w">  </span><span class="nt">generate_box</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.2</span>
+<span class="w">    </span><span class="nt">profiles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;optional&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; python src/generate_boxed_images.py&quot;</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.:/app</span>
+
+<span class="w">  </span><span class="nt">human_intervention</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.2</span>
+<span class="w">    </span><span class="nt">profiles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;optional&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; python src/pipeline/human_intervention.py&quot;</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.:/app</span>
+
+<span class="w">  </span><span class="nt">test</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.2</span>
+<span class="w">    </span><span class="nt">profiles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;optional&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; pytest tests/&quot;</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.:/app</span>
+</pre></div>
+</div>
+<p>Then run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
 <section id="run-tests-optional">
 <h2>3. Run Tests (Optional)<a class="headerlink" href="#run-tests-optional" title="Link to this heading"></a></h2>
-<p>To verify the setup and run test scripts:</p>
+<p>To verify the setup and run unit tests:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span>
 </pre></div>
 </div>
 </section>
-<section id="gpu-support-optional">
-<h2>4. GPU Support (Optional)<a class="headerlink" href="#gpu-support-optional" title="Link to this heading"></a></h2>
-<p>By default, the pipeline runs on <strong>CPU</strong> for maximum compatibility. If your machine supports GPU acceleration, you can switch to <strong>CUDA</strong> by editing the following configuration files:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">train_config.json</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code></p></li>
-</ul>
-<section id="change-the-following-key-in-each-file">
-<h3>Change the following key in each file:<a class="headerlink" href="#change-the-following-key-in-each-file" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;torch_device&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cpu&quot;</span>
+<hr class="docutils" />
+<section id="generate-bounding-box-visualizations-optional">
+<h2>4. Generate Bounding Box Visualizations (Optional)<a class="headerlink" href="#generate-bounding-box-visualizations-optional" title="Link to this heading"></a></h2>
+<p>To run the script that overlays bounding boxes on sample and labeled images using predictions from YOLO, DINO, and mismatched sources:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>run<span class="w"> </span>generate_box
 </pre></div>
 </div>
-<p>to:</p>
+<hr class="docutils" />
+<p>This will:</p>
+<ul class="simple">
+<li><p>Sample and draw 10 images each from YOLO, DINO, and mismatched directories.</p></li>
+<li><p>Draw bounding boxes on all images from the labeled directory.</p></li>
+<li><p>Save the visualized outputs under <code class="docutils literal notranslate"><span class="pre">mock_io/boxed_images</span></code></p></li>
+</ul>
+</section>
+<section id="human-review-with-label-studio">
+<h2>5. Human Review with Label Studio<a class="headerlink" href="#human-review-with-label-studio" title="Link to this heading"></a></h2>
+<p>For human-in-the-loop validation using Label Studio, refer to the <a class="reference internal" href="human_in_loop.html"><span class="std std-doc">Human Intervention</span></a> documentation section.</p>
+</section>
+<hr class="docutils" />
+<section id="configuration-files">
+<h2>6. Configuration Files<a class="headerlink" href="#configuration-files" title="Link to this heading"></a></h2>
+<p>These two config files control pipeline behavior:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">train_config.json</span></code>: Training parameters, dataset paths, and device.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>: Pre-labeling, matching, augmentation, and distillation settings.</p></li>
+</ul>
+<p>Defaults are generally sufficient, but GPU usage requires you to set:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;torch_device&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cuda&quot;</span>
 </pre></div>
 </div>
-<p>This will enable the pipeline to use your available GPU for faster training and inference.</p>
-</section>
-</section>
-<section id="configuration-files">
-<h2>5. Configuration Files<a class="headerlink" href="#configuration-files" title="Link to this heading"></a></h2>
-<p>These are the two main configuration files used in the pipeline:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">train_config.json</span></code>: Controls training parameters like batch size, learning rate, model paths, and training image details.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>: Controls distillation, augmentation, and matching thresholds.</p></li>
-</ul>
-<p>Each file includes several tunable parameters for fine control of the pipeline behavior. For most users, the default values are sufficient.</p>
 <hr class="docutils" />
-<p>You’re now ready to use the AutoML pipeline. For more detailed information, refer to the individual module documentation sections.</p>
+<p>You’re now ready to use the AutoML pipeline!</p>
 </section>
 </section>
 

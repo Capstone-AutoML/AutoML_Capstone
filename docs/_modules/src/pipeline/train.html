@@ -51,8 +51,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../training.html">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../distillation_quantization.html">Distillation and Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quantization.html">Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -86,23 +86,28 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
 <div class="viewcode-block" id="find_latest_model">
 <a class="viewcode-back" href="../../../api_reference/training.html#src.pipeline.train.find_latest_model">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">find_latest_model</span><span class="p">(</span><span class="n">model_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fallback_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Finds the most recently modified YOLO model in the specified directory.</span>
-<span class="sd">    If no model is found, returns the fallback model path.</span>
+<span class="sd">    Finds the YOLO model with the latest date in the filename.</span>
+<span class="sd">    If none found, returns the fallback model.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_dir (str): Directory containing YOLO model `.pt` files.</span>
 <span class="sd">        fallback_model (str): Path to fallback model (used if none found).</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str: Path to the most recent model or the fallback model.   </span>
+<span class="sd">        str: Path to the latest-dated model or the fallback model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">model_dir</span><span class="p">)</span>
-    <span class="c1"># Search for all .pt files sorted by modification time (most recent first)</span>
-    <span class="n">models</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_updated_yolo.pt&quot;</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">models</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">model_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_updated_yolo.pt&quot;</span><span class="p">),</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span>
+        <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">models</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>

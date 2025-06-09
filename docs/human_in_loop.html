@@ -53,10 +53,14 @@
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Human-in-the-Loop</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#key-capabilities">Key Capabilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#workflow-outline">Workflow Outline</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#directory-setup">1. Directory Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#label-status-tracking">2. Label Status Tracking</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#main-functions">3. Main Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setup-instructions">Setup Instructions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#environment-setup">1. Environment Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#directory-setup">2. Directory Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow">Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#status-tracking-with-label-status">1. Status Tracking with <code class="docutils literal notranslate"><span class="pre">label_status</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#main-functions">2. Main Functions</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#generate-ls-tasks"><code class="docutils literal notranslate"><span class="pre">_generate_ls_tasks()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#ensure-label-studio-running"><code class="docutils literal notranslate"><span class="pre">_ensure_label_studio_running()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#setup-label-studio"><code class="docutils literal notranslate"><span class="pre">setup_label_studio()</span></code></a></li>
@@ -64,17 +68,24 @@
 <li class="toctree-l4"><a class="reference internal" href="#export-versioned-results"><code class="docutils literal notranslate"><span class="pre">export_versioned_results()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#complete-workflow">4. Complete Workflow</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#environment-setup">Environment Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#output-summary">Output Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#full-review-pipeline-usage">Full Review Pipeline Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#place-files-for-review">1. Place Files for Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-the-review-pipeline">2. Run the Review Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#review-in-label-studio">3. Review in Label Studio</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#input-and-output">Input and Output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-json-yolo-prediction-output">Example JSON (YOLO prediction output)</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -117,30 +128,76 @@
 </ul>
 </section>
 <hr class="docutils" />
-<section id="workflow-outline">
-<h2>Workflow Outline<a class="headerlink" href="#workflow-outline" title="Link to this heading"></a></h2>
-<section id="directory-setup">
-<h3>1. Directory Setup<a class="headerlink" href="#directory-setup" title="Link to this heading"></a></h3>
-<p>The following folders are initialized automatically if not present:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">mock_io/data/mismatched/pending</span></code>: YOLO predictions needing review</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mock_io/data/mismatched/reviewed_results</span></code>: Final output directory</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mock_io/data/ls_tasks</span></code>: Temporary task export folder</p></li>
-</ul>
+<section id="setup-instructions">
+<h2>Setup Instructions<a class="headerlink" href="#setup-instructions" title="Link to this heading"></a></h2>
+<section id="environment-setup">
+<h3>1. Environment Setup<a class="headerlink" href="#environment-setup" title="Link to this heading"></a></h3>
+<p><strong>Step 1</strong>: Ensure that required dependencies are installed</p>
+<p>If you haven’t installed all dependencies in the <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> or you only want to go through the human-in-the-loop process, install the dependencies in the <code class="docutils literal notranslate"><span class="pre">human_review_env.yml</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>human_review_env.yml
+conda<span class="w"> </span>activate<span class="w"> </span>human_review_env
+</pre></div>
+</div>
+<p><strong>Step 2</strong>: Set up the Label Studio API key</p>
+<ol class="arabic simple">
+<li><p>Start Label Studio: <code class="docutils literal notranslate"><span class="pre">label-studio</span> <span class="pre">start</span></code>.</p></li>
+<li><p>In the web UI, go to: <strong>☰ Hamburger menu</strong> → <strong>Organization</strong> → <strong>API Token Settings</strong>.</p></li>
+<li><p>If <strong>Legacy Tokens</strong> are not enabled, turn them on.</p></li>
+<li><p>Then navigate to: Top-right → <strong>Account &amp; Settings</strong> → <strong>Legacy Token</strong>.</p></li>
+<li><p>Copy the token and create a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the project root with the following content: <code class="docutils literal notranslate"><span class="pre">LABEL_STUDIO_API_KEY=your_token_here</span></code>.</p></li>
+</ol>
 </section>
 <hr class="docutils" />
-<section id="label-status-tracking">
-<h3>2. Label Status Tracking<a class="headerlink" href="#label-status-tracking" title="Link to this heading"></a></h3>
-<p>The system uses <code class="docutils literal notranslate"><span class="pre">label_status</span></code> in each JSON file to track processing stages:</p>
+<section id="directory-setup">
+<h3>2. Directory Setup<a class="headerlink" href="#directory-setup" title="Link to this heading"></a></h3>
+<p>The following folders are initialized automatically if not present:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mock_io/
+├──<span class="w"> </span>data/
+│<span class="w">   </span>├──<span class="w"> </span>mismatched/
+│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>pending/<span class="w">           </span><span class="c1"># Place raw YOLO output JSONs here</span>
+│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>reviewed_results/<span class="w">  </span><span class="c1"># Human-reviewed output ends up here</span>
+│<span class="w">   </span>├──<span class="w"> </span>raw/
+│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>images/<span class="w">            </span><span class="c1"># All referenced images</span>
+│<span class="w">   </span>└──<span class="w"> </span>ls_tasks/<span class="w">              </span><span class="c1"># Temporary task JSONs for import</span>
+.env<span class="w">                           </span><span class="c1"># Put your API key here</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="workflow">
+<h2>Workflow<a class="headerlink" href="#workflow" title="Link to this heading"></a></h2>
+<section id="status-tracking-with-label-status">
+<h3>1. Status Tracking with <code class="docutils literal notranslate"><span class="pre">label_status</span></code><a class="headerlink" href="#status-tracking-with-label-status" title="Link to this heading"></a></h3>
+<p>Each JSON file in the <code class="docutils literal notranslate"><span class="pre">pending/</span></code> folder includes a <code class="docutils literal notranslate"><span class="pre">label_status</span></code> field that tracks its progress through the review pipeline:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">label_status</span></code></p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Unprocessed - ready to be imported</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Imported to Label Studio, pending labeling</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>Human-reviewed and labeled</p></td>
+</tr>
+</tbody>
+</table>
+<p>This status field is updated automatically by the script:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: Unprocessed (ready to import)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: Imported to Label Studio</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">2</span></code>: Labeled by a human</p></li>
+<li><p>New files (without <code class="docutils literal notranslate"><span class="pre">label_status</span></code>) are assigned <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p>Once imported into Label Studio, status becomes <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p>After review and export, it updates to <code class="docutils literal notranslate"><span class="pre">2</span></code>.</p></li>
 </ul>
+<p>This makes it easy to resume or rerun reviews without duplicating work.</p>
 </section>
 <hr class="docutils" />
 <section id="main-functions">
-<h3>3. Main Functions<a class="headerlink" href="#main-functions" title="Link to this heading"></a></h3>
+<h3>2. Main Functions<a class="headerlink" href="#main-functions" title="Link to this heading"></a></h3>
 <section id="generate-ls-tasks">
 <h4><code class="docutils literal notranslate"><span class="pre">_generate_ls_tasks()</span></code><a class="headerlink" href="#generate-ls-tasks" title="Link to this heading"></a></h4>
 <ul class="simple">
@@ -180,43 +237,62 @@
 </ul>
 </section>
 </section>
-<hr class="docutils" />
-<section id="complete-workflow">
-<h3>4. Complete Workflow<a class="headerlink" href="#complete-workflow" title="Link to this heading"></a></h3>
-<p>Run the full review pipeline via:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">run_human_review</span><span class="p">(</span><span class="n">project_name</span><span class="o">=</span><span class="s2">&quot;AutoML-Human-Intervention&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Or export immediately after review:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">run_human_review</span><span class="p">(</span><span class="n">project_name</span><span class="o">=</span><span class="s2">&quot;AutoML-Human-Intervention&quot;</span><span class="p">,</span> <span class="n">export_results_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
 </section>
 <hr class="docutils" />
-<section id="environment-setup">
-<h2>Environment Setup<a class="headerlink" href="#environment-setup" title="Link to this heading"></a></h2>
-<p>Make sure to add your Label Studio API token to a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">LABEL_STUDIO_API_KEY</span><span class="o">=</span><span class="n">your_api_key_here</span>
-</pre></div>
-</div>
-<p>Install Label Studio (if not already):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>label-studio
-</pre></div>
-</div>
-<p>Start it with local file access enabled:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>label-studio<span class="w"> </span>start
-</pre></div>
-</div>
-</section>
-<hr class="docutils" />
-<section id="output-summary">
-<h2>Output Summary<a class="headerlink" href="#output-summary" title="Link to this heading"></a></h2>
+<section id="full-review-pipeline-usage">
+<h2>Full Review Pipeline Usage<a class="headerlink" href="#full-review-pipeline-usage" title="Link to this heading"></a></h2>
+<section id="place-files-for-review">
+<h3>1. Place Files for Review<a class="headerlink" href="#place-files-for-review" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>Tasks successfully processed and imported</p></li>
-<li><p>Project accessible at <code class="docutils literal notranslate"><span class="pre">http://localhost:8080/projects/{project_id}/data</span></code></p></li>
-<li><p>Final reviewed results saved under <code class="docutils literal notranslate"><span class="pre">mock_io/data/mismatched/reviewed_results</span></code></p></li>
+<li><p>Put JSON files in <code class="docutils literal notranslate"><span class="pre">mock_io/data/mismatched/pending/</span></code></p></li>
+<li><p>Ensure referenced images exist in <code class="docutils literal notranslate"><span class="pre">mock_io/data/raw/images/</span></code></p></li>
 </ul>
+</section>
+<section id="run-the-review-pipeline">
+<h3>2. Run the Review Pipeline<a class="headerlink" href="#run-the-review-pipeline" title="Link to this heading"></a></h3>
+<p>Run the full review pipeline via:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run without export</span>
+python<span class="w"> </span>src/pipeline/human_intervention.py
+
+<span class="c1"># Run and immediately export after human review</span>
+python<span class="w"> </span>src/pipeline/human_intervention.py<span class="w"> </span>--export
+</pre></div>
+</div>
+</section>
+<section id="review-in-label-studio">
+<h3>3. Review in Label Studio<a class="headerlink" href="#review-in-label-studio" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Follow the URL shown in terminal (<code class="docutils literal notranslate"><span class="pre">http://localhost:8080/projects/...</span></code>)</p></li>
+<li><p>Review bounding boxes and assign labels</p></li>
+<li><p>Press Enter in terminal to finish once labeling is done</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="input-and-output">
+<h2>Input and Output<a class="headerlink" href="#input-and-output" title="Link to this heading"></a></h2>
+<section id="example-json-yolo-prediction-output">
+<h3>Example JSON (YOLO prediction output)<a class="headerlink" href="#example-json-yolo-prediction-output" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;predictions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;bbox&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="mf">51.57196044921875</span><span class="p">,</span><span class="w"> </span><span class="mf">165.7647247314453</span><span class="p">,</span><span class="w"> </span><span class="mf">402.517578125</span><span class="p">,</span><span class="w"> </span><span class="mf">459.77508544921875</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.597667932510376</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FireBSI&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;label_status&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="c1">// 0 = unimported, 1 = imported (unreviewed), 2 = human reviewed</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">image_path</span></code>: Must point to a valid file in <code class="docutils literal notranslate"><span class="pre">raw/images</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bbox</span></code>: Format is <code class="docutils literal notranslate"><span class="pre">[x_min,</span> <span class="pre">y_min,</span> <span class="pre">x_max,</span> <span class="pre">y_max]</span></code> in pixels</p></li>
+<li><p>Final reviewed results will be saved under <code class="docutils literal notranslate"><span class="pre">mock_io/data/mismatched/reviewed_results</span></code></p></li>
+</ul>
+</section>
 </section>
 </section>
 

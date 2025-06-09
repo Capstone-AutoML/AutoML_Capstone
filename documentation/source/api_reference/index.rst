@@ -11,4 +11,5 @@ These pages document the core Python modules that power the AutoML wildfire pipe
    augmentation
    training
    distillation
+   quantization
    utils

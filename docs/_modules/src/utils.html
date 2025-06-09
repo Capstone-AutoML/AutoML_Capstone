@@ -51,8 +51,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../training.html">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../distillation_quantization.html">Distillation and Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quantization.html">Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -349,6 +349,201 @@
 
     <span class="c1"># Create data.yaml file</span>
     <span class="n">create_data_yaml</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_quantization_data">
+<a class="viewcode-back" href="../../api_reference/utils.html#src.utils.prepare_quantization_data">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_quantization_data</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">calibration_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepare a calibration dataset for IMX quantization by sampling from incoming data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config (dict): Dictionary containing required paths.</span>
+<span class="sd">                       Expected keys:</span>
+<span class="sd">                       - &quot;labeled_json_path&quot; (original labeled data)</span>
+<span class="sd">                       - &quot;quantization_data_path&quot; (where to save calibration data)</span>
+<span class="sd">        image_dir (Path): Directory containing the labeled images to sample from.</span>
+<span class="sd">        calibration_samples (int): Number of images to use for calibration (default: 200)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">quant_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quantization_data_path&quot;</span><span class="p">,</span> <span class="s2">&quot;data/quantization&quot;</span><span class="p">))</span>
+
+    <span class="c1"># If calibration data already exists, use it</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">quant_dir</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span> <span class="o">/</span> <span class="s2">&quot;train&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">quant_dir</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span> <span class="o">/</span> <span class="s2">&quot;val&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Using existing calibration data at &#39;</span><span class="si">{</span><span class="n">quant_dir</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] To recreate calibration data, delete the quantization directory&quot;</span><span class="p">)</span>
+        <span class="n">create_quantize_yaml</span><span class="p">(</span><span class="n">quant_dir</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Creating new calibration dataset...&quot;</span><span class="p">)</span>
+
+    <span class="n">labeled_json_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labeled_json_path&quot;</span><span class="p">,</span> <span class="s2">&quot;mock_io/data/labeled&quot;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">labeled_json_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Labeled JSON directory not found at </span><span class="si">{</span><span class="n">labeled_json_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">image_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image directory not found at </span><span class="si">{</span><span class="n">image_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Convert classes to int in a dictionary (same as training)</span>
+    <span class="n">class_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;FireBSI&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;LightningBSI&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;PersonBSI&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;SmokeBSI&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;VehicleBSI&quot;</span><span class="p">:</span> <span class="mi">4</span>
+    <span class="p">}</span>
+
+    <span class="n">all_image_label_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Process JSON labels to YOLO format using the provided image_dir</span>
+    <span class="n">json_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">labeled_json_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.json&quot;</span><span class="p">))</span>
+    <span class="n">image_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">image_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;.jpeg&quot;</span><span class="p">,</span> <span class="s2">&quot;.png&quot;</span><span class="p">]]</span>
+    <span class="n">image_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">image_files</span><span class="p">}</span>
+
+    <span class="c1"># Match JSON files to images</span>
+    <span class="n">matched_pairs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">json_file</span><span class="p">,</span> <span class="n">image_lookup</span><span class="p">[</span><span class="n">json_file</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()])</span>
+        <span class="k">for</span> <span class="n">json_file</span> <span class="ow">in</span> <span class="n">json_files</span>
+        <span class="k">if</span> <span class="n">json_file</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">image_lookup</span>
+    <span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Matched </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">matched_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2"> JSON-image pairs&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">json_file</span><span class="p">,</span> <span class="n">image_file</span> <span class="ow">in</span> <span class="n">matched_pairs</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="n">yolo_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_file</span><span class="p">)</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="c1"># Only process images that have predictions</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;predictions&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">predictions</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">predictions</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="n">ann</span><span class="p">[</span><span class="s2">&quot;class&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">cls</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">class_map</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown class &#39;</span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">&#39; in </span><span class="si">{</span><span class="n">json_file</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Skipping annotation.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">class_id</span> <span class="o">=</span> <span class="n">class_map</span><span class="p">[</span><span class="bp">cls</span><span class="p">]</span>
+
+            <span class="c1"># Convert [xmin, ymin, xmax, ymax] to YOLO format: https://medium.com/@telega.slawomir.ai/json-to-yolo-dataset-converter-9e9e643a31a7</span>
+            <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">ann</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">]</span>
+            <span class="n">box_w</span> <span class="o">=</span> <span class="n">x_max</span> <span class="o">-</span> <span class="n">x_min</span>
+            <span class="n">box_h</span> <span class="o">=</span> <span class="n">y_max</span> <span class="o">-</span> <span class="n">y_min</span>
+            <span class="n">x_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span> <span class="o">+</span> <span class="n">box_w</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">w</span>
+            <span class="n">y_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_min</span> <span class="o">+</span> <span class="n">box_h</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">h</span>
+            <span class="n">norm_w</span> <span class="o">=</span> <span class="n">box_w</span> <span class="o">/</span> <span class="n">w</span>
+            <span class="n">norm_h</span> <span class="o">=</span> <span class="n">box_h</span> <span class="o">/</span> <span class="n">h</span>
+
+            <span class="n">yolo_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">class_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">x_center</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">y_center</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">norm_w</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">norm_h</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">yolo_lines</span><span class="p">:</span>
+            <span class="n">all_image_label_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">image_file</span><span class="p">,</span> <span class="n">yolo_lines</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_image_label_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2"> images with valid annotations for calibration&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Stratified sampling to ensure class representation</span>
+    <span class="n">class_images</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">img_path</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">all_image_label_pairs</span><span class="p">:</span>
+        <span class="n">classes_in_image</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+            <span class="n">class_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">classes_in_image</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">class_id</span> <span class="ow">in</span> <span class="n">classes_in_image</span><span class="p">:</span>
+            <span class="n">class_images</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">img_path</span><span class="p">,</span> <span class="n">labels</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">class_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Class </span><span class="si">{</span><span class="n">class_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">class_images</span><span class="p">[</span><span class="n">class_id</span><span class="p">])</span><span class="si">}</span><span class="s2"> images available&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Sample from each class proportionally</span>
+    <span class="n">selected_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">samples_per_class</span> <span class="o">=</span> <span class="n">calibration_samples</span> <span class="o">//</span> <span class="mi">5</span>
+
+    <span class="k">for</span> <span class="n">class_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">class_samples</span> <span class="o">=</span> <span class="n">class_images</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">class_samples</span><span class="p">:</span>
+            <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">samples_per_class</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">class_samples</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">n_samples</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">sampled</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">class_samples</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
+                <span class="n">selected_pairs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">sampled</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Sampled </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sampled</span><span class="p">)</span><span class="si">}</span><span class="s2"> images for class </span><span class="si">{</span><span class="n">class_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[WARNING] No samples available for class </span><span class="si">{</span><span class="n">class_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Remove duplicates</span>
+    <span class="n">seen_images</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">unique_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">img_path</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">selected_pairs</span><span class="p">:</span>
+        <span class="n">img_name</span> <span class="o">=</span> <span class="n">img_path</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="n">img_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_images</span><span class="p">:</span>
+            <span class="n">seen_images</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img_name</span><span class="p">)</span>
+            <span class="n">unique_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">img_path</span><span class="p">,</span> <span class="n">labels</span><span class="p">))</span>
+
+    <span class="n">selected_pairs</span> <span class="o">=</span> <span class="n">unique_pairs</span><span class="p">[:</span><span class="n">calibration_samples</span><span class="p">]</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">selected_pairs</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Selected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">selected_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2"> unique images for IMX calibration&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create IMX quantization dataset structure</span>
+    <span class="n">calib_train_ratio</span> <span class="o">=</span> <span class="mf">0.8</span>
+    <span class="n">n_train</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">selected_pairs</span><span class="p">)</span> <span class="o">*</span> <span class="n">calib_train_ratio</span><span class="p">)</span>
+
+    <span class="n">train_pairs</span> <span class="o">=</span> <span class="n">selected_pairs</span><span class="p">[:</span><span class="n">n_train</span><span class="p">]</span>
+    <span class="n">val_pairs</span> <span class="o">=</span> <span class="n">selected_pairs</span><span class="p">[</span><span class="n">n_train</span><span class="p">:]</span>
+
+    <span class="c1"># Save calibration dataset</span>
+    <span class="k">for</span> <span class="n">split_name</span><span class="p">,</span> <span class="n">split_data</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;val&quot;</span><span class="p">],</span> <span class="p">[</span><span class="n">train_pairs</span><span class="p">,</span> <span class="n">val_pairs</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">img_path</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">split_data</span><span class="p">:</span>
+            <span class="n">dest_img</span> <span class="o">=</span> <span class="n">quant_dir</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span> <span class="o">/</span> <span class="n">split_name</span> <span class="o">/</span> <span class="n">img_path</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">dest_lbl</span> <span class="o">=</span> <span class="n">quant_dir</span> <span class="o">/</span> <span class="s2">&quot;labels&quot;</span> <span class="o">/</span> <span class="n">split_name</span> <span class="o">/</span> <span class="p">(</span><span class="n">img_path</span><span class="o">.</span><span class="n">stem</span> <span class="o">+</span> <span class="s2">&quot;.txt&quot;</span><span class="p">)</span>
+            <span class="n">dest_img</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">dest_lbl</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">img_path</span><span class="p">,</span> <span class="n">dest_img</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dest_lbl</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] IMX calibration data prepared at &#39;</span><span class="si">{</span><span class="n">quant_dir</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Calibration Train: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">, Val: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">val_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create quantize.yaml file for IMX</span>
+    <span class="n">create_quantize_yaml</span><span class="p">(</span><span class="n">quant_dir</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="create_quantize_yaml">
+<a class="viewcode-back" href="../../api_reference/utils.html#src.utils.create_quantize_yaml">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_quantize_yaml</span><span class="p">(</span><span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">yaml_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a quantize.yaml file for IMX quantization with absolute paths.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_dir (str): Directory containing the calibration images and labels.</span>
+<span class="sd">        yaml_path (str, optional): Output path for the YAML file.</span>
+<span class="sd">                                  Defaults to &quot;src/quantize.yaml&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">yaml_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">yaml_path</span> <span class="o">=</span> <span class="s2">&quot;src/quantize.yaml&quot;</span>
+
+    <span class="c1"># Resolve absolute paths (no test path for quantization)</span>
+    <span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
+    <span class="n">val_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> <span class="s2">&quot;val&quot;</span><span class="p">))</span>
+
+    <span class="c1"># YAML content</span>
+    <span class="n">quantize_yaml</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="n">train_path</span><span class="p">,</span>
+        <span class="s2">&quot;val&quot;</span><span class="p">:</span> <span class="n">val_path</span><span class="p">,</span>
+        <span class="s2">&quot;nc&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="s2">&quot;names&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;FireBSI&quot;</span><span class="p">,</span> <span class="s2">&quot;LightningBSI&quot;</span><span class="p">,</span> <span class="s2">&quot;PersonBSI&quot;</span><span class="p">,</span> <span class="s2">&quot;SmokeBSI&quot;</span><span class="p">,</span> <span class="s2">&quot;VehicleBSI&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Write YAML file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">yaml_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">quantize_yaml</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] quantize.yaml saved to: </span><span class="si">{</span><span class="n">yaml_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 </pre></div>
 

@@ -10,7 +10,7 @@ This script compares YOLO and Grounding DINO predictions for the same image and 
 
 - **Output**:  
   - Matched files → saved to `labeled_dir`  
-  - Mismatched files → saved to `pending_dir` with `label_status: 0`
+  - Mismatched files → saved to `pending_dir`
 
 - **Configurable Thresholds**:  
   - `iou_threshold`  
@@ -56,7 +56,7 @@ Main function to match predictions and split into labeled or pending sets.
   - High-confidence DINO detections missed by YOLO
 
 #### Output Actions:
-- Adds `label_status: 0` and `confidence_flag` to flagged predictions
+- adds `confidence_flag` to flagged predictions
 - Saves:
   - Confident matches to `labeled_dir`
   - Mismatches to `pending_dir` for human review

@@ -70,8 +70,8 @@
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -114,7 +114,7 @@
 <li><p><strong>Output</strong>:</p>
 <ul>
 <li><p>Matched files → saved to <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code></p></li>
-<li><p>Mismatched files → saved to <code class="docutils literal notranslate"><span class="pre">pending_dir</span></code> with <code class="docutils literal notranslate"><span class="pre">label_status:</span> <span class="pre">0</span></code></p></li>
+<li><p>Mismatched files → saved to <code class="docutils literal notranslate"><span class="pre">pending_dir</span></code></p></li>
 </ul>
 </li>
 <li><p><strong>Configurable Thresholds</strong>:</p>
@@ -173,7 +173,7 @@
 <section id="output-actions">
 <h4>Output Actions:<a class="headerlink" href="#output-actions" title="Link to this heading"></a></h4>
 <ul class="simple">
-<li><p>Adds <code class="docutils literal notranslate"><span class="pre">label_status:</span> <span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">confidence_flag</span></code> to flagged predictions</p></li>
+<li><p>adds <code class="docutils literal notranslate"><span class="pre">confidence_flag</span></code> to flagged predictions</p></li>
 <li><p>Saves:</p>
 <ul>
 <li><p>Confident matches to <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code></p></li>

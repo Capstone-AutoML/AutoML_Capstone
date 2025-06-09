@@ -1,0 +1,251 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quantization &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a49bda7b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Code Reference" href="api_reference/index.html" />
+    <link rel="prev" title="Distillation" href="distillation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AutoML CI/CD/CT: Continuous Training and Deployment Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup_guide.html">Setup Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quantization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#key-functions">Key Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#quantize-model-model-path-quantize-config-path"><code class="docutils literal notranslate"><span class="pre">quantize_model(model_path,</span> <span class="pre">quantize_config_path)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#imx-quantization-model-output-path-quantize-yaml"><code class="docutils literal notranslate"><span class="pre">imx_quantization(model,</span> <span class="pre">output_path,</span> <span class="pre">quantize_yaml)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fp16-quantization-model-output-path"><code class="docutils literal notranslate"><span class="pre">fp16_quantization(model,</span> <span class="pre">output_path)</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#onnx-quantization-model-output-path-preprocessed-path"><code class="docutils literal notranslate"><span class="pre">onnx_quantization(model,</span> <span class="pre">output_path,</span> <span class="pre">preprocessed_path)</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#supported-methods">Supported Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#onnx-quantization">1. ONNX Quantization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fp16-quantization">2. FP16 Quantization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#imx-quantization-linux-only">3. IMX Quantization (Linux only)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#notes">Notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#errors-to-watch-for">Errors to Watch For</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AutoML CI/CD/CT: Continuous Training and Deployment Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quantization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/quantization.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quantization">
+<h1>Quantization<a class="headerlink" href="#quantization" title="Link to this heading"></a></h1>
+<p>This script performs model quantization to reduce model size and improve inference speed. It supports three quantization methods:</p>
+<ul class="simple">
+<li><p><strong>ONNX Dynamic Quantization</strong></p></li>
+<li><p><strong>FP16 Quantization</strong></p></li>
+<li><p><strong>IMX Post Training Quantization</strong> (Linux only)</p></li>
+</ul>
+<hr class="docutils" />
+<section id="key-functions">
+<h2>Key Functions<a class="headerlink" href="#key-functions" title="Link to this heading"></a></h2>
+<section id="quantize-model-model-path-quantize-config-path">
+<h3><code class="docutils literal notranslate"><span class="pre">quantize_model(model_path,</span> <span class="pre">quantize_config_path)</span></code><a class="headerlink" href="#quantize-model-model-path-quantize-config-path" title="Link to this heading"></a></h3>
+<p>Entry point for applying quantization. Based on the method specified in the configuration file, it routes the process to one of the supported techniques. It also prepares calibration data for IMX quantization if needed.</p>
+</section>
+<section id="imx-quantization-model-output-path-quantize-yaml">
+<h3><code class="docutils literal notranslate"><span class="pre">imx_quantization(model,</span> <span class="pre">output_path,</span> <span class="pre">quantize_yaml)</span></code><a class="headerlink" href="#imx-quantization-model-output-path-quantize-yaml" title="Link to this heading"></a></h3>
+<p>Exports the model in IMX format using Ultralytics export function with <code class="docutils literal notranslate"><span class="pre">format=&quot;imx&quot;</span></code>.</p>
+</section>
+<section id="fp16-quantization-model-output-path">
+<h3><code class="docutils literal notranslate"><span class="pre">fp16_quantization(model,</span> <span class="pre">output_path)</span></code><a class="headerlink" href="#fp16-quantization-model-output-path" title="Link to this heading"></a></h3>
+<p>Converts model weights from FP32 to FP16 precision using PyTorch’s built-in capabilities.</p>
+</section>
+<section id="onnx-quantization-model-output-path-preprocessed-path">
+<h3><code class="docutils literal notranslate"><span class="pre">onnx_quantization(model,</span> <span class="pre">output_path,</span> <span class="pre">preprocessed_path)</span></code><a class="headerlink" href="#onnx-quantization-model-output-path-preprocessed-path" title="Link to this heading"></a></h3>
+<p>Converts YOLO model to ONNX format and applies dynamic quantization.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="supported-methods">
+<h2>Supported Methods<a class="headerlink" href="#supported-methods" title="Link to this heading"></a></h2>
+<section id="onnx-quantization">
+<h3>1. ONNX Quantization<a class="headerlink" href="#onnx-quantization" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">onnx_quantization</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">preprocessed_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Use Case</strong>: Cross-platform deployment with slightly reduced accuracy</p></li>
+<li><p>Converts YOLO model to ONNX format</p></li>
+<li><p>Preprocesses it using <code class="docutils literal notranslate"><span class="pre">onnxruntime</span></code> tools</p></li>
+<li><p>Applies dynamic quantization using <code class="docutils literal notranslate"><span class="pre">quantize_dynamic</span></code></p></li>
+</ul>
+</section>
+<section id="fp16-quantization">
+<h3>2. FP16 Quantization<a class="headerlink" href="#fp16-quantization" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">fp16_quantization</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Use Case</strong>: Fast conversion with minimal accuracy loss</p></li>
+<li><p>Converts model weights to FP16 precision</p></li>
+<li><p>Saves as a <code class="docutils literal notranslate"><span class="pre">.pt</span></code> PyTorch model</p></li>
+</ul>
+</section>
+<section id="imx-quantization-linux-only">
+<h3>3. IMX Quantization (Linux only)<a class="headerlink" href="#imx-quantization-linux-only" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">imx_quantization</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">quantize_yaml</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Use Case</strong>: Sony IMX500 edge device deployment (e.g. Raspberry Pi AI Cameras)</p></li>
+<li><p>Requires Linux environment and Java installed (<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt</span> <span class="pre">install</span> <span class="pre">openjdk-11-jdk</span></code>)</p></li>
+<li><p>Uses Ultralytics export function with <code class="docutils literal notranslate"><span class="pre">format=&quot;imx&quot;</span></code></p></li>
+<li><p>Requires a YAML config file with dataset paths and class information</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>The quantization process uses a configuration file (<code class="docutils literal notranslate"><span class="pre">src/quantize_config.json</span></code>) which must include the following:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">quantization_method</span></code></strong>: One of <code class="docutils literal notranslate"><span class="pre">&quot;ONNX&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;FP16&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;IMX&quot;</span></code></p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></strong>: Path to save the quantized model</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">labeled_json_path</span></code></strong>: Path to labeled data JSON files (required for IMX)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">labeled_images_path</span></code></strong>: Path to labeled images (required for IMX)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">quantization_data_path</span></code></strong>: Directory for calibration dataset (required for IMX)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">calibration_samples</span></code></strong>: Number of samples for IMX calibration (recommended: 300+)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">quantize_yaml_path</span></code></strong>: Path where YAML config will be created (required for IMX)</p></li>
+</ul>
+<hr class="docutils" />
+<section id="example-usage">
+<h3>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">quantize_model</span><span class="p">(</span>
+    <span class="n">model_path</span><span class="o">=</span><span class="s2">&quot;mock_io/model_registry/model/nano_trained_model.pt&quot;</span><span class="p">,</span>
+    <span class="n">quantize_config_path</span><span class="o">=</span><span class="s2">&quot;src/quantize_config.json&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="notes">
+<h3>Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>ONNX quantization is portable and works across platforms.</p></li>
+<li><p>FP16 is fast and requires minimal changes.</p></li>
+<li><p>IMX quantization is recommended for deployment on Linux edge devices and requires proper calibration data which is automatically prepared from <code class="docutils literal notranslate"><span class="pre">labeled_images_path</span></code>. IMX documentation recommends using 300+ images for optimal calibration.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="errors-to-watch-for">
+<h3>Errors to Watch For<a class="headerlink" href="#errors-to-watch-for" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Missing <code class="docutils literal notranslate"><span class="pre">quantize_yaml_path</span></code></p></li>
+<li><p>Running IMX quantization on a non-Linux system</p></li>
+<li><p>Invalid model path or corrupted weights</p></li>
+</ul>
+<hr class="docutils" />
+<p>This module is a crucial step in optimizing YOLO models for real-time deployment, especially in resource-constrained environments.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="distillation.html" class="btn btn-neutral float-left" title="Distillation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api_reference/index.html" class="btn btn-neutral float-right" title="Code Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Elshaday Yoseph, Nhan Tien Nguyen, Rongze Liu and Sepehr Heydarian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

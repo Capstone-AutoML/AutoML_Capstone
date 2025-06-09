@@ -16,7 +16,7 @@ This is the full documentation of our AutoML CI/CD/CT pipeline for wildfire dete
    human_in_loop
    augmentation
    training
-   distillation_quantization
-   evaluation
+   distillation
+   quantization
    api_reference/index
 

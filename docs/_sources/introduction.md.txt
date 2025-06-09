@@ -17,10 +17,6 @@ Manual labeling of wildfire imagery is time-consuming and error-prone. In additi
 - End-to-end training, distillation, and quantization  
 - CI/CD/CT-compatible design for regular updates and retraining  
 
-## Updated Pipeline Overview
-
-We revised the original proposal to improve model matching accuracy and simplify dependency management. Notably, we replaced **SAM** (Segment Anything Model) with **Grounding DINO** for zero-shot object detection using natural language prompts. This allowed us to generate diverse bounding box predictions with minimal manual intervention.
-
 ### Workflow Overview
 
 1. **Data Collection**  

@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Distillation and Quantization" href="distillation_quantization.html" />
+    <link rel="next" title="Distillation" href="distillation.html" />
     <link rel="prev" title="Augmentation Module" href="augmentation.html" /> 
 </head>
 
@@ -53,9 +53,14 @@
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="distillation_quantization.html">Distillation and Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="evaluation.html">Evaluation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#steps">Steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-registry-structure">Model Registry Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#training-configuration">Training Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -85,6 +90,69 @@
              
   <section id="training">
 <h1>Training<a class="headerlink" href="#training" title="Link to this heading"></a></h1>
+<p>The training pipeline handles the fine-tuning of a YOLOv8 model on labeled images that have undergone the augmentation step. It ensures that correct model is selected, configures training parameters, runs the training process, and logs metadata and test performance.</p>
+<section id="steps">
+<h2>Steps<a class="headerlink" href="#steps" title="Link to this heading"></a></h2>
+<p><strong>1. Configuration Loading</strong>: Loads a user-defined JSON configuration file (<code class="docutils literal notranslate"><span class="pre">train_config.json</span></code>) that specifies:</p>
+<ul class="simple">
+<li><p>training hyperparameters (eg. <code class="docutils literal notranslate"><span class="pre">epoch</span></code>, <code class="docutils literal notranslate"><span class="pre">imgsz</span></code>),</p></li>
+<li><p>Path to <code class="docutils literal notranslate"><span class="pre">data.yaml</span></code> file</p></li>
+<li><p>path to a base model to update</p></li>
+</ul>
+<p><strong>2. Model Selection</strong>: Identifies the latest updated YOLO model by searching through the <code class="docutils literal notranslate"><span class="pre">model_registry</span></code> directory and selecting the filename with the latest date name. The pattern of the file matches <code class="docutils literal notranslate"><span class="pre">*_updated_yolo.pt</span></code>. If no updated model exists, it falls back to a default <code class="docutils literal notranslate"><span class="pre">initial_model_path</span></code>.</p>
+<p><strong>3. Training</strong>: The model weights are updated by utilizing the custom training parameters from the config file and the selected base model. Training output is saved in a timestamped model name (eg. <code class="docutils literal notranslate"><span class="pre">2025-06-01_09_42_00_updated_yolo.pt</span></code>). Model performance data is saved under the <code class="docutils literal notranslate"><span class="pre">model_info/[model_name]/runs/</span></code> directory.</p>
+<p><strong>4. Metadata Logging</strong>: A <code class="docutils literal notranslate"><span class="pre">metadata.json</span></code> file is saved along with model weights including:</p>
+<ul class="simple">
+<li><p>Model name</p></li>
+<li><p>Timestamp</p></li>
+<li><p>Path to the original base model</p></li>
+<li><p>Training arguments</p></li>
+<li><p>Evaluation metrics</p></li>
+</ul>
+</section>
+<section id="model-registry-structure">
+<h2>Model Registry Structure<a class="headerlink" href="#model-registry-structure" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>model_registry/
+└── model/
+    └── [updated_model_name].pt      # Trained weights
+    └── model_info/
+        └── [updated_model_name]/
+            └── runs/                # YOLO training logs and results
+            └── metadata.json        # Metadata file
+
+</pre></div>
+</div>
+</section>
+<section id="training-configuration">
+<h2>Training Configuration<a class="headerlink" href="#training-configuration" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">train_config.json</span></code> file defines all parameters needed to run training. It includes:</p>
+<ul class="simple">
+<li><p>Training hyperparameters passed onto the YOLO model</p></li>
+<li><p>Path to the dataset (<code class="docutils literal notranslate"><span class="pre">data.yaml</span></code>)</p></li>
+<li><p>Fallback model to use if no updated model is found</p></li>
+<li><p><strong>Optional</strong>: Path to a specific YOLO base the user prefers to train from, overriding both the fallback and latest model</p></li>
+<li><p>In-training augmentation parameters.</p>
+<ul>
+<li><p>By default the in-training augmentation is disabled (probabilities are set to 0.0). If user prefers to apply augmentation during training instead of as pre-processing step, the following parameters can be adjusted in the config:</p></li>
+</ul>
+</li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="s2">&quot;hsv_h&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;hsv_s&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;hsv_v&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;degrees&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;translate&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;scale&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;shear&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;perspective&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;flipud&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;fliplr&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;mosaic&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;mixup&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</pre></div>
+</div>
+<p>These values are passed directly into the YOLOv8 training loop and controls augmentation such as color, flipping, etc. Additional training arguments can be passed onto the <code class="docutils literal notranslate"><span class="pre">train_config.json</span></code> file as long as they are supported by YOLOv8 API. For more information on YOLOv8 training see <a class="reference external" href="https://docs.ultralytics.com/modes/train/#train-settings">YOLOv8 documentation.</a></p>
+</section>
 </section>
 
 
@@ -92,7 +160,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="augmentation.html" class="btn btn-neutral float-left" title="Augmentation Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="distillation_quantization.html" class="btn btn-neutral float-right" title="Distillation and Quantization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="distillation.html" class="btn btn-neutral float-right" title="Distillation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

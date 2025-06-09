@@ -1,8 +1,5 @@
-Distillation and Quantization
-=============================
+Distillation
+============
 
 .. automodule:: src.pipeline.distillation
-   :members:
-
-.. automodule:: src.pipeline.quantization
    :members:

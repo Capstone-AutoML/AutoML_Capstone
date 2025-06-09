@@ -20,7 +20,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Distillation and Quantization" href="distillation.html" />
+    <link rel="next" title="Distillation" href="distillation.html" />
     <link rel="prev" title="Augmentation" href="augmentation.html" /> 
 </head>
 
@@ -54,8 +54,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../augmentation.html">Augmentation Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../training.html">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../distillation_quantization.html">Distillation and Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quantization.html">Quantization</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Code Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="prelabeling.html">Prelabeling Modules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop Module</a></li>
@@ -66,7 +66,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#src.pipeline.train.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation and Quantization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Scripts</a></li>
 </ul>
 </li>
@@ -102,8 +103,8 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="src.pipeline.train.find_latest_model">
 <span class="sig-prename descclassname"><span class="pre">src.pipeline.train.</span></span><span class="sig-name descname"><span class="pre">find_latest_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/src/pipeline/train.html#find_latest_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.train.find_latest_model" title="Link to this definition"></a></dt>
-<dd><p>Finds the most recently modified YOLO model in the specified directory.
-If no model is found, returns the fallback model path.</p>
+<dd><p>Finds the YOLO model with the latest date in the filename.
+If none found, returns the fallback model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -112,7 +113,7 @@ If no model is found, returns the fallback model path.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Path to the most recent model or the fallback model.</p>
+<dd class="field-even"><p>Path to the latest-dated model or the fallback model.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
@@ -164,7 +165,7 @@ If no model is found, returns the fallback model path.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="augmentation.html" class="btn btn-neutral float-left" title="Augmentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="distillation.html" class="btn btn-neutral float-right" title="Distillation and Quantization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="distillation.html" class="btn btn-neutral float-right" title="Distillation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
