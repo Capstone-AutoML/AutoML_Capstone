@@ -70,7 +70,7 @@ def main():
     config_dir = base_dir / "config_registry"
     
     # Data paths
-    source_dir = data_dir / "sampled_dataset" / "images"
+    source_dir = data_dir / "sampled_dataset"
     raw_dir = data_dir / "raw" / "images"
     distilled_dir = data_dir / "raw" / "distilled_images"
     prelabelled_dir = data_dir / "prelabelled"
