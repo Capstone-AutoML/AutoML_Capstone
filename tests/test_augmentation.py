@@ -26,7 +26,7 @@ def sample_config():
         "brightness_contrast_prob": 1.0,
         "hue_saturation_prob": 1.0,
         "blur_prob": 1.0,
-        "blur_limit": 1,
+        "blur_limit": 3,
         "gauss_noise_prob": 1.0,
         "gauss_noise_var_min": 10,
         "gauss_noise_var_max": 20,
