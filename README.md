@@ -9,7 +9,7 @@
 
 ## Description
 
-This project implements an intelligent, semi-automated data pipeline for improving a wildfire object detection model. The system is designed to continuously ingest unlabelled images, generate initial annotations using AI models, refine them through human-in-the-loop review, and retrain the base model. The pipeline also includes optimization steps (e.g. distillation and quantization) to prepare models for deployment on edge devices.
+This project implements an intelligent, semi-automated data pipeline for improving a wildfire object detection model. The system is designed to continuously ingest unlabelled images, generate initial annotations using AI models, refine them through human-in-the-loop review, and retrain the base model. The pipeline also includes optimization steps (e.g. distillation and quantization) to prepare models for deployment on edge devices. For more technical details, refer to the [full documentation](https://capstone-automl.github.io/AutoML_Capstone/).
 
 ## Motivation
 
