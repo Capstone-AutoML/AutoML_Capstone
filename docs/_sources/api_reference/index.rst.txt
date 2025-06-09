@@ -8,6 +8,7 @@ These pages document the core Python modules that power the AutoML wildfire pipe
 
    prelabeling
    human_in_loop
+   augmentation
    training
    distillation
    utils

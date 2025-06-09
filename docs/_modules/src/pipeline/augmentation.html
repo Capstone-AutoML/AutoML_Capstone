@@ -89,7 +89,7 @@
 
 <span class="c1"># Create augmentation pipeline</span>
 <div class="viewcode-block" id="build_augmentation_transform">
-<a class="viewcode-back" href="../../../api_reference/training.html#src.pipeline.augmentation.build_augmentation_transform">[docs]</a>
+<a class="viewcode-back" href="../../../api_reference/augmentation.html#src.pipeline.augmentation.build_augmentation_transform">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_augmentation_transform</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">A</span><span class="o">.</span><span class="n">Compose</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the augmentation transform pipeline from config.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">A</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span>
@@ -119,7 +119,7 @@
 
 
 <div class="viewcode-block" id="augment_images">
-<a class="viewcode-back" href="../../../api_reference/training.html#src.pipeline.augmentation.augment_images">[docs]</a>
+<a class="viewcode-back" href="../../../api_reference/augmentation.html#src.pipeline.augmentation.augment_images">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">augment_images</span><span class="p">(</span><span class="n">matched_pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> 
                    <span class="n">transform</span><span class="p">:</span> <span class="n">A</span><span class="o">.</span><span class="n">Compose</span><span class="p">,</span> 
                    <span class="n">output_img_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> 
@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="augment_dataset">
-<a class="viewcode-back" href="../../../api_reference/training.html#src.pipeline.augmentation.augment_dataset">[docs]</a>
+<a class="viewcode-back" href="../../../api_reference/augmentation.html#src.pipeline.augmentation.augment_dataset">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">augment_dataset</span><span class="p">(</span><span class="n">image_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Orchestrates augmentation pipeline.</span>

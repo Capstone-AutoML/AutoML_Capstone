@@ -1,5 +1,5 @@
-Augmentation and Training
-=========================
+Training
+============
 
-.. automodule:: src.pipeline.augmentation
+.. automodule:: src.pipeline.train
    :members:
