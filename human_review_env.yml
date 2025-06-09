@@ -1,0 +1,12 @@
+# If you only want to run human intervention, you only need to install the dependencies in this file.
+name: human_review_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - dotenv==0.9.9
+      - python-dotenv==1.1.0
+      - label-studio==1.17.0
+      - label-studio-sdk==1.0.11
