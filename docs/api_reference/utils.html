@@ -61,9 +61,11 @@
 <li class="toctree-l2"><a class="reference internal" href="training.html">Augmentation and Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation and Quantization</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Utility Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.utils.create_data_yaml"><code class="docutils literal notranslate"><span class="pre">create_data_yaml()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#src.utils.detect_device"><code class="docutils literal notranslate"><span class="pre">detect_device()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#src.utils.draw_yolo_bboxes"><code class="docutils literal notranslate"><span class="pre">draw_yolo_bboxes()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#src.utils.load_config"><code class="docutils literal notranslate"><span class="pre">load_config()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.utils.prepare_training_data"><code class="docutils literal notranslate"><span class="pre">prepare_training_data()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -98,6 +100,21 @@
   <section id="module-src.utils">
 <span id="utility-scripts"></span><h1>Utility Scripts<a class="headerlink" href="#module-src.utils" title="Link to this heading"></a></h1>
 <p>Utility functions for the pipeline.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.utils.create_data_yaml">
+<span class="sig-prename descclassname"><span class="pre">src.utils.</span></span><span class="sig-name descname"><span class="pre">create_data_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yaml_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/utils.html#create_data_yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.utils.create_data_yaml" title="Link to this definition"></a></dt>
+<dd><p>Create a data.yaml file for training with absolute paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_dir</strong> (<em>str</em>) – Directory containing the training images and labels.</p></li>
+<li><p><strong>yaml_path</strong> (<em>str</em><em>, </em><em>optional</em>) – Output path for the YAML file.
+Defaults to “output_dir/data.yaml”.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="src.utils.detect_device">
 <span class="sig-prename descclassname"><span class="pre">src.utils.</span></span><span class="sig-name descname"><span class="pre">detect_device</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/src/utils.html#detect_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.utils.detect_device" title="Link to this definition"></a></dt>
@@ -146,6 +163,25 @@
 <li><p><strong>ValueError</strong> – If distillation_image_prop is invalid (negative or &gt; 1 when ratio)</p></li>
 </ul>
 </dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.utils.prepare_training_data">
+<span class="sig-prename descclassname"><span class="pre">src.utils.</span></span><span class="sig-name descname"><span class="pre">prepare_training_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/utils.html#prepare_training_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.utils.prepare_training_data" title="Link to this definition"></a></dt>
+<dd><p>Splits dataset into train/val/test sets and saves the images and
+labels. Labels are converted from JSON to YOLO format.
+True negative images with no labels are also added to the dataset.
+:param config: Dictionary containing required paths and optional split ratios.</p>
+<blockquote>
+<div><p>Expected keys:
+- “augmented_images_path”
+- “augmented_labels_path”
+- “true_negative_images_path”
+- “training_output_path”
+- “train_val_test_split” (list of 3 floats summing to 1.0)</p>
+</div></blockquote>
+<dl class="field-list simple">
 </dl>
 </dd></dl>
 

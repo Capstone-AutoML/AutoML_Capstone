@@ -85,12 +85,21 @@
              
   <section id="pipeline-overview">
 <h1>Pipeline Overview<a class="headerlink" href="#pipeline-overview" title="Link to this heading"></a></h1>
-<ul class="simple">
-<li><p>End-to-end flow of the pipeline</p></li>
-<li><p>Main stages: Pre-labeling → Human Review → Augmentation → Training → Evaluation</p></li>
-<li><p>CI/CD/CT concepts in the pipeline</p></li>
-<li><p>How components interact</p></li>
-</ul>
+<p>The figure below illustrates the complete CI/CD/CT pipeline we developed for automated wildfire detection.</p>
+<p align="center">
+<img src="./_static/pipeline_diagram.png" alt="Pipeline Diagram" style="width:60%;">
+</p>
+<p>This pipeline is composed of the following stages:</p>
+<ol class="arabic simple">
+<li><p><strong>Automated Data Collection</strong> – Continuously gathers unlabelled image data.</p></li>
+<li><p><strong>Pre-labelling</strong> – Uses YOLOv8 and Grounding DINO for generating bounding box predictions.</p></li>
+<li><p><strong>Matching &amp; Filtering</strong> – Compares predictions to filter out mismatches.</p></li>
+<li><p><strong>Human-in-the-loop Review</strong> – Supports manual verification via Label Studio for unmatched samples.</p></li>
+<li><p><strong>Augmentation</strong> – Applies image transformations to enrich training data.</p></li>
+<li><p><strong>Training</strong> – Fine-tunes the YOLOv8 model using labeled and augmented data.</p></li>
+<li><p><strong>Distillation &amp; Quantization</strong> – Optimizes the trained model for lightweight deployment.</p></li>
+<li><p><strong>CI/CD Integration</strong> – Final models are versioned and registered for deployment.</p></li>
+</ol>
 </section>
 
 

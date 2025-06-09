@@ -154,7 +154,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compare YOLO and DINO predictions for each image.</span>
 <span class="sd">    Save YOLO prediction files to `labeled_dir` if they match DINO confidently.</span>
-<span class="sd">    Save unmatched/mismatched files to `pending_dir` with label_status = 0 for review.</span>
+<span class="sd">    Save unmatched/mismatched files to `pending_dir` for review.</span>
 
 <span class="sd">    Thresholds and behavior are controlled via config dictionary.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -229,7 +229,6 @@
             <span class="k">if</span> <span class="n">is_mismatch</span><span class="p">:</span>
                 <span class="c1"># Add label_status = 0 to each YOLO object for review</span>
                 <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">yolo_preds</span><span class="p">:</span>
-                    <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;label_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
                     <span class="n">conf</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;confidence&quot;</span><span class="p">]</span>
                     <span class="k">if</span> <span class="n">conf</span> <span class="o">&lt;</span> <span class="n">low_conf</span><span class="p">:</span>
@@ -238,7 +237,6 @@
                         <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;confidence_flag&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mid&quot;</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;confidence_flag&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;high&quot;</span>
-
 
                 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">pending_dir</span> <span class="o">/</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span><span class="s2">&quot;predictions&quot;</span><span class="p">:</span> <span class="n">yolo_preds</span><span class="p">},</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>

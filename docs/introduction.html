@@ -45,7 +45,15 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#motivation">Motivation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#key-features">Key Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#updated-pipeline-overview">Updated Pipeline Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#workflow-overview">Workflow Overview</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="setup_guide.html">Setup Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
@@ -85,12 +93,50 @@
              
   <section id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h1>
+<p>Wildfires pose a critical threat to ecosystems, infrastructure, and human life. Timely and accurate detection is essential for effective intervention and mitigation. However, developing high-performing object detection models for wildfire detection is often constrained by the lack of labeled data and the time-intensive process of manual annotation.</p>
+<p>This project presents an <strong>end-to-end AutoML pipeline</strong> for wildfire detection using a <strong>CI/CD/CT</strong> (Continuous Integration, Continuous Deployment, and Continuous Training) architecture. The pipeline automates the entire lifecycle of a detection model. It starts from raw image collection and continues through pre-labeling, human validation, training, distillation, quantization, and deployment.</p>
+<section id="motivation">
+<h2>Motivation<a class="headerlink" href="#motivation" title="Link to this heading"></a></h2>
+<p>Manual labeling of wildfire imagery is time-consuming and error-prone. In addition, models degrade over time as environmental conditions and data distributions shift. Our system aims to continuously learn from new data using a scalable, semi-supervised approach. It automates as much of the machine learning workflow as possible and involves human review only when necessary.</p>
+</section>
+<section id="key-features">
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Purpose of the AutoML pipeline</p></li>
-<li><p>Motivation: building a robust wildfire detection system</p></li>
-<li><p>Overview of the pipeline’s CI/CD/CT capabilities</p></li>
-<li><p>Key technologies used: YOLOv8, Grounding DINO, Label Studio, etc.</p></li>
+<li><p>Automated pre-labeling using YOLOv8 and Grounding DINO</p></li>
+<li><p>Model matching and validation using IoU and confidence thresholds</p></li>
+<li><p>Human-in-the-loop review for mismatches via Label Studio</p></li>
+<li><p>Image augmentation to improve generalization</p></li>
+<li><p>End-to-end training, distillation, and quantization</p></li>
+<li><p>CI/CD/CT-compatible design for regular updates and retraining</p></li>
 </ul>
+</section>
+<section id="updated-pipeline-overview">
+<h2>Updated Pipeline Overview<a class="headerlink" href="#updated-pipeline-overview" title="Link to this heading"></a></h2>
+<p>We revised the original proposal to improve model matching accuracy and simplify dependency management. Notably, we replaced <strong>SAM</strong> (Segment Anything Model) with <strong>Grounding DINO</strong> for zero-shot object detection using natural language prompts. This allowed us to generate diverse bounding box predictions with minimal manual intervention.</p>
+<section id="workflow-overview">
+<h3>Workflow Overview<a class="headerlink" href="#workflow-overview" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>Data Collection</strong><br />
+Unlabeled wildfire images are collected from remote sensors and placed into a raw image directory.</p></li>
+<li><p><strong>Pre-labeling (YOLO and Grounding DINO)</strong><br />
+Both models generate bounding boxes independently. YOLO is fast and lightweight. Grounding DINO supports natural language prompts.</p></li>
+<li><p><strong>Matching</strong><br />
+Predictions from both models are matched using class name and IoU. Unmatched results are flagged for human review.</p></li>
+<li><p><strong>Human-in-the-Loop Review</strong><br />
+Label Studio is used to manually verify or correct mismatched results.</p></li>
+<li><p><strong>Augmentation</strong><br />
+Verified labeled images are augmented to enrich the dataset.</p></li>
+<li><p><strong>Training</strong><br />
+A new YOLO model is trained on the augmented dataset.</p></li>
+<li><p><strong>Distillation and Quantization</strong><br />
+The full model is distilled into a lightweight version and then quantized for deployment.</p></li>
+<li><p><strong>Model Registry Update</strong><br />
+Trained models are stored in the registry and used for future pre-labeling.</p></li>
+</ol>
+<hr class="docutils" />
+<p>This pipeline ensures <strong>scalability</strong>, <strong>adaptability</strong>, and <strong>model freshness</strong> without relying heavily on constant manual labeling. The integration of human review only when needed helps balance efficiency with accuracy.</p>
+</section>
+</section>
 </section>
 
 
