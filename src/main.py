@@ -177,6 +177,7 @@ def main():
         hyperparams=distillation_hyperparams,
         resume_checkpoint=None,  # Can be set to resume from a checkpoint if needed
         output_dir=distilled_output_dir,
+        final_model_dir=distilled_output_dir / "latest",
         log_level="batch",
         debug=False,
         distillation_config=distillation_config,

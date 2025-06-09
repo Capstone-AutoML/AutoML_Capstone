@@ -612,6 +612,24 @@ def freeze_layers(model: nn.Module, num_layers: int = 10) -> None:
     print(f"Frozen {frozen_count}/{total_count} layers in the model")
 
 
+def save_final_model(
+    model: nn.Module,
+    output_dir: Path,
+    model_name: str = "model.pt"
+) -> None:
+    """
+    Save the final model after training.
+    
+    Args:
+        model: The model to save
+        output_dir: Directory to save the model
+        model_name: Name of the saved model file
+    """
+    model_path = output_dir / model_name
+    torch.save(model.state_dict(), model_path)
+    print(f"Final model saved to {model_path}")
+
+
 def train_loop(
     num_epochs: int,
     student_model: nn.Module,
@@ -634,6 +652,7 @@ def train_loop(
     start_epoch: int = 1,
     log_file: Optional[Path] = None,
     log_level: Literal["batch", "epoch"] = "epoch",
+    final_model_dir: Path = Path("mock_io/model_registry/distilled"),
     debug: bool = False
 ) -> Dict[str, List[float]]:
     """
@@ -723,6 +742,9 @@ def train_loop(
                         'dfl_loss': batch_loss_dfl
                     }
                 )
+        
+        # Save final model after training completes
+        save_final_model(student_model, final_model_dir)
             
     except ValueError as e:
         print(str(e))
@@ -820,6 +842,7 @@ def start_distillation(
     },
     resume_checkpoint: Optional[Path] = None,
     output_dir: Path = Path("distillation_out"),
+    final_model_dir: Path = Path("mock_io/model_registry/distilled"),
     log_level: Literal["batch", "epoch"] = "batch",
     debug: bool = False,
     distillation_config: Optional[Dict[str, Any]] = None,
@@ -973,6 +996,7 @@ if __name__ == "__main__":
         hyperparams=hyperparams,
         resume_checkpoint=None,
         output_dir=Path(SCRIPT_DIR, "distillation_out"),
+        final_model_dir=Path(SCRIPT_DIR, "distillation_out"),
         log_level="batch",
         debug=False,
         distillation_config=distillation_config
