@@ -189,8 +189,6 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 8: Model quantization --- ")
     # 8. Model quantization
-    # Replace with distilled_model, this is for testing using the full model
-    distilled_model_path = model_dir / "model" / "nano_trained_model.pt"
     quantize_config_path = SCRIPT_DIR / "quantize_config.json"
     quantized_model_path = quantize_model(
         model_path=str(distilled_model_path),
