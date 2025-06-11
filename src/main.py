@@ -118,8 +118,8 @@ def main():
         raw_dir=raw_dir,
         output_dir=prelabelled_dir / "gdino",
         config=config,
-        model_weights=model_dir / "model" / "groundingdino_swint_ogc.pth",
-        config_path=model_dir / "model" / "GroundingDINO_SwinT_OGC.py",
+        model_weights=model_dir / "model" / "groundingdino_swinb_cogcoor.pth",
+        config_path=model_dir / "model" / "GroundingDINO_SwinB_cfg.py",
         box_threshold=config.get("dino_box_threshold", 0.3),
         text_threshold=config.get("dino_text_threshold", 0.25)
     )
