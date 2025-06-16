@@ -1,0 +1,41 @@
+---
+title: "AutoML CI/CD/CT Capstone Project Final Report"
+author: "Sepehr Heydarian, Archer Liu, Elshaday Yoseph, Tien Nguyen"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    embed-resources: true
+bibliography: ../../references.bib
+execute:
+  echo: false
+  warning: false
+---
+\newpage
+## Executive Summary
+{{< include _executive-summary.qmd >}}
+
+## Introduction
+{{< include _introduction.qmd >}}
+
+## Refined Problem & Scientific Objectives
+{{< include _scientific-objectives.qmd >}}
+
+## Data
+{{< include _data-description.qmd >}}
+
+## Data Science Methods
+{{< include _methods-overview.qmd >}}
+{{< include _augmentation-strategy.qmd >}}
+{{< include _model-training.qmd >}}
+{{< include _distillation.qmd >}}
+{{< include _quantization.qmd >}}
+
+## Data Product
+{{< include _data-product-description.qmd >}}
+
+## Conclusions and Recommendations
+{{< include _conclusion-recommendations.qmd >}}
+
+## References
