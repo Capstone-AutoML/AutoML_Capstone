@@ -13,6 +13,7 @@ from pipeline.fetch_data import fetch_and_organize_images
 from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
 from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelabelling
 from pipeline.prelabelling.matching import match_and_filter
+from pipeline.human_intervention import run_human_review
 from pipeline.augmentation import augment_dataset
 from pipeline.train import train_model
 from pipeline.distillation.distillation import start_distillation
@@ -35,6 +36,11 @@ def parse_args():
         '--config',
         type=str,
         help='Path to the pipeline configuration file (default: pipeline_config.json in the same directory as main.py)'
+    )
+    parser.add_argument(
+        '--skip-human-review',
+        action='store_true',
+        help='Skip human intervention and continue with automated pipeline'
     )
     return parser.parse_args()
 
@@ -78,6 +84,7 @@ def main():
     augmented_dir = data_dir / "augmented"
     training_dir = data_dir / "training"
     distillation_dir = data_dir / "distillation"
+    reviewed_dir = data_dir / "mismatched" / "reviewed_results"
     
     # Model paths
     model_path = model_dir / "model" / "nano_trained_model.pt"
@@ -85,9 +92,9 @@ def main():
     quantized_output_dir = model_dir / "quantized"
     
     # Create necessary directories
-    for dir_path in [raw_dir, distilled_dir, prelabelled_dir, processed_dir, 
-                    augmented_dir, training_dir, distillation_dir,
-                    distilled_output_dir, quantized_output_dir, config_dir]:
+    for dir_path in [raw_dir, distilled_dir, prelabelled_dir, processed_dir,
+                     augmented_dir, training_dir, distillation_dir,
+                     distilled_output_dir, quantized_output_dir, config_dir, reviewed_dir]:
         dir_path.mkdir(parents=True, exist_ok=True)
     
     print(" --- Step 1: Fetching and organizing images --- ")
@@ -136,11 +143,34 @@ def main():
         config=config
     )
 
+    print("-----------------------------------------------\n")
+    print(" --- Step 5: Human intervention --- ")
+
+    # 5. Human intervention
+    if args.skip_human_review:
+        print("[Info] Skipping human review and continuing with automated pipeline...")
+    else:
+        from dotenv import load_dotenv
+        load_dotenv()
+        api_key = os.getenv("LABEL_STUDIO_API_KEY")
+        if not api_key:
+            print("Please set LABEL_STUDIO_API_KEY in the .env file")
+            exit(1)
+
+        review_results = run_human_review(
+            project_name="AutoML-Human-Intervention",
+            export_results_flag=None
+        )
+        if not review_results:
+            print("[Error] Human review process failed")
+            sys.exit(1)
+
+        print(f"[✓] Human review completed with {len(review_results)} reviewed items")
 
     print("-----------------------------------------------\n")
-    print(" --- Step 5: Data augmentation --- ")
+    print(" --- Step 6: Data augmentation --- ")
 
-    # 5. Data augmentation
+    # 6. Data augmentation
     augment_dataset(
         image_dir=raw_dir,
         output_dir=augmented_dir,
@@ -148,16 +178,16 @@ def main():
     )
 
     print("-----------------------------------------------\n")
-    print(" --- Step 6: Model training --- ")
+    print(" --- Step 7: Model training --- ")
 
-    # 6. Model training
+    # 7. Model training
     prepare_training_data(config)
     model_path = train_model(train_config)
 
     print("-----------------------------------------------\n")
-    print(" --- Step 7: Model Distillation --- ")
+    print(" --- Step 8: Model Distillation --- ")
 
-    # 7. Model Distillation
+    # 8. Model Distillation
     # Define distillation hyperparameters
     distillation_hyperparams = {
         "lambda_distillation": 2.0,
@@ -188,8 +218,8 @@ def main():
     distilled_model_path = distilled_output_dir / "latest" / "model.pt"
 
     print("-----------------------------------------------\n")
-    print(" --- Step 8: Model quantization --- ")
-    # 8. Model quantization
+    print(" --- Step 9: Model quantization --- ")
+    # 9. Model quantization
     quantize_config_path = SCRIPT_DIR / "quantize_config.json"
     quantized_model_path = quantize_model(
         model_path=str(distilled_model_path),
@@ -197,9 +227,9 @@ def main():
     )
 
     print("-----------------------------------------------\n")
-    print(" --- Step 9: Model registration --- ")
+    print(" --- Step 10: Model registration --- ")
 
-    # 9. Model registration
+    # 10. Model registration
     register_models(
         full_model=model_path,
         distilled_model=distilled_model_path,
