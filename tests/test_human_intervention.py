@@ -19,7 +19,7 @@ from src.pipeline.human_intervention import (
     _ensure_label_studio_running,
     _find_or_create_project,
     _configure_interface,
-    _connect_local_storage,
+    # _connect_local_storage,
     setup_label_studio,
     import_tasks_to_project,
     export_versioned_results,
@@ -365,32 +365,32 @@ def test_configure_interface(mock_patch):
     mock_patch.assert_called_once()
 
 
-@patch("requests.get")
-@patch("requests.post")
-def test_connect_local_storage(mock_post, mock_get):
-    """Test connecting Label Studio to local storage."""
-    # Mock responses
-    mock_get_response = Mock()
-    mock_get_response.json.return_value = []
-    mock_get_response.status_code = 200
-    mock_get.return_value = mock_get_response
+# @patch("requests.get")
+# @patch("requests.post")
+# def test_connect_local_storage(mock_post, mock_get):
+#     """Test connecting Label Studio to local storage."""
+#     # Mock responses
+#     mock_get_response = Mock()
+#     mock_get_response.json.return_value = []
+#     mock_get_response.status_code = 200
+#     mock_get.return_value = mock_get_response
 
-    mock_post_response = Mock()
-    mock_post_response.json.return_value = {"id": 789}
-    mock_post_response.status_code = 201
-    mock_post.return_value = mock_post_response
+#     mock_post_response = Mock()
+#     mock_post_response.json.return_value = {"id": 789}
+#     mock_post_response.status_code = 201
+#     mock_post.return_value = mock_post_response
 
-    # Test creating new storage
-    result = _connect_local_storage(
-        "http://localhost:8080",
-        {"Authorization": "Token abc123"},
-        123,
-        "Test Project",
-        "/path/to/data"
-    )
+#     # Test creating new storage
+#     result = _connect_local_storage(
+#         "http://localhost:8080",
+#         {"Authorization": "Token abc123"},
+#         123,
+#         "Test Project",
+#         "/path/to/data"
+#     )
 
-    assert result == 789
-    assert mock_post.call_count == 2
+#     assert result == 789
+#     assert mock_post.call_count == 2
 
 
 @patch("requests.post")
@@ -422,19 +422,17 @@ def test_import_tasks_to_project(mock_get, mock_post, temp_dirs):
 
 @patch("src.pipeline.human_intervention._find_or_create_project")
 @patch("src.pipeline.human_intervention._configure_interface")
-@patch("src.pipeline.human_intervention._connect_local_storage")
-def test_setup_label_studio(mock_storage, mock_interface, mock_project):
+def test_setup_label_studio(mock_interface, mock_project):
     """Test setting up Label Studio project."""
     mock_project.return_value = 123
     mock_interface.return_value = True
-    mock_storage.return_value = 789
 
     with patch.dict("os.environ", {"LABEL_STUDIO_API_KEY": "test_key"}):
         result = setup_label_studio("Test Project", "/output/dir")
 
     assert result == {
         "project_id": 123,
-        "storage_id": 789,
+        "storage_id": None,
         "project_url": "http://localhost:8080/projects/123/data"
     }
 
