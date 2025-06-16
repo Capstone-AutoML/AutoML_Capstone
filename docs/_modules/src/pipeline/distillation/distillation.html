@@ -722,11 +722,36 @@
 
 
 
+<div class="viewcode-block" id="save_final_model">
+<a class="viewcode-back" href="../../../../api_reference/distillation.html#src.pipeline.distillation.distillation.save_final_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_final_model</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;model.pt&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save the final model after training.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        model: The model to save</span>
+<span class="sd">        output_dir: Directory to save the model</span>
+<span class="sd">        model_name: Name of the saved model file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="n">model_name</span>
+    <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="c1"># Save the model using YOLO&#39;s save method</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final model saved to </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="train_loop">
 <a class="viewcode-back" href="../../../../api_reference/distillation.html#src.pipeline.distillation.distillation.train_loop">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">train_loop</span><span class="p">(</span>
     <span class="n">num_epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">student_model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">student_yolo</span><span class="p">:</span> <span class="n">YOLO</span><span class="p">,</span>  <span class="c1"># Add YOLO model instance</span>
     <span class="n">teacher_model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">train_dataloader</span><span class="p">:</span> <span class="n">DataLoader</span><span class="p">,</span>
     <span class="n">detection_trainer</span><span class="p">:</span> <span class="n">DetectionTrainer</span><span class="p">,</span>
@@ -746,6 +771,7 @@
     <span class="n">start_epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">log_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
+    <span class="n">final_model_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled/latest&quot;</span><span class="p">),</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -754,6 +780,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        num_epochs: Number of epochs to train</span>
 <span class="sd">        student_model: Student model to train</span>
+<span class="sd">        student_yolo: Student YOLO model instance for saving</span>
 <span class="sd">        teacher_model: Teacher model for distillation</span>
 <span class="sd">        train_dataloader: DataLoader for training data</span>
 <span class="sd">        detection_trainer: Detection trainer instance</span>
@@ -768,6 +795,8 @@
 <span class="sd">        start_epoch: Start training from this epoch</span>
 <span class="sd">        log_file: Optional path to log file for metrics</span>
 <span class="sd">        log_level: Whether to log at batch or epoch level</span>
+<span class="sd">        final_model_dir: Directory to save final model</span>
+<span class="sd">        debug: Whether to print debug information</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
 <span class="sd">        Dictionary containing lists of loss values for each epoch</span>
@@ -835,6 +864,9 @@
                         <span class="s1">&#39;dfl_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_dfl</span>
                     <span class="p">}</span>
                 <span class="p">)</span>
+        
+        <span class="c1"># Save final model after training completes</span>
+        <span class="n">save_final_model</span><span class="p">(</span><span class="n">student_yolo</span><span class="p">,</span> <span class="n">final_model_dir</span><span class="p">)</span>
             
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
@@ -941,6 +973,7 @@
     <span class="p">},</span>
     <span class="n">resume_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;distillation_out&quot;</span><span class="p">),</span>
+    <span class="n">final_model_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled/latest&quot;</span><span class="p">),</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;batch&quot;</span><span class="p">,</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">distillation_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -958,6 +991,7 @@
 <span class="sd">        hyperparams: Dictionary of hyperparameters for loss functions</span>
 <span class="sd">        resume_checkpoint: Optional path to checkpoint to resume training from</span>
 <span class="sd">        output_dir: Directory to save output</span>
+<span class="sd">        final_model_dir: Directory to save final model</span>
 <span class="sd">        log_level: Whether to log at batch or epoch level</span>
 <span class="sd">        debug: Whether to print debug information</span>
 <span class="sd">        distillation_config: Configuration dictionary for distillation</span>
@@ -967,7 +1001,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">distillation_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;distillation_config is required&quot;</span><span class="p">)</span>
-
+        
     <span class="c1"># Ensure distillation dataset directories exist</span>
     <span class="n">distillation_base_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">distillation_config</span><span class="p">[</span><span class="s2">&quot;distillation_dataset&quot;</span><span class="p">])</span>
     <span class="n">distillation_dataset_dir</span> <span class="o">=</span> <span class="n">distillation_base_dir</span> <span class="o">/</span> <span class="s2">&quot;distillation_dataset&quot;</span>
@@ -1051,9 +1085,10 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting training and distillation from scratch&quot;</span><span class="p">)</span>
     
     <span class="c1"># Run training loop</span>
-    <span class="n">train_loop</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">train_loop</span><span class="p">(</span>
         <span class="n">num_epochs</span><span class="o">=</span><span class="n">EPOCHS</span><span class="p">,</span>
         <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
+        <span class="n">student_yolo</span><span class="o">=</span><span class="n">student_yolo</span><span class="p">,</span>  <span class="c1"># Pass the YOLO model instance</span>
         <span class="n">teacher_model</span><span class="o">=</span><span class="n">teacher_model</span><span class="p">,</span>
         <span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span>
         <span class="n">detection_trainer</span><span class="o">=</span><span class="n">detection_trainer</span><span class="p">,</span>
@@ -1068,6 +1103,7 @@
         <span class="n">start_epoch</span><span class="o">=</span><span class="n">start_epoch</span><span class="p">,</span>
         <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
         <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
+        <span class="n">final_model_dir</span><span class="o">=</span><span class="n">final_model_dir</span><span class="p">,</span>
         <span class="n">debug</span><span class="o">=</span><span class="n">debug</span>
     <span class="p">)</span></div>
 
@@ -1094,7 +1130,8 @@
         <span class="n">save_checkpoint_every</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
         <span class="n">hyperparams</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">,</span>
         <span class="n">resume_checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">SCRIPT_DIR</span><span class="p">,</span> <span class="s2">&quot;distillation_out&quot;</span><span class="p">),</span>
+        <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled&quot;</span><span class="p">),</span>
+        <span class="n">final_model_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled/latest&quot;</span><span class="p">),</span>
         <span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span>
         <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">distillation_config</span><span class="o">=</span><span class="n">distillation_config</span>
