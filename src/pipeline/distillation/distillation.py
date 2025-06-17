@@ -804,6 +804,7 @@ def train_loop(
     # Track best model state and fitness
     best_fitness = -float('inf')
     best_model_state = None
+    student_model_copy = None
     
     try:
         for epoch in tqdm(range(1, num_epochs + 1), desc="Epochs", position=0):
@@ -861,8 +862,13 @@ def train_loop(
                     }
                 )
 
-            validation_results = detection_validator(model=student_model)
-            current_fitness = validation_results["fitness"]
+            # This is a hack to get around the fact that the student model is in eval mode
+            # after the validation step, and it will not be able to train again in the next epoch
+            # so we create a deep copy of the student model for validation
+            with torch.no_grad():
+                student_model_copy = copy.deepcopy(student_model)
+                validation_results = detection_validator(model=student_model_copy)
+                current_fitness = validation_results["fitness"]
             
             # Update best model if current fitness is better
             if current_fitness > best_fitness:
