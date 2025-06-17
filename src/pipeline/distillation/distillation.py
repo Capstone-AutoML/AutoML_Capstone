@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any, Literal
+import copy
+import shutil
 # Set environment variable for MPS fallback
 os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
 
@@ -29,13 +31,14 @@ from ultralytics import YOLO
 from ultralytics.utils import YAML
 from ultralytics.models.yolo.model import DetectionModel
 from ultralytics.cfg import get_cfg
-from ultralytics.utils.loss import v8DetectionLoss
+from ultralytics.utils.loss import v8DetectionLoss, BboxLoss
 from ultralytics.data.build import build_yolo_dataset, build_dataloader, YOLODataset
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from ultralytics.models.yolo.detect.val import DetectionValidator
+from ultralytics.utils.metrics import bbox_iou
 from ultralytics.utils.tal import make_anchors
 from ultralytics.utils.ops import non_max_suppression
-from ultralytics.utils.torch_utils import one_cycle
+from ultralytics.utils.torch_utils import one_cycle, EarlyStopping, ModelEMA
 
 # Custom modules
 from utils import load_config, detect_device, create_distill_yaml
@@ -179,120 +182,218 @@ def head_features_decoder(
     
     return pred_concatted
 
+# def compute_distillation_loss(
+#     student_preds: torch.Tensor, 
+#     teacher_preds: torch.Tensor, 
+#     args: Dict[str, Any], 
+#     nc: int = 80, 
+#     device: str = "cpu", 
+#     eps: float = 1e-7,
+#     reduction: Literal["batchmean", "sum"] = "batchmean",
+#     hyperparams: Dict[str, float] = {
+#         "lambda_dist_ciou": 1.0,
+#         "lambda_dist_kl": 2.0
+#     }
+# ) -> torch.Tensor:
+#     """
+#     Compute the distillation loss between the student and teacher predictions.
+    
+#     Args:
+#         student_preds: The student predictions
+#         teacher_preds: The teacher predictions
+#         args: Configuration arguments
+#         nc: Number of classes
+#         device: Device to perform computations on
+#         eps: Small epsilon value for numerical stability
+#         reduction: Reduction method for the loss ("batchmean" or "sum")
+#         hyperparams: Dictionary of hyperparameters for loss functions
+        
+#     Returns:
+#         Total distillation loss
+#     """
+#     if not isinstance(student_preds, torch.Tensor) or not isinstance(teacher_preds, torch.Tensor):
+#         raise ValueError("student_preds and teacher_preds must be tensors")
+
+#     batch_size = student_preds.shape[0]
+#     dtype = teacher_preds.dtype
+#     kldivloss = nn.KLDivLoss(reduction=reduction, log_target=True)
+#     # eps = torch.finfo().eps
+#     eps = 1e-7
+
+#     # Split the concatenated bounding boxes and class scores
+#     s_bbox, s_cls_logits = torch.split(student_preds, (4, nc), dim=1)
+#     s_cls_sigmoid = torch.sigmoid(s_cls_logits)
+#     assert torch.all(s_cls_sigmoid >= 0) and torch.all(s_cls_sigmoid <= 1), "s_cls_sigmoid should be sigmoid, not logits"
+#     teacher_preds_full = teacher_preds.clone()
+#     assert torch.all(teacher_preds_full[:, 4:, :] >= 0) and torch.all(teacher_preds_full[:, 4:, :] <= 1), "teacher_preds_full should be sigmoid, not logits"
+#     student_preds_full = torch.cat((s_bbox, s_cls_sigmoid), dim=1)
+    
+#     common_nms_args = {
+#         "conf_thres": args.get("conf", 0.25) if args.get("conf") else 0.25,
+#         "iou_thres": args.get("iou", 0.7) if args.get("iou") else 0.7,
+#         "classes": args.get("classes", None),
+#         "agnostic": args.get("agnostic_nms", False) if args.get("agnostic_nms") else False,
+#         "max_det": args.get("max_det", 300) if args else 300,
+#         "nc": 0,
+#         "return_idxs": True,
+#         "max_time_img": 1
+#     }
+
+#     _, teacher_preds_final_idxs = non_max_suppression(
+#         prediction=teacher_preds_full,
+#         **common_nms_args,
+#     )
+    
+#     selected_student_raw_predictions_list = []
+#     selected_teacher_raw_predictions_list = []
+
+#     for i in range(batch_size):
+#         student_preds_for_image_i = student_preds_full[i, ...].transpose(0, 1)
+#         teacher_preds_for_image_i = teacher_preds_full[i, ...].transpose(0, 1)
+#         indices_to_select = teacher_preds_final_idxs[i]
+        
+#         if indices_to_select.numel() > 0:
+#             selected_student_preds = student_preds_for_image_i[indices_to_select]
+#             selected_teacher_preds = teacher_preds_for_image_i[indices_to_select]
+            
+#             selected_student_raw_predictions_list.append(selected_student_preds)
+#             selected_teacher_raw_predictions_list.append(selected_teacher_preds)
+
+#     # get the actual batch size (batches with results)
+#     actual_batch_size = len(selected_student_raw_predictions_list)
+#     batch_box_regression_loss = torch.zeros(actual_batch_size, dtype=dtype)
+#     batch_cls_loss = torch.zeros(actual_batch_size, dtype=dtype)
+    
+#     for i in range(actual_batch_size):
+            
+#         tp, sp = selected_teacher_raw_predictions_list[i], selected_student_raw_predictions_list[i]
+#         s_bboxes, s_cls_sigmoid = torch.split(sp, (4, nc), dim=1)
+#         t_bboxes, t_cls_sigmoid = torch.split(tp, (4, nc), dim=1)
+
+#         assert torch.all(s_bboxes[..., 0] <= s_bboxes[..., 2]), "x1 coordinate should be less than x2 coordinate"
+#         assert torch.all(t_bboxes[..., 0] <= t_bboxes[..., 2]), "x1 coordinate should be less than x2 coordinate"
+#         assert torch.all(s_bboxes[..., 1] <= s_bboxes[..., 3]), "y1 coordinate should be less than y2 coordinate"
+#         assert torch.all(t_bboxes[..., 1] <= t_bboxes[..., 3]), "y1 coordinate should be less than y2 coordinate"
+
+#         ciou_loss = complete_box_iou_loss(s_bboxes, t_bboxes, reduction="mean")
+        
+#         s_cls_logit = torch.logit(s_cls_sigmoid, eps=eps)
+#         s_cls_log_softmax = F.log_softmax(s_cls_logit / hyperparams["temperature"], dim=1)
+#         t_cls_logit = torch.logit(t_cls_sigmoid, eps=eps)
+#         t_cls_log_softmax = F.log_softmax(t_cls_logit / hyperparams["temperature"], dim=1)
+#         kl_div_loss = (
+#             kldivloss(s_cls_log_softmax, t_cls_log_softmax) * 
+#             (hyperparams["temperature"]**2)
+#         )
+        
+#         batch_box_regression_loss[i] = ciou_loss
+#         batch_cls_loss[i] = kl_div_loss
+    
+#     if reduction == "batchmean":
+#         total_loss = (
+#             hyperparams["lambda_dist_ciou"] * batch_box_regression_loss.mean() + 
+#             hyperparams["lambda_dist_kl"] * batch_cls_loss.mean()
+#         )
+#     else:
+#         total_loss = (
+#             hyperparams["lambda_dist_ciou"] * batch_box_regression_loss.sum() + 
+#             hyperparams["lambda_dist_kl"] * batch_cls_loss.sum()
+#         )
+
+#     return total_loss
+
+
 def compute_distillation_loss(
-    student_preds: torch.Tensor, 
-    teacher_preds: torch.Tensor, 
-    args: Dict[str, Any], 
-    nc: int = 80, 
-    device: str = "cpu", 
+    student_preds: torch.Tensor,
+    teacher_preds: torch.Tensor,
+    args: Dict[str, Any],
+    nc: int = 80,
+    device: str = "cpu",
     eps: float = 1e-7,
     reduction: Literal["batchmean", "sum"] = "batchmean",
     hyperparams: Dict[str, float] = {
         "lambda_dist_ciou": 1.0,
-        "lambda_dist_kl": 2.0
+        "lambda_dist_kl": 1.0,
+        "temperature": 2.0
     }
 ) -> torch.Tensor:
-    """
-    Compute the distillation loss between the student and teacher predictions.
-    
-    Args:
-        student_preds: The student predictions
-        teacher_preds: The teacher predictions
-        args: Configuration arguments
-        nc: Number of classes
-        device: Device to perform computations on
-        eps: Small epsilon value for numerical stability
-        reduction: Reduction method for the loss ("batchmean" or "sum")
-        hyperparams: Dictionary of hyperparameters for loss functions
-        
-    Returns:
-        Total distillation loss
-    """
     if not isinstance(student_preds, torch.Tensor) or not isinstance(teacher_preds, torch.Tensor):
         raise ValueError("student_preds and teacher_preds must be tensors")
 
-    batch_size = student_preds.shape[0]
-    dtype = teacher_preds.dtype
-    kldivloss = nn.KLDivLoss(reduction=reduction, log_target=True)
-    # eps = torch.finfo().eps
-    eps = 1e-7
+    batch_size, _, num_proposals = student_preds.shape
+    k = args.get("max_det", 300)
+    k = min(k, num_proposals)
+    temp = hyperparams.get("temperature", 2.0)
 
-    # Split the concatenated bounding boxes and class scores
     s_bbox, s_cls_logits = torch.split(student_preds, (4, nc), dim=1)
     s_cls_sigmoid = torch.sigmoid(s_cls_logits)
-    assert torch.all(s_cls_sigmoid >= 0) and torch.all(s_cls_sigmoid <= 1), "s_cls_sigmoid should be sigmoid, not logits"
-    teacher_preds_full = teacher_preds.clone()
-    assert torch.all(teacher_preds_full[:, 4:, :] >= 0) and torch.all(teacher_preds_full[:, 4:, :] <= 1), "teacher_preds_full should be sigmoid, not logits"
     student_preds_full = torch.cat((s_bbox, s_cls_sigmoid), dim=1)
-    
-    common_nms_args = {
-        "conf_thres": args.get("conf", 0.25) if args.get("conf") else 0.25,
-        "iou_thres": args.get("iou", 0.7) if args.get("iou") else 0.7,
-        "classes": args.get("classes", None),
-        "agnostic": args.get("agnostic_nms", False) if args.get("agnostic_nms") else False,
-        "max_det": args.get("max_det", 300) if args else 300,
-        "nc": 0,
-        "return_idxs": True,
-        "max_time_img": 1
-    }
+    assert torch.all(s_cls_sigmoid >= 0) and torch.all(s_cls_sigmoid <= 1), "s_cls_sigmoid should be sigmoid, not logits"
+    assert torch.all(teacher_preds[:, 4:, :] >= 0) and torch.all(teacher_preds[:, 4:, :] <= 1), "teacher_preds should be sigmoid, not logits"
 
-    _, teacher_preds_final_idxs = non_max_suppression(
-        prediction=teacher_preds_full,
-        **common_nms_args,
-    )
-    
-    selected_student_raw_predictions_list = []
-    selected_teacher_raw_predictions_list = []
+    t_bbox, t_cls = torch.split(teacher_preds, (4, nc), dim=1)
+    teacher_conf, _ = t_cls.max(dim=1) # (b, 8400)
+    _, topk_indices = torch.topk(teacher_conf, k, dim=1) # (b, k)
 
-    for i in range(batch_size):
-        student_preds_for_image_i = student_preds_full[i, ...].transpose(0, 1)
-        teacher_preds_for_image_i = teacher_preds_full[i, ...].transpose(0, 1)
-        indices_to_select = teacher_preds_final_idxs[i]
-        
-        if indices_to_select.numel() > 0:
-            selected_student_preds = student_preds_for_image_i[indices_to_select]
-            selected_teacher_preds = teacher_preds_for_image_i[indices_to_select]
-            
-            selected_student_raw_predictions_list.append(selected_student_preds)
-            selected_teacher_raw_predictions_list.append(selected_teacher_preds)
-
-    # get the actual batch size (batches with results)
-    actual_batch_size = len(selected_student_raw_predictions_list)
-    batch_box_regression_loss = torch.zeros(actual_batch_size, dtype=dtype)
-    batch_cls_loss = torch.zeros(actual_batch_size, dtype=dtype)
+    indices_to_gather = topk_indices.unsqueeze(1).expand(-1, 4 + nc, -1) # (batch_size, 4 + nc, k)
+    s_preds_topk = torch.gather(student_preds_full, 2, indices_to_gather) # (batch_size, 4 + nc, k)
+    t_preds_topk = torch.gather(teacher_preds, 2, indices_to_gather) # (batch_size, 4 + nc, k
     
-    for i in range(actual_batch_size):
-            
-        tp, sp = selected_teacher_raw_predictions_list[i], selected_student_raw_predictions_list[i]
-        s_bboxes, s_cls_sigmoid = torch.split(sp, (4, nc), dim=1)
-        t_bboxes, t_cls_sigmoid = torch.split(tp, (4, nc), dim=1)
+    s_preds = s_preds_topk.permute(0, 2, 1) # (batch_size, k, 4 + nc)
+    t_preds = t_preds_topk.permute(0, 2, 1) # (batch_size, k, 4 + nc)
 
-        ciou_loss = complete_box_iou_loss(s_bboxes, t_bboxes, reduction="mean")
-        
-        s_cls_logit = torch.logit(s_cls_sigmoid, eps=eps)
-        s_cls_log_softmax = F.log_softmax(s_cls_logit / hyperparams["temperature"], dim=1)
-        t_cls_logit = torch.logit(t_cls_sigmoid, eps=eps)
-        t_cls_log_softmax = F.log_softmax(t_cls_logit / hyperparams["temperature"], dim=1)
-        kl_div_loss = (
-            kldivloss(s_cls_log_softmax, t_cls_log_softmax) * 
-            (hyperparams["temperature"]**2)
-        )
-        
-        batch_box_regression_loss[i] = ciou_loss
-        batch_cls_loss[i] = kl_div_loss
+    s_bbox, s_cls = torch.split(s_preds, (4, nc), dim=2) # (batch_size, k, 4), (batch_size, k, nc)
+    t_bbox, t_cls = torch.split(t_preds, (4, nc), dim=2) # (batch_size, k, 4), (batch_size, k, nc)
+
+    # ensure the bounding boxes are valid
+    s_bbox = torch.stack([
+        torch.min(s_bbox[..., 0], s_bbox[..., 2]),
+        torch.min(s_bbox[..., 1], s_bbox[..., 3]),
+        torch.max(s_bbox[..., 0], s_bbox[..., 2]),
+        torch.max(s_bbox[..., 1], s_bbox[..., 3]),
+    ], dim=-1)
+
+    t_bbox = torch.stack([
+        torch.min(t_bbox[..., 0], t_bbox[..., 2]),
+        torch.min(t_bbox[..., 1], t_bbox[..., 3]),
+        torch.max(t_bbox[..., 0], t_bbox[..., 2]),
+        torch.max(t_bbox[..., 1], t_bbox[..., 3]),
+    ], dim=-1)
     
+    assert torch.all(s_bbox[..., 0] <= s_bbox[..., 2]), "x1 coordinate should be less than x2 coordinate"
+    assert torch.all(t_bbox[..., 0] <= t_bbox[..., 2]), "x1 coordinate should be less than x2 coordinate"
+    assert torch.all(s_bbox[..., 1] <= s_bbox[..., 3]), "y1 coordinate should be less than y2 coordinate"
+    assert torch.all(t_bbox[..., 1] <= t_bbox[..., 3]), "y1 coordinate should be less than y2 coordinate"
+
     if reduction == "batchmean":
-        total_loss = (
-            hyperparams["lambda_dist_ciou"] * batch_box_regression_loss.mean() + 
-            hyperparams["lambda_dist_kl"] * batch_cls_loss.mean()
-        )
+        loss_ciou = complete_box_iou_loss(s_bbox, t_bbox, reduction="mean")
     else:
-        total_loss = (
-            hyperparams["lambda_dist_ciou"] * batch_box_regression_loss.sum() + 
-            hyperparams["lambda_dist_kl"] * batch_cls_loss.sum()
-        )
+        loss_ciou = complete_box_iou_loss(s_bbox, t_bbox, reduction=reduction)
+        
+    s_cls_logit = torch.logit(s_cls, eps=eps)
+    t_cls_logit = torch.logit(t_cls, eps=eps)
+    s_log_softmax = F.log_softmax(s_cls_logit / temp, dim=1)
+    t_log_softmax = F.log_softmax(t_cls_logit / temp, dim=1)
 
+    kldiv_loss_fn = nn.KLDivLoss(reduction=reduction, log_target=True)
+    loss_kldiv = kldiv_loss_fn(s_log_softmax, t_log_softmax) * (temp**2)
+
+    if reduction == "batchmean":
+        ciou_term = loss_ciou.mean()
+        kl_term = loss_kldiv.mean()
+        print(ciou_term, kl_term)
+    elif reduction == "sum":
+        ciou_term = loss_ciou.sum()
+        kl_term = loss_kldiv.sum()
+    else:
+        raise ValueError(f"Invalid reduction type: {reduction}")
+
+    total_loss = (
+        hyperparams["lambda_dist_ciou"] * ciou_term +
+        hyperparams["lambda_dist_kl"] * kl_term
+    )
     return total_loss
+
 
 def calculate_gradient_norm(model: nn.Module) -> float:
     """
@@ -403,130 +504,135 @@ def train_epoch(
             
         optimizer.zero_grad()
         
-        try:
-            preprocessed_batch = detection_trainer.preprocess_batch(batch)
-            inputs = preprocessed_batch["img"].to(device)
-            targets = preprocessed_batch["cls"].to(device)
-            
-            # Additional validation after preprocessing
-            if torch.isnan(inputs).any() or torch.isinf(inputs).any():
-                print(f"NaN/Inf detected in preprocessed images at batch {batch_idx}")
-                continue
-                
-            if torch.isnan(targets).any() or torch.isinf(targets).any():
-                print(f"NaN/Inf detected in preprocessed targets at batch {batch_idx}")
-                continue
-            
-            student_head_feats = student_model(inputs)
-            detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
-            bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
-
-            with torch.no_grad():
-                teacher_inputs = batch["img"].to(device)
-                teacher_preds, _ = teacher_model(teacher_inputs)
-            
-            student_preds = head_features_decoder(
-                head_feats=student_head_feats, 
-                nc=nc, 
-                detection_criterion=detection_criterion, 
-                device=device
-            ).to(device)
-            
-            distillation_loss = compute_distillation_loss(
-                student_preds, 
-                teacher_preds,
-                config_dict, 
-                nc=nc, 
-                device=device,
-                reduction="batchmean",
-                hyperparams=hyperparams
-            ).to(device)
-            
-            # Calculate total loss with proper scaling and type conversion
-            detection_loss = detection_losses.sum()
-            bbox_loss = bbox_loss.to(device)
-            cls_loss = cls_loss.to(device)
-            dfl_loss = dfl_loss.to(device)
-            
-            # Debug print individual losses
-            if debug:
-                print(f"\nBatch {batch_idx} Loss Components:")
-                print(f"Detection Loss: {detection_loss.item():.4f}")
-                print(f"Bbox Loss: {bbox_loss.item():.4f}")
-                print(f"Cls Loss: {cls_loss.item():.4f}")
-                print(f"DFL Loss: {dfl_loss.item():.4f}")
-                print(f"Distillation Loss: {distillation_loss.item():.4f}")
-                
-            # Calculate weighted components
-            weighted_detection = hyperparams["lambda_detection"] * detection_loss
-            weighted_dist = hyperparams["lambda_distillation"] * distillation_loss
-            
-            # Debug print weighted components
-            if debug:
-                print(f"\nWeighted Components:")
-                print(f"Weighted Detection: {weighted_detection.item():.4f}")
-                print(f"Weighted Dist: {weighted_dist.item():.4f}")
-            
-            # Calculate total loss
-            total_loss = weighted_detection + weighted_dist
-            
-            if debug:
-                print(f"Total Loss: {total_loss.item():.4f}")
-            
-            # Final NaN check before backward pass
-            if torch.isnan(total_loss).any() or torch.isinf(total_loss).any():
-                print(f"NaN detected in total loss at batch {batch_idx}")
-                print(f"Component losses: bbox={bbox_loss}, cls={cls_loss}, dfl={dfl_loss}, dist={distillation_loss}")
-                continue
-                
-            total_loss.backward()
-            
-            # Calculate gradient norm before clipping
-            grad_norm_before = calculate_gradient_norm(student_model)
-            
-            # Clip gradients to prevent exploding gradients
-            clip_grad_norm_(student_model.parameters(), max_norm=10.0)
-            
-            # Calculate gradient norm after clipping
-            grad_norm_after = calculate_gradient_norm(student_model)
-            
-            optimizer.step()
-            
-            # Store losses and gradient norms
-            batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss.cpu().detach().numpy())
-            batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss.cpu().detach().numpy())
-            batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss.cpu().detach().numpy())
-            batch_loss_dict["distillation_loss"] = np.append(
-                batch_loss_dict["distillation_loss"], 
-                distillation_loss.cpu().detach().numpy()
-            )
-            batch_loss_dict["total_loss"] = np.append(batch_loss_dict["total_loss"], total_loss.cpu().detach().numpy())
-            batch_loss_dict["grad_norm_before"] = np.append(batch_loss_dict["grad_norm_before"], grad_norm_before)
-            batch_loss_dict["grad_norm_after"] = np.append(batch_loss_dict["grad_norm_after"], grad_norm_after)
-            
-            # Log metrics if log_file is provided and log_level is batch
-            if log_file is not None and log_level == "batch":
-                current_losses = {
-                    'total_loss': float(total_loss.cpu().detach().numpy()),
-                    'bbox_loss': float(bbox_loss.cpu().detach().numpy()),
-                    'cls_loss': float(cls_loss.cpu().detach().numpy()),
-                    'dfl_loss': float(dfl_loss.cpu().detach().numpy()),
-                    'dist_loss': float(distillation_loss.cpu().detach().numpy())
-                }
-                log_training_metrics(
-                    log_file=log_file,
-                    epoch=epoch,
-                    batch_idx=batch_idx,
-                    losses=current_losses,
-                    grad_norm_before=grad_norm_before,
-                    grad_norm_after=grad_norm_after,
-                    is_new_file=(epoch == 1 and batch_idx == 0),
-                    log_level=log_level
-                )
-            
-        except Exception as e:
-            print(f"Error processing batch {batch_idx}: {str(e)}")
+        # try:
+        preprocessed_batch = detection_trainer.preprocess_batch(batch)
+        inputs = preprocessed_batch["img"].to(device)
+        targets = preprocessed_batch["cls"].to(device)
+        
+        # Additional validation after preprocessing
+        if torch.isnan(inputs).any() or torch.isinf(inputs).any():
+            print(f"NaN/Inf detected in preprocessed images at batch {batch_idx}")
             continue
+            
+        if torch.isnan(targets).any() or torch.isinf(targets).any():
+            print(f"NaN/Inf detected in preprocessed targets at batch {batch_idx}")
+            continue
+        
+        student_head_feats = student_model(inputs)
+        detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
+        bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
+
+        with torch.no_grad():
+            teacher_inputs = batch["img"].to(device)
+            teacher_preds, _ = teacher_model(teacher_inputs)
+            teacher_preds = teacher_preds.to(device)
+        
+        student_preds = head_features_decoder(
+            head_feats=student_head_feats, 
+            nc=nc, 
+            detection_criterion=detection_criterion, 
+            device=device
+        ).to(device)
+        
+        distillation_loss = compute_distillation_loss(
+            student_preds, 
+            teacher_preds,
+            config_dict, 
+            nc=nc, 
+            device=device,
+            reduction="batchmean",
+            hyperparams=hyperparams
+        ).to(device)
+        
+        # Calculate total loss with proper scaling and type conversion
+        detection_loss = detection_losses.sum()
+        bbox_loss = bbox_loss.to(device)
+        cls_loss = cls_loss.to(device)
+        dfl_loss = dfl_loss.to(device)
+        
+        # Debug print individual losses
+        if debug:
+            print(f"\nBatch {batch_idx} Loss Components:")
+            print(f"Detection Loss: {detection_loss.item():.4f}")
+            print(f"Bbox Loss: {bbox_loss.item():.4f}")
+            print(f"Cls Loss: {cls_loss.item():.4f}")
+            print(f"DFL Loss: {dfl_loss.item():.4f}")
+            print(f"Distillation Loss: {distillation_loss.item():.4f}")
+            
+        # Calculate weighted components
+        weighted_detection = hyperparams["lambda_detection"] * detection_loss
+        weighted_dist = hyperparams["lambda_distillation"] * distillation_loss
+        
+        # Debug print weighted components
+        if debug:
+            print(f"\nWeighted Components:")
+            print(f"Weighted Detection: {weighted_detection.item():.4f}")
+            print(f"Weighted Dist: {weighted_dist.item():.4f}")
+        
+        # Calculate total loss
+        total_loss = weighted_detection + weighted_dist
+        
+        if debug:
+            print(f"Total Loss: {total_loss.item():.4f}")
+        
+        # Final NaN check before backward pass
+        if torch.isnan(total_loss).any() or torch.isinf(total_loss).any():
+            print(f"NaN detected in total loss at batch {batch_idx}")
+            print(f"Component losses: bbox={bbox_loss}, cls={cls_loss}, dfl={dfl_loss}, dist={distillation_loss}")
+            continue
+        
+        total_loss.backward()
+        
+        # Calculate gradient norm before clipping
+        grad_norm_before = None
+        # grad_norm_before = calculate_gradient_norm(student_model)
+                
+        # Clip gradients to prevent exploding gradients
+        clip_grad_norm_(student_model.parameters(), max_norm=10.0)
+        
+        # Calculate gradient norm after clipping
+        grad_norm_after = None
+        # grad_norm_after = calculate_gradient_norm(student_model)
+        
+        optimizer.step()
+        
+        # Store losses and gradient norms
+        batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss.cpu().detach().numpy())
+        batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss.cpu().detach().numpy())
+        batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss.cpu().detach().numpy())
+        batch_loss_dict["distillation_loss"] = np.append(
+            batch_loss_dict["distillation_loss"], 
+            distillation_loss.cpu().detach().numpy()
+        )
+        batch_loss_dict["total_loss"] = np.append(batch_loss_dict["total_loss"], total_loss.cpu().detach().numpy())
+        if grad_norm_before is not None:
+            batch_loss_dict["grad_norm_before"] = np.append(batch_loss_dict["grad_norm_before"], grad_norm_before)
+        if grad_norm_after is not None:
+            batch_loss_dict["grad_norm_after"] = np.append(batch_loss_dict["grad_norm_after"], grad_norm_after)
+        
+        # Log metrics if log_file is provided and log_level is batch
+        if log_file is not None and log_level == "batch":
+            current_losses = {
+                'total_loss': float(total_loss.cpu().detach().numpy()),
+                'bbox_loss': float(bbox_loss.cpu().detach().numpy()),
+                'cls_loss': float(cls_loss.cpu().detach().numpy()),
+                'dfl_loss': float(dfl_loss.cpu().detach().numpy()),
+                'dist_loss': float(distillation_loss.cpu().detach().numpy())
+            }
+            log_training_metrics(
+                log_file=log_file,
+                epoch=epoch,
+                batch_idx=batch_idx,
+                losses=current_losses,
+                grad_norm_before=grad_norm_before,
+                grad_norm_after=grad_norm_after,
+                is_new_file=(epoch == 1 and batch_idx == 0),
+                log_level=log_level
+            )
+                
+        # except Exception as e:
+        #     print(f"Error processing batch {batch_idx}: {str(e)}")
+        #     continue
     
     # Log epoch-level metrics if log_level is epoch
     if log_file is not None and log_level == "epoch":
@@ -640,7 +746,9 @@ def train_loop(
     teacher_model: nn.Module,
     train_dataloader: DataLoader,
     detection_trainer: DetectionTrainer,
+    detection_validator: DetectionValidator,
     optimizer: optim.Optimizer,
+    stopper: EarlyStopping,
     learning_rate_scheduler: LambdaLR,
     detection_criterion: v8DetectionLoss,
     config_dict: Dict[str, Any],
@@ -693,6 +801,10 @@ def train_loop(
         'dfl_loss': [],
         'dist_loss': []
     }
+    
+    # Track best model state and fitness
+    best_fitness = -float('inf')
+    best_model_state = None
     
     try:
         for epoch in tqdm(range(1, num_epochs + 1), desc="Epochs", position=0):
@@ -749,9 +861,28 @@ def train_loop(
                         'dfl_loss': batch_loss_dfl
                     }
                 )
+
+            validation_results = detection_validator(model=student_model)
+            current_fitness = validation_results["fitness"]
+            
+            # Update best model if current fitness is better
+            if current_fitness > best_fitness:
+                best_fitness = current_fitness
+                best_model_state = copy.deepcopy(student_model.state_dict())
+                print(f"New best model found with fitness: {best_fitness:.4f}")
+            
+            if stopper(epoch=epoch, fitness=current_fitness):
+                print(f"Early stopping triggered at epoch {epoch}")
+                print(f"Restoring best model with fitness: {best_fitness:.4f}")
+                # Restore best model state
+                student_model.load_state_dict(best_model_state)
+                # Save the best model
+                save_final_model(student_yolo, final_model_dir)
+                break
         
-        # Save final model after training completes
-        save_final_model(student_yolo, final_model_dir)
+        # If training completes without early stopping, save final model
+        if not stopper.early_stop:
+            save_final_model(student_yolo, final_model_dir)
             
     except ValueError as e:
         print(str(e))
@@ -803,7 +934,8 @@ def load_checkpoint(
     checkpoint_path: Path,
     student_model: nn.Module,
     optimizer: optim.Optimizer,
-    learning_rate_scheduler: LambdaLR
+    learning_rate_scheduler: LambdaLR,
+    device: str = "cpu"
 ) -> int:
     """
     Load a checkpoint and restore model and optimizer state.
@@ -932,12 +1064,31 @@ def start_distillation(
         mode="train"
     )
     
+    valid_dataset, valid_dataloader = prepare_dataset(
+        img_path=img_dir / "valid", 
+        student_model=student_model, 
+        batch_size=BATCH_SIZE, 
+        mode="val"
+    )
+    
     # Setup training
     detection_trainer = DetectionTrainer(
         cfg=model_args, 
         overrides={"data": Path(distillation_config["distillation_dataset"]) / "distillation_data.yaml"}
     )
     
+    distillation_config_copy = copy.deepcopy(distillation_config)
+    # Remove keys that are not needed for validation (they will throw errors since YOLO validate these keys)
+    del distillation_config_copy["teacher_model"]
+    del distillation_config_copy["distillation_dataset"]
+    del distillation_config_copy["distillation_hyperparams"]
+    distillation_config_copy["mode"] = "val"
+    distillation_config_copy["data"] = Path(distillation_config["distillation_dataset"]) / "distillation_data.yaml"
+    model_args_validator = get_cfg(distillation_config_copy)
+    detection_validator = DetectionValidator(dataloader=valid_dataloader, args=model_args_validator)
+    
+    stopper = EarlyStopping(patience=model_args_validator.patience)
+
     optimizer, learning_rate_scheduler = build_optimizer_and_scheduler(
         model=student_model,
         detection_trainer=detection_trainer,
@@ -954,7 +1105,8 @@ def start_distillation(
             checkpoint_path=resume_checkpoint,
             student_model=student_model,
             optimizer=optimizer,
-            learning_rate_scheduler=learning_rate_scheduler
+            learning_rate_scheduler=learning_rate_scheduler,
+            device=device
         ) + 1  # Start from next epoch
         print(f"Resuming training and distillation from epoch {start_epoch}")
     else:
@@ -968,7 +1120,9 @@ def start_distillation(
         teacher_model=teacher_model,
         train_dataloader=train_dataloader,
         detection_trainer=detection_trainer,
+        detection_validator=detection_validator,
         optimizer=optimizer,
+        stopper=stopper,
         learning_rate_scheduler=learning_rate_scheduler,
         detection_criterion=detection_criterion,
         config_dict=model_args,
@@ -990,10 +1144,10 @@ if __name__ == "__main__":
     distillation_config = YAML.load(base_dir / "distillation_config.yaml")
     
     hyperparams = {
-        "lambda_distillation": 2.0,
-        "lambda_detection": 1.0,
+        "lambda_distillation": 1.0,
+        "lambda_detection": 2.0,
         "lambda_dist_ciou": 1.0,
-        "lambda_dist_kl": 2.0,
+        "lambda_dist_kl": 1.0,
         "temperature": 2.0
     }
     
@@ -1007,7 +1161,7 @@ if __name__ == "__main__":
         resume_checkpoint=None,
         output_dir=Path("mock_io/model_registry/distilled"),
         final_model_dir=Path("mock_io/model_registry/distilled/latest"),
-        log_level="batch",
+        log_level="epoch",
         debug=False,
         distillation_config=distillation_config
     )

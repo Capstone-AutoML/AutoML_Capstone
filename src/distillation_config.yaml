@@ -1,6 +1,12 @@
 ## DISTILLATION CONFIG
 teacher_model: "mock_io/model_registry/model/nano_trained_model.pt" # relative to main.py
 distillation_dataset: "mock_io/data/distillation" # relative to main.py
+distillation_hyperparams:
+  lambda_distillation: 1.0
+  lambda_detection: 2.0
+  lambda_dist_ciou: 1.0
+  lambda_dist_kl: 1.0
+  temperature: 2.0
 
 # Global configuration YAML with settings and hyperparameters for YOLO training, validation, prediction and export
 # For documentation see https://docs.ultralytics.com/usage/cfg/
@@ -90,8 +96,8 @@ workspace: # (float, optional) TensorRT: workspace size (GiB), `None` will let T
 nms: False # (bool) CoreML: add NMS
 
 # Hyperparameters ------------------------------------------------------------------------------------------------------
-lr0: 0.005 # (float) initial learning rate (i.e. SGD=1E-2, Adam=1E-3)
-lrf: 0.005 # (float) final learning rate (lr0 * lrf)
+lr0: 0.001 # (float) initial learning rate (i.e. SGD=1E-2, Adam=1E-3)
+lrf: 0.001 # (float) final learning rate (lr0 * lrf)
 momentum: 0.937 # (float) SGD momentum/Adam beta1
 weight_decay: 0.0005 # (float) optimizer weight decay 5e-4
 warmup_epochs: 3.0 # (float) warmup epochs (fractions ok)

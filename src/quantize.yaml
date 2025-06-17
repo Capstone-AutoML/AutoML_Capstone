@@ -1,0 +1,4 @@
+train: /Users/tien/Desktop/UBC/UBC-MDS/capstone/AutoML_Capstone/data/quantization/images/train
+val: /Users/tien/Desktop/UBC/UBC-MDS/capstone/AutoML_Capstone/data/quantization/images/val
+nc: 5
+names: [FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI]
