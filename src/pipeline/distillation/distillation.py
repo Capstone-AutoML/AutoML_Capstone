@@ -182,6 +182,8 @@ def head_features_decoder(
     
     return pred_concatted
 
+## This is the original distillation loss function, but it is not used in the current implementation
+## Distillation loss with NMS preprocessing
 # def compute_distillation_loss(
 #     student_preds: torch.Tensor, 
 #     teacher_preds: torch.Tensor, 
