@@ -27,6 +27,8 @@ execute:
 
 ## Data Science Methods
 {{< include _methods-overview.qmd >}}
+{{< include _labeling.qmd >}}
+{{< include _human-in-the-loop.qmd >}}
 {{< include _augmentation-strategy.qmd >}}
 {{< include _model-training.qmd >}}
 {{< include _distillation.qmd >}}
