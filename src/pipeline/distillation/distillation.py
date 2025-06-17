@@ -806,92 +806,88 @@ def train_loop(
     best_model_state = None
     student_model_copy = None
     
-    try:
-        for epoch in tqdm(range(1, num_epochs + 1), desc="Epochs", position=0):
-            # Train one epoch
-            batch_loss_dict = train_epoch(
-                student_model=student_model,
-                teacher_model=teacher_model,
-                train_dataloader=train_dataloader,
-                detection_trainer=detection_trainer,
-                optimizer=optimizer,
-                detection_criterion=detection_criterion,
-                config_dict=config_dict,
-                device=device,
-                hyperparams=hyperparams,
-                epoch=epoch,
-                log_file=log_file,
-                log_level=log_level,
-                debug=debug
-            )
-            
-            learning_rate_scheduler.step()
-            
-            # Calculate average losses
-            batch_loss_bbox = np.mean(batch_loss_dict["bbox_loss"]).round(4)
-            batch_loss_cls = np.mean(batch_loss_dict["cls_loss"]).round(4)
-            batch_loss_dfl = np.mean(batch_loss_dict["dfl_loss"]).round(4)
-            batch_loss_dist = np.mean(batch_loss_dict["distillation_loss"]).round(4)
-            batch_loss_total = batch_loss_bbox + batch_loss_cls + batch_loss_dfl + batch_loss_dist
-            
-            # Store losses
-            epoch_losses['total_loss'].append(batch_loss_total)
-            epoch_losses['bbox_loss'].append(batch_loss_bbox)
-            epoch_losses['cls_loss'].append(batch_loss_cls)
-            epoch_losses['dfl_loss'].append(batch_loss_dfl)
-            epoch_losses['dist_loss'].append(batch_loss_dist)
-            
-            print(
-                f"Epoch {epoch}: (Overall: {batch_loss_total}, bbox_loss: {batch_loss_bbox}, "
-                f"cls_loss: {batch_loss_cls}, dfl_loss: {batch_loss_dfl}, dist_loss: {batch_loss_dist})"
-            )
-            
-            # Save checkpoint
-            if save_checkpoint_every > 0 and epoch % save_checkpoint_every == 0:
-                save_checkpoint(
-                    checkpoint_dir=checkpoint_dir,
-                    epoch=epoch,
-                    student_model=student_model,
-                    optimizer=optimizer,
-                    learning_rate_scheduler=learning_rate_scheduler,
-                    losses={
-                        'total_loss': batch_loss_total,
-                        'bbox_loss': batch_loss_bbox,
-                        'cls_loss': batch_loss_cls,
-                        'dfl_loss': batch_loss_dfl
-                    }
-                )
-
-            # This is a hack to get around the fact that the student model is in eval mode
-            # after the validation step, and it will not be able to train again in the next epoch
-            # so we create a deep copy of the student model for validation
-            with torch.no_grad():
-                student_model_copy = copy.deepcopy(student_model)
-                validation_results = detection_validator(model=student_model_copy)
-                current_fitness = validation_results["fitness"]
-            
-            # Update best model if current fitness is better
-            if current_fitness > best_fitness:
-                best_fitness = current_fitness
-                best_model_state = copy.deepcopy(student_model.state_dict())
-                print(f"New best model found with fitness: {best_fitness:.4f}")
-            
-            if stopper(epoch=epoch, fitness=current_fitness):
-                print(f"Early stopping triggered at epoch {epoch}")
-                print(f"Restoring best model with fitness: {best_fitness:.4f}")
-                # Restore best model state
-                student_model.load_state_dict(best_model_state)
-                # Save the best model
-                save_final_model(student_yolo, final_model_dir)
-                break
+    
+    for epoch in tqdm(range(1, num_epochs + 1), desc="Epochs", position=0):
+        # Train one epoch
+        batch_loss_dict = train_epoch(
+            student_model=student_model,
+            teacher_model=teacher_model,
+            train_dataloader=train_dataloader,
+            detection_trainer=detection_trainer,
+            optimizer=optimizer,
+            detection_criterion=detection_criterion,
+            config_dict=config_dict,
+            device=device,
+            hyperparams=hyperparams,
+            epoch=epoch,
+            log_file=log_file,
+            log_level=log_level,
+            debug=debug
+        )
         
-        # If training completes without early stopping, save final model
-        if not stopper.early_stop:
+        learning_rate_scheduler.step()
+        
+        # Calculate average losses
+        batch_loss_bbox = np.mean(batch_loss_dict["bbox_loss"]).round(4)
+        batch_loss_cls = np.mean(batch_loss_dict["cls_loss"]).round(4)
+        batch_loss_dfl = np.mean(batch_loss_dict["dfl_loss"]).round(4)
+        batch_loss_dist = np.mean(batch_loss_dict["distillation_loss"]).round(4)
+        batch_loss_total = batch_loss_bbox + batch_loss_cls + batch_loss_dfl + batch_loss_dist
+        
+        # Store losses
+        epoch_losses['total_loss'].append(batch_loss_total)
+        epoch_losses['bbox_loss'].append(batch_loss_bbox)
+        epoch_losses['cls_loss'].append(batch_loss_cls)
+        epoch_losses['dfl_loss'].append(batch_loss_dfl)
+        epoch_losses['dist_loss'].append(batch_loss_dist)
+        
+        print(
+            f"Epoch {epoch}: (Overall: {batch_loss_total}, bbox_loss: {batch_loss_bbox}, "
+            f"cls_loss: {batch_loss_cls}, dfl_loss: {batch_loss_dfl}, dist_loss: {batch_loss_dist})"
+        )
+        
+        # Save checkpoint
+        if save_checkpoint_every > 0 and epoch % save_checkpoint_every == 0:
+            save_checkpoint(
+                checkpoint_dir=checkpoint_dir,
+                epoch=epoch,
+                student_model=student_model,
+                optimizer=optimizer,
+                learning_rate_scheduler=learning_rate_scheduler,
+                losses={
+                    'total_loss': batch_loss_total,
+                    'bbox_loss': batch_loss_bbox,
+                    'cls_loss': batch_loss_cls,
+                    'dfl_loss': batch_loss_dfl
+                }
+            )
+
+        # This is a hack to get around the fact that the student model is in eval mode
+        # after the validation step, and it will not be able to train again in the next epoch
+        # so we create a deep copy of the student model for validation
+        with torch.no_grad():
+            student_model_copy = copy.deepcopy(student_model)
+            validation_results = detection_validator(model=student_model_copy)
+            current_fitness = validation_results["fitness"]
+        
+        # Update best model if current fitness is better
+        if current_fitness > best_fitness:
+            best_fitness = current_fitness
+            best_model_state = copy.deepcopy(student_model.state_dict())
+            print(f"New best model found with fitness: {best_fitness:.4f}")
+        
+        if stopper(epoch=epoch, fitness=current_fitness):
+            print(f"Early stopping triggered at epoch {epoch}")
+            print(f"Restoring best model with fitness: {best_fitness:.4f}")
+            # Restore best model state
+            student_model.load_state_dict(best_model_state)
+            # Save the best model
             save_final_model(student_yolo, final_model_dir)
-            
-    except ValueError as e:
-        print(str(e))
-        print("Exit training, please check the training process again...")
+            break
+    
+    # If training completes without early stopping, save final model
+    if not stopper.early_stop:
+        save_final_model(student_yolo, final_model_dir)
     
     return epoch_losses
 
