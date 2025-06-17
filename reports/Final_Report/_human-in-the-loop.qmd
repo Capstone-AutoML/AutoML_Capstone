@@ -1,0 +1,24 @@
+### Human-in-the-loop (Outline)
+
+1. **Motivation**
+   - A high-performing model requires a high-quality labeled dataset
+   - We aim to enrich this dataset by correcting mismatches rather than discarding them
+   - To boost data quality with minimal human effort, we introduce a human-in-the-loop workflow that streamlines the correction of labeling errors and avoids manual JSON editing.
+
+2. **Input**
+   - JSON files with incorrect or uncertain predictions from YOLO
+   - Corresponding image files referenced in those predictions
+
+3. **Workflow Steps**
+   - Step 1: Place prediction files in `mock_io/data/mismatched/pending/`
+   - Step 2: Run the script to convert them into Label Studio tasks using images from `mock_io/data/raw/images/`
+   - Step 3: Review and fix labels visually in the intuitive Label Studio interface
+   - Step 4: Export the reviewed results to `mock_io/data/mismatched/reviewed_results/`
+   - Step 5: The script automatically updates the review status of each file for progress tracking
+
+4. **Output**
+   - Corrected label files (JSON), ready for training
+   - Results are versioned automatically for easy tracking
+
+5. **Impact**
+   - Enrich good-quality training dataset with minimal manual effort
