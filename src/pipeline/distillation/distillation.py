@@ -381,7 +381,6 @@ def compute_distillation_loss(
     if reduction == "batchmean":
         ciou_term = loss_ciou.mean()
         kl_term = loss_kldiv.mean()
-        print(ciou_term, kl_term)
     elif reduction == "sum":
         ciou_term = loss_ciou.sum()
         kl_term = loss_kldiv.sum()
@@ -504,135 +503,135 @@ def train_epoch(
             
         optimizer.zero_grad()
         
-        # try:
-        preprocessed_batch = detection_trainer.preprocess_batch(batch)
-        inputs = preprocessed_batch["img"].to(device)
-        targets = preprocessed_batch["cls"].to(device)
-        
-        # Additional validation after preprocessing
-        if torch.isnan(inputs).any() or torch.isinf(inputs).any():
-            print(f"NaN/Inf detected in preprocessed images at batch {batch_idx}")
-            continue
+        try:
+            preprocessed_batch = detection_trainer.preprocess_batch(batch)
+            inputs = preprocessed_batch["img"].to(device)
+            targets = preprocessed_batch["cls"].to(device)
             
-        if torch.isnan(targets).any() or torch.isinf(targets).any():
-            print(f"NaN/Inf detected in preprocessed targets at batch {batch_idx}")
-            continue
-        
-        student_head_feats = student_model(inputs)
-        detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
-        bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
+            # Additional validation after preprocessing
+            if torch.isnan(inputs).any() or torch.isinf(inputs).any():
+                print(f"NaN/Inf detected in preprocessed images at batch {batch_idx}")
+                continue
+                
+            if torch.isnan(targets).any() or torch.isinf(targets).any():
+                print(f"NaN/Inf detected in preprocessed targets at batch {batch_idx}")
+                continue
+            
+            student_head_feats = student_model(inputs)
+            detection_losses, detection_losses_detached = detection_criterion(preds=student_head_feats, batch=batch) 
+            bbox_loss, cls_loss, dfl_loss = detection_losses_detached.cpu()
 
-        with torch.no_grad():
-            teacher_inputs = batch["img"].to(device)
-            teacher_preds, _ = teacher_model(teacher_inputs)
-            teacher_preds = teacher_preds.to(device)
-        
-        student_preds = head_features_decoder(
-            head_feats=student_head_feats, 
-            nc=nc, 
-            detection_criterion=detection_criterion, 
-            device=device
-        ).to(device)
-        
-        distillation_loss = compute_distillation_loss(
-            student_preds, 
-            teacher_preds,
-            config_dict, 
-            nc=nc, 
-            device=device,
-            reduction="batchmean",
-            hyperparams=hyperparams
-        ).to(device)
-        
-        # Calculate total loss with proper scaling and type conversion
-        detection_loss = detection_losses.sum()
-        bbox_loss = bbox_loss.to(device)
-        cls_loss = cls_loss.to(device)
-        dfl_loss = dfl_loss.to(device)
-        
-        # Debug print individual losses
-        if debug:
-            print(f"\nBatch {batch_idx} Loss Components:")
-            print(f"Detection Loss: {detection_loss.item():.4f}")
-            print(f"Bbox Loss: {bbox_loss.item():.4f}")
-            print(f"Cls Loss: {cls_loss.item():.4f}")
-            print(f"DFL Loss: {dfl_loss.item():.4f}")
-            print(f"Distillation Loss: {distillation_loss.item():.4f}")
+            with torch.no_grad():
+                teacher_inputs = batch["img"].to(device)
+                teacher_preds, _ = teacher_model(teacher_inputs)
+                teacher_preds = teacher_preds.to(device)
             
-        # Calculate weighted components
-        weighted_detection = hyperparams["lambda_detection"] * detection_loss
-        weighted_dist = hyperparams["lambda_distillation"] * distillation_loss
-        
-        # Debug print weighted components
-        if debug:
-            print(f"\nWeighted Components:")
-            print(f"Weighted Detection: {weighted_detection.item():.4f}")
-            print(f"Weighted Dist: {weighted_dist.item():.4f}")
-        
-        # Calculate total loss
-        total_loss = weighted_detection + weighted_dist
-        
-        if debug:
-            print(f"Total Loss: {total_loss.item():.4f}")
-        
-        # Final NaN check before backward pass
-        if torch.isnan(total_loss).any() or torch.isinf(total_loss).any():
-            print(f"NaN detected in total loss at batch {batch_idx}")
-            print(f"Component losses: bbox={bbox_loss}, cls={cls_loss}, dfl={dfl_loss}, dist={distillation_loss}")
-            continue
-        
-        total_loss.backward()
-        
-        # Calculate gradient norm before clipping
-        grad_norm_before = None
-        # grad_norm_before = calculate_gradient_norm(student_model)
+            student_preds = head_features_decoder(
+                head_feats=student_head_feats, 
+                nc=nc, 
+                detection_criterion=detection_criterion, 
+                device=device
+            ).to(device)
+            
+            distillation_loss = compute_distillation_loss(
+                student_preds, 
+                teacher_preds,
+                config_dict, 
+                nc=nc, 
+                device=device,
+                reduction="batchmean",
+                hyperparams=hyperparams
+            ).to(device)
+            
+            # Calculate total loss with proper scaling and type conversion
+            detection_loss = detection_losses.sum()
+            bbox_loss = bbox_loss.to(device)
+            cls_loss = cls_loss.to(device)
+            dfl_loss = dfl_loss.to(device)
+            
+            # Debug print individual losses
+            if debug:
+                print(f"\nBatch {batch_idx} Loss Components:")
+                print(f"Detection Loss: {detection_loss.item():.4f}")
+                print(f"Bbox Loss: {bbox_loss.item():.4f}")
+                print(f"Cls Loss: {cls_loss.item():.4f}")
+                print(f"DFL Loss: {dfl_loss.item():.4f}")
+                print(f"Distillation Loss: {distillation_loss.item():.4f}")
                 
-        # Clip gradients to prevent exploding gradients
-        clip_grad_norm_(student_model.parameters(), max_norm=10.0)
-        
-        # Calculate gradient norm after clipping
-        grad_norm_after = None
-        # grad_norm_after = calculate_gradient_norm(student_model)
-        
-        optimizer.step()
-        
-        # Store losses and gradient norms
-        batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss.cpu().detach().numpy())
-        batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss.cpu().detach().numpy())
-        batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss.cpu().detach().numpy())
-        batch_loss_dict["distillation_loss"] = np.append(
-            batch_loss_dict["distillation_loss"], 
-            distillation_loss.cpu().detach().numpy()
-        )
-        batch_loss_dict["total_loss"] = np.append(batch_loss_dict["total_loss"], total_loss.cpu().detach().numpy())
-        if grad_norm_before is not None:
-            batch_loss_dict["grad_norm_before"] = np.append(batch_loss_dict["grad_norm_before"], grad_norm_before)
-        if grad_norm_after is not None:
-            batch_loss_dict["grad_norm_after"] = np.append(batch_loss_dict["grad_norm_after"], grad_norm_after)
-        
-        # Log metrics if log_file is provided and log_level is batch
-        if log_file is not None and log_level == "batch":
-            current_losses = {
-                'total_loss': float(total_loss.cpu().detach().numpy()),
-                'bbox_loss': float(bbox_loss.cpu().detach().numpy()),
-                'cls_loss': float(cls_loss.cpu().detach().numpy()),
-                'dfl_loss': float(dfl_loss.cpu().detach().numpy()),
-                'dist_loss': float(distillation_loss.cpu().detach().numpy())
-            }
-            log_training_metrics(
-                log_file=log_file,
-                epoch=epoch,
-                batch_idx=batch_idx,
-                losses=current_losses,
-                grad_norm_before=grad_norm_before,
-                grad_norm_after=grad_norm_after,
-                is_new_file=(epoch == 1 and batch_idx == 0),
-                log_level=log_level
+            # Calculate weighted components
+            weighted_detection = hyperparams["lambda_detection"] * detection_loss
+            weighted_dist = hyperparams["lambda_distillation"] * distillation_loss
+            
+            # Debug print weighted components
+            if debug:
+                print(f"\nWeighted Components:")
+                print(f"Weighted Detection: {weighted_detection.item():.4f}")
+                print(f"Weighted Dist: {weighted_dist.item():.4f}")
+            
+            # Calculate total loss
+            total_loss = weighted_detection + weighted_dist
+            
+            if debug:
+                print(f"Total Loss: {total_loss.item():.4f}")
+            
+            # Final NaN check before backward pass
+            if torch.isnan(total_loss).any() or torch.isinf(total_loss).any():
+                print(f"NaN detected in total loss at batch {batch_idx}")
+                print(f"Component losses: bbox={bbox_loss}, cls={cls_loss}, dfl={dfl_loss}, dist={distillation_loss}")
+                continue
+            
+            total_loss.backward()
+            
+            # Calculate gradient norm before clipping
+            grad_norm_before = None
+            # grad_norm_before = calculate_gradient_norm(student_model)
+                    
+            # Clip gradients to prevent exploding gradients
+            clip_grad_norm_(student_model.parameters(), max_norm=10.0)
+            
+            # Calculate gradient norm after clipping
+            grad_norm_after = None
+            # grad_norm_after = calculate_gradient_norm(student_model)
+            
+            optimizer.step()
+            
+            # Store losses and gradient norms
+            batch_loss_dict["bbox_loss"] = np.append(batch_loss_dict["bbox_loss"], bbox_loss.cpu().detach().numpy())
+            batch_loss_dict["cls_loss"] = np.append(batch_loss_dict["cls_loss"], cls_loss.cpu().detach().numpy())
+            batch_loss_dict["dfl_loss"] = np.append(batch_loss_dict["dfl_loss"], dfl_loss.cpu().detach().numpy())
+            batch_loss_dict["distillation_loss"] = np.append(
+                batch_loss_dict["distillation_loss"], 
+                distillation_loss.cpu().detach().numpy()
             )
+            batch_loss_dict["total_loss"] = np.append(batch_loss_dict["total_loss"], total_loss.cpu().detach().numpy())
+            if grad_norm_before is not None:
+                batch_loss_dict["grad_norm_before"] = np.append(batch_loss_dict["grad_norm_before"], grad_norm_before)
+            if grad_norm_after is not None:
+                batch_loss_dict["grad_norm_after"] = np.append(batch_loss_dict["grad_norm_after"], grad_norm_after)
+            
+            # Log metrics if log_file is provided and log_level is batch
+            if log_file is not None and log_level == "batch":
+                current_losses = {
+                    'total_loss': float(total_loss.cpu().detach().numpy()),
+                    'bbox_loss': float(bbox_loss.cpu().detach().numpy()),
+                    'cls_loss': float(cls_loss.cpu().detach().numpy()),
+                    'dfl_loss': float(dfl_loss.cpu().detach().numpy()),
+                    'dist_loss': float(distillation_loss.cpu().detach().numpy())
+                }
+                log_training_metrics(
+                    log_file=log_file,
+                    epoch=epoch,
+                    batch_idx=batch_idx,
+                    losses=current_losses,
+                    grad_norm_before=grad_norm_before,
+                    grad_norm_after=grad_norm_after,
+                    is_new_file=(epoch == 1 and batch_idx == 0),
+                    log_level=log_level
+                )
                 
-        # except Exception as e:
-        #     print(f"Error processing batch {batch_idx}: {str(e)}")
-        #     continue
+        except Exception as e:
+            print(f"Error processing batch {batch_idx}: {str(e)}")
+            continue
     
     # Log epoch-level metrics if log_level is epoch
     if log_file is not None and log_level == "epoch":
