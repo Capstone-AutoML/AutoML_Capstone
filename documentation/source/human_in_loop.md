@@ -30,10 +30,11 @@ conda activate human_review_env
 **Step 2**: Set up the Label Studio API key
 
 1. Start Label Studio: `label-studio start`.
-2. In the web UI, go to: **☰ Hamburger menu** → **Organization** → **API Token Settings**.
-3. If **Legacy Tokens** are not enabled, turn them on.
-4. Then navigate to: Top-right → **Account & Settings** → **Legacy Token**.
-5. Copy the token and create a `.env` file in the project root with the following content: `LABEL_STUDIO_API_KEY=your_token_here`.
+2. Create an account and login.
+3. In the web UI, go to: **☰ Hamburger menu** → **Organization** → **API Token Settings**.
+4. If **Legacy Tokens** are not enabled, turn them on.
+5. Then navigate to: Top-right → **Account & Settings** → **Legacy Token**.
+6. Copy the token and create a `.env` file in the project root with the following content: `LABEL_STUDIO_API_KEY=your_token_here`.
 
 ---
 

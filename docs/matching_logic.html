@@ -64,6 +64,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-parameters-from-pipeline-config-json">Configuration Parameters (from <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a></li>
 </ul>
 </li>
@@ -115,14 +116,6 @@
 <ul>
 <li><p>Matched files → saved to <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code></p></li>
 <li><p>Mismatched files → saved to <code class="docutils literal notranslate"><span class="pre">pending_dir</span></code></p></li>
-</ul>
-</li>
-<li><p><strong>Configurable Thresholds</strong>:</p>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">iou_threshold</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">low_conf_threshold</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mid_conf_threshold</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">dino_false_negative_threshold</span></code></p></li>
 </ul>
 </li>
 </ul>
@@ -202,6 +195,33 @@
 </ul>
 </section>
 </section>
+</section>
+<hr class="docutils" />
+<section id="configuration-parameters-from-pipeline-config-json">
+<h2>Configuration Parameters (from <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>)<a class="headerlink" href="#configuration-parameters-from-pipeline-config-json" title="Link to this heading"></a></h2>
+<p>The following fields from the <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code> file directly control <strong>YOLO–DINO Matching Behavior</strong>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Key</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iou_threshold</span></code></p></td>
+<td><p>Minimum IoU score to consider two boxes (YOLO and DINO) a match (default: <code class="docutils literal notranslate"><span class="pre">0.5</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">low_conf_threshold</span></code></p></td>
+<td><p>YOLO confidence below this is considered a likely false positive (default: <code class="docutils literal notranslate"><span class="pre">0.3</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mid_conf_threshold</span></code></p></td>
+<td><p>YOLO confidence below this (but above low) triggers a human review (default: <code class="docutils literal notranslate"><span class="pre">0.6</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dino_false_negative_threshold</span></code></p></td>
+<td><p>If DINO detects an object above this confidence and YOLO misses it, flag for review (default: <code class="docutils literal notranslate"><span class="pre">0.5</span></code>).</p></td>
+</tr>
+</tbody>
+</table>
+<p>These thresholds guide whether a prediction is confidently accepted, flagged for review, or rejected.</p>
 </section>
 <hr class="docutils" />
 <section id="example-usage">

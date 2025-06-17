@@ -61,6 +61,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-parameters-from-pipeline-config-json">Configuration Parameters (from <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a></li>
 </ul>
 </li>
@@ -163,6 +164,35 @@
 </ul>
 </section>
 </section>
+</section>
+<hr class="docutils" />
+<section id="configuration-parameters-from-pipeline-config-json">
+<h2>Configuration Parameters (from <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>)<a class="headerlink" href="#configuration-parameters-from-pipeline-config-json" title="Link to this heading"></a></h2>
+<p>The following fields from the configuration file directly control <strong>Grounding DINO’s</strong> behavior:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Key</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">torch_device</span></code></p></td>
+<td><p>Device to run the model on (<code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dino_box_threshold</span></code></p></td>
+<td><p>Minimum confidence required for bounding boxes to be retained (default: <code class="docutils literal notranslate"><span class="pre">0.3</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dino_text_threshold</span></code></p></td>
+<td><p>Minimum alignment confidence between text prompt and region (default: <code class="docutils literal notranslate"><span class="pre">0.25</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dino_false_negative_threshold</span></code></p></td>
+<td><p>Confidence threshold to flag potential false negatives for review (default: <code class="docutils literal notranslate"><span class="pre">0.5</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p>These values can be overridden or adjusted in the configuration dictionary passed to the function.</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <hr class="docutils" />
 <section id="example-usage">

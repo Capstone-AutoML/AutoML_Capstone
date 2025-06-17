@@ -209,6 +209,10 @@ Before running the pipeline, you can customize the behavior by modifying the con
 
 If you want to use GPU for the pipeline, set `"torch_device": "cuda"` in both `pipeline_config.json` and `train_config.json`:
 
+#### Add Your Own Dataset
+
+If you want to use your own dataset, create a folder structured as `mock_io/data/sampled_dataset/` and place your images inside it.
+
 #### Run the Full Pipeline in Conda Environment
 
 ```bash

@@ -68,26 +68,29 @@ Coordinates the augmentation process end-to-end.
 
 ---
 
-## Example Config
+## Configuration Parameters (for Augmentation from `pipeline_config.json`)
 
-```python
-config = {
-    "num_augmentations": 3,
-    "horizontal_flip_prob": 0.5,
-    "brightness_contrast_prob": 0.5,
-    "hue_saturation_prob": 0.5,
-    "blur_limit": 3,
-    "blur_prob": 0.3,
-    "gauss_noise_var_min": 10.0,
-    "gauss_noise_var_max": 50.0,
-    "gauss_noise_prob": 0.3,
-    "grayscale_prob": 0.2,
-    "rotate_limit": 15,
-    "rotate_prob": 0.4
-}
-```
+The following fields from the `pipeline_config.json` file directly control the **image augmentation pipeline**:
+
+ | **Key**                      | **Description**                                                                 |
+ |-----------------------------|---------------------------------------------------------------------------------|
+ | `num_augmentations`         | Number of augmented versions to generate per image (default: `3`).             |
+ | `horizontal_flip_prob`      | Probability of flipping the image horizontally (default: `0.5`).               |
+ | `brightness_contrast_prob`  | Probability of applying brightness/contrast change (default: `0.5`).           |
+ | `hue_saturation_prob`       | Probability of adjusting hue and saturation (default: `0.5`).                  |
+ | `blur_prob`                 | Probability of applying Gaussian blur (default: `0.3`).                        |
+ | `blur_limit`                | Maximum kernel size for blur (default: `3`).                                   |
+ | `gauss_noise_prob`          | Probability of adding Gaussian noise (default: `0.3`).                         |
+ | `gauss_noise_var_min`       | Minimum variance for Gaussian noise (default: `10.0`).                         |
+ | `gauss_noise_var_max`       | Maximum variance for Gaussian noise (default: `50.0`).                         |
+ | `grayscale_prob`            | Probability of converting the image to grayscale (default: `0.2`).             |
+ | `rotate_prob`               | Probability of rotating the image (default: `0.4`).                            |
+ | `rotate_limit`              | Maximum rotation angle in degrees (default: `15`).                             |
+
+These values define how aggressively and in what ways the dataset will be augmented to improve model robustness.
 
 ---
+
 
 ## Example Call
 

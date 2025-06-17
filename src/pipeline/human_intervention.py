@@ -1,5 +1,5 @@
 """
-Script for human review of the unmatched YOLO and SAM results.
+Script for human review of the unmatched YOLO and GroundingDINO results.
 """
 import os
 import json
