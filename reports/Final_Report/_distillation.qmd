@@ -1,0 +1,35 @@
+### Knowledge Distillation (Outline)
+
+1. **Motivation**
+   - Large models are computationally expensive for real-time wildfire detection
+   - Knowledge distillation transfers expertise from a larger teacher model to a smaller student model
+   - Enables faster inference while maintaining detection accuracy
+
+2. **Input**
+   - Teacher model: Pre-trained YOLOv8 model with proven wildfire detection capabilities
+   - Student model: Smaller YOLOv8n architecture initialized with pretrained weights from COCO 80 classes.
+   - Training dataset with 5 classes (FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI)
+   - Configuration file specifying distillation parameters and hyperparameters
+
+3. **Workflow Steps**
+   - Step 1: Load and prepare both teacher and student models
+   - Step 2: Freeze first 10 layers of student model (backbone) for stable feature extraction
+   - Step 3: Train student model using combined loss function:
+     - Detection loss (λ_detection = 1.0) for direct supervision
+     - Distillation loss (λ_distillation = 2.0) for knowledge transfer:
+       * Bounding box distillation (λ_dist_ciou = 1.0)
+       * Classification distillation (λ_dist_kl = 2.0)
+   - Step 4: Regular checkpointing and model state preservation
+   - Step 5: Save final distilled model for downstream tasks.
+
+4. **Output**
+   - Distilled YOLOv8n model with reduced size and complexity
+   - Training logs and metrics for performance analysis
+   - Checkpoint files for training resumption
+   - Final model saved in `mock_io/model_registry/distilled/latest/`
+
+5. **Impact**
+   - Reduced model size and computational requirements
+   - Faster inference times suitable for edge deployment
+   - Maintained detection accuracy through knowledge transfer
+   - Enables efficient deployment on resource-constrained devices
