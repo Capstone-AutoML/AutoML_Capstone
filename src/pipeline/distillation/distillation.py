@@ -878,18 +878,18 @@ def train_loop(
             best_model_state = copy.deepcopy(student_model.state_dict())
             print(f"New best model found with fitness: {best_fitness:.4f}")
         
-        if stopper(epoch=epoch, fitness=current_fitness):
+        stop = stopper(epoch=epoch, fitness=current_fitness)
+        if stop:
             print(f"Early stopping triggered at epoch {epoch}")
             print(f"Restoring best model with fitness: {best_fitness:.4f}")
             # Restore best model state
             student_model.load_state_dict(best_model_state)
             # Save the best model
             save_final_model(student_yolo, final_model_dir)
-            break
+            return epoch_losses
     
     # If training completes without early stopping, save final model
-    if not stopper.early_stop:
-        save_final_model(student_yolo, final_model_dir)
+    save_final_model(student_yolo, final_model_dir)
     
     return epoch_losses
 
