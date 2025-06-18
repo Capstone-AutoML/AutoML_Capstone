@@ -1,0 +1,27 @@
+- **Motivation**
+  - Wildfires are a growing environmental threat with devastating consequences.
+  - According to Defence Research and Development Canada (DRDC), early detection is critical to minimizing damage and preventing spread.
+
+- **Partner Context**
+  - Our capstone partner, Bayes Studio, uses specialized cameras for environmental monitoring and wildfire detection.
+  - These cameras act as edge devices — carrying a lightweight model for wildfire detection
+
+- **Problem Statement**
+  - The partner currently faces a manual and time-consuming workflow:
+    - Labeling incoming environmental imagery
+    - Fine-tuning a base detection model
+    - Compressing models for edge deployment
+  - This bottleneck limits their ability to rapidly adapt models to changing data.
+
+- **Technical Requirements**
+  - For effective deployment on edge devices, the model must:
+    1. Be trained on high-quality labeled data
+    2. Be fine-tuned to current wildfire imagery
+    3. Undergo distillation and quantization to compress the model to meet hardware constraints
+
+- **Our Solution**
+  - We developed an automated, continuous, and dynamic machine learning pipeline that:
+    - Performs semi-automated labeling to create high-quality data (images)
+    - Fine-tunes a YOLOv8 object detection model on newly labeled data
+    - Applies model compression techniques (distillation and quantization)
+    - Outputs edge-deployable models for real-time wildfire detection

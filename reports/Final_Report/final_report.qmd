@@ -19,23 +19,17 @@ execute:
 ## Introduction
 {{< include _introduction.qmd >}}
 
-## Refined Problem & Scientific Objectives
-{{< include _scientific-objectives.qmd >}}
-
-## Data
+## Data - Pipeline Input
 {{< include _data-description.qmd >}}
 
-## Data Science Methods
-{{< include _methods-overview.qmd >}}
+## Data Science Methods and Product
+
 {{< include _labeling.qmd >}}
 {{< include _human-in-the-loop.qmd >}}
 {{< include _augmentation-strategy.qmd >}}
 {{< include _model-training.qmd >}}
 {{< include _distillation.qmd >}}
 {{< include _quantization.qmd >}}
-
-## Data Product
-{{< include _data-product-description.qmd >}}
 
 ## Conclusions and Recommendations
 {{< include _conclusion-recommendations.qmd >}}
