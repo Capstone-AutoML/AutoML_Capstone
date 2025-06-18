@@ -453,81 +453,81 @@ def _configure_interface(base_url: str, headers: Dict[str, str],
         return False
 
 
-def _connect_local_storage(base_url: str, headers: Dict[str, str],
-                           project_id: int, project_name: str,
-                           output_dir: str) -> Optional[int]:
-    """
-    Connect a Label Studio project to the local file system.
+# def _connect_local_storage(base_url: str, headers: Dict[str, str],
+#                            project_id: int, project_name: str,
+#                            output_dir: str) -> Optional[int]:
+#     """
+#     Connect a Label Studio project to the local file system.
 
-    This sets up or reuses a local storage so the project can access images
-    from a specified directory. It then triggers a sync to load files.
+#     This sets up or reuses a local storage so the project can access images
+#     from a specified directory. It then triggers a sync to load files.
 
-    Args:
-        base_url: Label Studio server URL.
-        headers: HTTP headers with the API token.
-        project_id: ID of the Label Studio project.
-        project_name: Name of the project (used as the storage title).
-        output_dir: Path to the local directory with image files.
+#     Args:
+#         base_url: Label Studio server URL.
+#         headers: HTTP headers with the API token.
+#         project_id: ID of the Label Studio project.
+#         project_name: Name of the project (used as the storage title).
+#         output_dir: Path to the local directory with image files.
 
-    Returns:
-        int: The storage ID if successful, otherwise None.
-    """
-    try:
-        # Check if storage already exists
-        storage_response = requests.get(
-            f"{base_url}/api/storages/localfiles?project={project_id}",
-            headers=headers
-        )
-        storage_response.raise_for_status()
-        storages = storage_response.json()
+#     Returns:
+#         int: The storage ID if successful, otherwise None.
+#     """
+#     try:
+#         # Check if storage already exists
+#         storage_response = requests.get(
+#             f"{base_url}/api/storages/localfiles?project={project_id}",
+#             headers=headers
+#         )
+#         storage_response.raise_for_status()
+#         storages = storage_response.json()
 
-        if storages:
-            storage_id = storages[0]["id"]
-            print(f"[✓] Using existing storage (ID: {storage_id})")
-        else:
-            document_root = str(Path("mock_io/data").resolve()).replace("\\", "/")
-            print(f"[Debug] Setting up storage with path: {document_root}")
+#         if storages:
+#             storage_id = storages[0]["id"]
+#             print(f"[✓] Using existing storage (ID: {storage_id})")
+#         else:
+#             document_root = str(Path("mock_io/data").resolve()).replace("\\", "/")
+#             print(f"[Debug] Setting up storage with path: {document_root}")
 
-            # Create storage pointing to the parent directory
-            storage_data = {
-                "project": project_id,
-                "title": f"{project_name} Local Storage",
-                "path": document_root,  # Keep this at mock_io/data level
-                "regex_filter": ".*\\.(jpg|jpeg|png)$",
-                "use_blob_urls": False,
-                "presign": False
-            }
+#             # Create storage pointing to the parent directory
+#             storage_data = {
+#                 "project": project_id,
+#                 "title": f"{project_name} Local Storage",
+#                 "path": document_root,  # Keep this at mock_io/data level
+#                 "regex_filter": ".*\\.(jpg|jpeg|png)$",
+#                 "use_blob_urls": False,
+#                 "presign": False
+#             }
 
-            storage_response = requests.post(
-                f"{base_url}/api/storages/localfiles",
-                headers=headers, 
-                json=storage_data
-            )
+#             storage_response = requests.post(
+#                 f"{base_url}/api/storages/localfiles",
+#                 headers=headers, 
+#                 json=storage_data
+#             )
 
-            # Print full response for debugging
-            print(f"[Debug] Storage setup response: {storage_response.status_code}")
-            if storage_response.status_code >= 400:
-                print(f"[Debug] Error response: {storage_response.text}")
-                print("[Warning] Could not set up local storage. Make sure Label Studio is running with:")
-                print("[Warning] LOCAL_FILES_SERVING_ENABLED=true label-studio start")
-                return None
+#             # Print full response for debugging
+#             print(f"[Debug] Storage setup response: {storage_response.status_code}")
+#             if storage_response.status_code >= 400:
+#                 print(f"[Debug] Error response: {storage_response.text}")
+#                 print("[Warning] Could not set up local storage. Make sure Label Studio is running with:")
+#                 print("[Warning] LOCAL_FILES_SERVING_ENABLED=true label-studio start")
+#                 return None
 
-            storage_response.raise_for_status()
-            storage_id = storage_response.json()["id"]
-            print(f"[✓] Created new storage (ID: {storage_id})")
+#             storage_response.raise_for_status()
+#             storage_id = storage_response.json()["id"]
+#             print(f"[✓] Created new storage (ID: {storage_id})")
 
-        # Sync storage
-        sync_response = requests.post(
-            f"{base_url}/api/storages/localfiles/{storage_id}/sync",
-            headers=headers
-        )
-        sync_response.raise_for_status()
-        print("[✓] Storage sync initiated")
-        return storage_id
+#         # Sync storage
+#         sync_response = requests.post(
+#             f"{base_url}/api/storages/localfiles/{storage_id}/sync",
+#             headers=headers
+#         )
+#         sync_response.raise_for_status()
+#         print("[✓] Storage sync initiated")
+#         return storage_id
 
-    except requests.RequestException as e:
-        print(f"[Error] Failed to set up storage: {e}")
-        return None
+#     except requests.RequestException as e:
+#         print(f"[Error] Failed to set up storage: {e}")
+#         return None
 
 
 def setup_label_studio(project_name: str, output_dir: str) -> dict:
@@ -561,12 +561,12 @@ def setup_label_studio(project_name: str, output_dir: str) -> dict:
     # Configure labeling interface
     _configure_interface(base_url, headers, project_id)
 
-    # Setup storage
-    storage_id = _connect_local_storage(base_url, headers, project_id, project_name, output_dir)
+    # # Skip storage setup (base64-encoded images)
+    # storage_id = _connect_local_storage(base_url, headers, project_id, project_name, output_dir)
 
     return {
         "project_id": project_id,
-        "storage_id": storage_id,
+        "storage_id": None,
         "project_url": f"{base_url}/projects/{project_id}/data"
     }
 
