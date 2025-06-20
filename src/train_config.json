@@ -1,7 +1,7 @@
 {
   "model_path": "",
-  "initial_model_path": "mock_io/model_registry/model/nano_trained_model.pt",
-  "data_yaml_path": "mock_io/data/training/data.yaml",
+  "initial_model_path": "automl_workspace/model_registry/model/nano_trained_model.pt",
+  "data_yaml_path": "automl_workspace/data_pipeline/training/data.yaml",
   "output_model_name": null,
   "torch_device": "cpu",
 

@@ -18,10 +18,12 @@ from pipeline.train import train_model
 from pipeline.distillation.distillation import start_distillation
 from pipeline.quantization import quantize_model
 from pipeline.save_model import register_models
+from directory_setup import create_automl_workspace
 from utils import load_config, prepare_training_data, detect_device
 
 # Get the directory containing this script
 SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent
 
 def parse_args():
     """
@@ -44,7 +46,10 @@ def main():
     """
     # Parse command line arguments
     args = parse_args()
-    
+
+    # Create the directory structure
+    create_automl_workspace(base_path=PROJECT_ROOT)
+
     # Load configurations
     if args.config:
         pipeline_config_path = Path(args.config)
@@ -64,48 +69,49 @@ def main():
     distillation_config = YAML.load(distillation_config_path)
 
     # Define all paths
-    base_dir = Path("mock_io")
-    data_dir = base_dir / "data"
-    model_dir = base_dir / "model_registry"
-    config_dir = base_dir / "config_registry"
-    
+    workspace_dir = PROJECT_ROOT / "automl_workspace"
+    config_dir = workspace_dir / "config"
+    data_pipeline_dir = workspace_dir / "data_pipeline"
+    master_dataset_dir = workspace_dir / "master_dataset"
+    model_registry_dir = workspace_dir / "model_registry"
+
     # Data paths
-    source_dir = data_dir / "sampled_dataset"
-    raw_dir = data_dir / "raw" / "images"
-    distilled_dir = data_dir / "raw" / "distilled_images"
-    prelabelled_dir = data_dir / "prelabelled"
-    processed_dir = data_dir / "processed"
-    augmented_dir = data_dir / "augmented"
-    training_dir = data_dir / "training"
-    distillation_dir = data_dir / "distillation"
-    
+    source_dir = data_pipeline_dir / "input"
+    prelabelled_dir = data_pipeline_dir / "prelabeled"
+    labeled_dir = data_pipeline_dir / "labeled"
+    augmented_dir = data_pipeline_dir / "augmented"
+    training_dir = data_pipeline_dir / "training"
+    distillation_dir = data_pipeline_dir / "distillation"
+    quantization_dir = data_pipeline_dir / "quantization"
+
     # Model paths
-    model_path = model_dir / "model" / "nano_trained_model.pt"
-    distilled_output_dir = model_dir / "distilled"
-    quantized_output_dir = model_dir / "quantized"
-    
-    # Create necessary directories
-    for dir_path in [raw_dir, distilled_dir, prelabelled_dir, processed_dir, 
-                    augmented_dir, training_dir, distillation_dir,
-                    distilled_output_dir, quantized_output_dir, config_dir]:
-        dir_path.mkdir(parents=True, exist_ok=True)
-    
-    print(" --- Step 1: Fetching and organizing images --- ")
-    # 1. Fetch and organize images
-    fetch_and_organize_images(
-        source_dir=source_dir,
-        raw_dir=raw_dir,
-        distilled_dir=distilled_dir,
-        config=config,
-        seed=config.get('random_seed', 42)
-    )
-    
+    model_path = model_registry_dir / "model" / "nano_trained_model.pt"
+    distilled_output_dir = model_registry_dir / "distilled"
+    quantized_output_dir = model_registry_dir / "quantized"
+
+    # Label Studio data paths
+    label_studio_dir = data_pipeline_dir / "label_studio"
+    pending_dir = label_studio_dir / "pending"
+    tasks_dir = label_studio_dir / "tasks"
+    results_dir = label_studio_dir / "results"
+
+    print(" --- Step 1: Fetching images from input folder --- ")
+    # 1. Fetch images from input folder
+    image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
+    images = [f for f in source_dir.glob('*') if f.is_file() and f.suffix.lower() in image_extensions]
+    print(f"Found {len(images)} images in {source_dir}")
+
+    if len(images) == 0:
+        print("[ERROR] No images found in input directory.\
+            Please add images to automl_workspace/data_pipeline/input/")
+        return
+
     print("-----------------------------------------------\n")
     print(" --- Step 2: Generating YOLO prelabelling --- ")
     
     # 2. Generate predictions for raw images
     generate_yolo_prelabelling(
-        raw_dir=raw_dir,
+        raw_dir=source_dir,
         output_dir=prelabelled_dir / "yolo",
         model_path=model_path,
         config=config
@@ -113,17 +119,16 @@ def main():
     
     print("-----------------------------------------------\n")
     print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
-    
+
     generate_gd_prelabelling(
-        raw_dir=raw_dir,
+        raw_dir=source_dir,
         output_dir=prelabelled_dir / "gdino",
         config=config,
-        model_weights=model_dir / "model" / "groundingdino_swinb_cogcoor.pth",
-        config_path=model_dir / "model" / "GroundingDINO_SwinB_cfg.py",
+        model_weights=model_registry_dir / "model" / "groundingdino_swinb_cogcoor.pth",
+        config_path=model_registry_dir / "model" / "GroundingDINO_SwinB_cfg.py",
         box_threshold=config.get("dino_box_threshold", 0.3),
         text_threshold=config.get("dino_text_threshold", 0.25)
     )
-
 
     print("-----------------------------------------------\n")
     print(" --- Step 4: Matching YOLO and GDINO predictions --- ")
@@ -131,18 +136,17 @@ def main():
     match_and_filter(
         yolo_dir=prelabelled_dir / "yolo",
         dino_dir=prelabelled_dir / "gdino",
-       labeled_dir=Path("mock_io/data/labeled"),
-        pending_dir=Path("mock_io/data/mismatched/pending"),
+        labeled_dir=labeled_dir,
+        pending_dir=pending_dir,
         config=config
     )
-
 
     print("-----------------------------------------------\n")
     print(" --- Step 5: Data augmentation --- ")
 
     # 5. Data augmentation
     augment_dataset(
-        image_dir=raw_dir,
+        image_dir=source_dir,
         output_dir=augmented_dir,
         config=config.get('augmentation_config', {})
     )

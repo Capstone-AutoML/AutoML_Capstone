@@ -1,6 +1,7 @@
 /.quarto/
 *cursor*
 *mock_io
+automl_workspace/
 **__pycache__
 **.ipynb_checkpoints
 **dev/

@@ -1,10 +1,10 @@
 {
-  "labeled_json_path": "mock_io/data/labeled",
-  "labeled_images_path": "mock_io/data/raw/images",
-  "quantization_data_path": "data/quantization",
+  "labeled_json_path": "automl_workspace/data_pipeline/labeled",
+  "labeled_images_path": "automl_workspace/data_pipeline/input",
+  "quantization_data_path": "automl_workspace/data_pipeline/quantization",
   "quantize_yaml_path": "src/quantize.yaml",
 
   "quantization_method": "IMX",
   "calibration_samples": 20,
-  "output_dir": "mock_io/model_registry/quantized"
+  "output_dir": "automl_workspace/model_registry/quantized"
 }
