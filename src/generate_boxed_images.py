@@ -8,16 +8,17 @@ import cv2
 # --- Configuration Directories ---
 
 # Directories for input JSON annotations from different sources
-yolo_dir = Path("mock_io/data/prelabelled/yolo")
-dino_dir = Path("mock_io/data/prelabelled/gdino")
-labeled_dir = Path("mock_io/data/labeled")
-mismatched_dir = Path("mock_io/data/mismatched/pending")
+# automl_workspace/data_pipeline/prelabeled
+yolo_dir = Path("automl_workspace/data_pipeline/prelabeled/yolo")
+dino_dir = Path("automl_workspace/data_pipeline/prelabeled/gdino")
+labeled_dir = Path("automl_workspace/data_pipeline/labeled")
+mismatched_dir = Path("automl_workspace/data_pipeline/label_sutdio/pending")
 
 # Directory containing raw input images
-raw_image_dir = Path("mock_io/data/raw/images")
+raw_image_dir = Path("automl_workspace/data_pipeline/input")
 
 # Root directory to store output images with bounding boxes
-output_root = Path("mock_io/boxed_images")
+output_root = Path("automl_workspace/data_pipeline/boxed_images")
 
 # Ensure output directory exists
 output_root.mkdir(parents=True, exist_ok=True)
