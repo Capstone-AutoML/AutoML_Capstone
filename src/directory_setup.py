@@ -24,19 +24,30 @@ def create_automl_workspace(base_path="."):
     root_dir = os.path.join(base_path, "automl_workspace")
 
     subdirs = [
-        "data_pipeline",
-        "model_registry",
+        "data_pipeline/input",
+        "data_pipeline/prelabeled",
+        "data_pipeline/labeled",
+        "data_pipeline/augmented",
+        "data_pipeline/training",
+        "data_pipeline/distillation",
+        "data_pipeline/quantization",
+        "data_pipeline/label_studio/pending",
+        "data_pipeline/label_studio/tasks",
+        "data_pipeline/label_studio/results",
+        "model_registry/model",
+        "model_registry/distilled",
+        "model_registry/quantized",
         "master_dataset",
         "config"
     ]
 
     for subdir in subdirs:
         path = os.path.join(root_dir, subdir)
-        if not os.path.exists(path):
-            os.makedirs(path)
-            print(f"Created: {path}")
-        else:
-            print(f"Already exists: {path}")
+        try:
+            if not os.path.exists(path):
+                os.makedirs(path)
+        except Exception as e:
+            print(f"Error creating directory {path}: {e}")
 
 
 # Only run if this script is executed directly

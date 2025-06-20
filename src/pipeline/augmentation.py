@@ -103,7 +103,7 @@ def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
     """
     num_augmentations = config.get("num_augmentations", 3)
 
-    labeled_json_dir = Path("mock_io/data/labeled")
+    labeled_json_dir = Path("automl_workspace/data_pipeline/labeled")
     output_img_dir = output_dir / "images"
     output_json_dir = output_dir / "labels"
 
