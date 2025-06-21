@@ -50,30 +50,33 @@ def main():
     # Create the directory structure
     create_automl_workspace(base_path=PROJECT_ROOT)
 
-    # Load configurations
-    if args.config:
-        pipeline_config_path = Path(args.config)
-    else:
-        pipeline_config_path = SCRIPT_DIR / "pipeline_config.json"
-    
-    config = load_config(pipeline_config_path)
-    
-    # Training configuration
-    train_config_path = SCRIPT_DIR / "train_config.json"
-    train_config = load_config(train_config_path)
-
-    # Distillation configuration
-    # distillation_config_path = SCRIPT_DIR / "distillation_config.json"
-    # distillation_config = load_config(distillation_config_path)
-    distillation_config_path = SCRIPT_DIR / "distillation_config.yaml"
-    distillation_config = YAML.load(distillation_config_path)
-
     # Define all paths
     workspace_dir = PROJECT_ROOT / "automl_workspace"
     config_dir = workspace_dir / "config"
     data_pipeline_dir = workspace_dir / "data_pipeline"
     master_dataset_dir = workspace_dir / "master_dataset"
     model_registry_dir = workspace_dir / "model_registry"
+
+    # Load configurations
+    if args.config:
+        pipeline_config_path = Path(args.config)
+    else:
+        pipeline_config_path = config_dir / "pipeline_config.json"
+
+    config = load_config(pipeline_config_path)
+
+    # Training configuration
+    train_config_path = config_dir / "train_config.json"
+    train_config = load_config(train_config_path)
+
+    # Distillation configuration
+    # distillation_config_path = SCRIPT_DIR / "distillation_config.json"
+    # distillation_config = load_config(distillation_config_path)
+    distillation_config_path = config_dir / "distillation_config.yaml"
+    distillation_config = YAML.load(distillation_config_path)
+
+    # Quantization configuration
+    quantize_config_path = config_dir / "quantize_config.json"
 
     # Data paths
     source_dir = data_pipeline_dir / "input"
@@ -194,7 +197,6 @@ def main():
     print("-----------------------------------------------\n")
     print(" --- Step 8: Model quantization --- ")
     # 8. Model quantization
-    quantize_config_path = SCRIPT_DIR / "quantize_config.json"
     quantized_model_path = quantize_model(
         model_path=str(distilled_model_path),
         quantize_config_path=str(quantize_config_path)
