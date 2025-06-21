@@ -25,7 +25,7 @@
 
   "augmented_images_path": "automl_workspace/data_pipeline/augmented/images",
   "augmented_labels_path": "automl_workspace/data_pipeline/augmented/labels",
-  "true_negative_images_path": "automl_workspace/data_pipeline/augmented/no_pred_images",
+  "true_negative_images_path": "automl_workspace/data_pipeline/augmented/no_prediction_images",
   "training_output_path": "automl_workspace/data_pipeline/training",
   "train_val_split": [0.7, 0.2, 0.1],
   "data_yaml_path": "automl_workspace/data_pipeline/training/data.yaml"
