@@ -68,11 +68,11 @@ def train_model(config: dict) -> str:
         str: Path to the saved trained model (.pt)
     """
     # Define paths
-    model_dir = Path("mock_io/model_registry/model")
+    model_dir = Path("automl_workspace/model_registry/model")
     model_dir.mkdir(parents=True, exist_ok=True)
 
     user_model_path = config.get("model_path")
-    initial_model_path = config.get("initial_model_path", "mock_io/model_registry/model/nano_trained_model.pt")
+    initial_model_path = config.get("initial_model_path", "automl_workspace/model_registry/model/nano_trained_model.pt")
 
     if user_model_path:
         model_path = user_model_path

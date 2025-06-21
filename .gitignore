@@ -1,11 +1,13 @@
 /.quarto/
 *cursor*
 *mock_io
+automl_workspace/data_pipeline/
+automl_workspace/model_registry/
+automl_workspace/master_dataset/
 **__pycache__
 **.ipynb_checkpoints
 **dev/
 **data/
-**config/
 **.DS_Store
 **.ipynb_checkpoints
 **.pytest_cache

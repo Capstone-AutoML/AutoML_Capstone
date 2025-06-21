@@ -656,7 +656,7 @@ def train_loop(
     start_epoch: int = 1,
     log_file: Optional[Path] = None,
     log_level: Literal["batch", "epoch"] = "epoch",
-    final_model_dir: Path = Path("mock_io/model_registry/distilled/latest"),
+    final_model_dir: Path = Path("automl_workspace/model_registry/distilled/latest"),
     debug: bool = False
 ) -> Dict[str, List[float]]:
     """
@@ -849,7 +849,7 @@ def start_distillation(
     },
     resume_checkpoint: Optional[Path] = None,
     output_dir: Path = Path("distillation_out"),
-    final_model_dir: Path = Path("mock_io/model_registry/distilled/latest"),
+    final_model_dir: Path = Path("automl_workspace/model_registry/distilled/latest"),
     log_level: Literal["batch", "epoch"] = "batch",
     debug: bool = False,
     distillation_config: Optional[Dict[str, Any]] = None,
@@ -1000,13 +1000,13 @@ if __name__ == "__main__":
     start_distillation(
         device=detect_device(),
         base_dir=base_dir,
-        img_dir=Path("mock_io/data/distillation"),
+        img_dir=Path("automl_workspace/data_pipeline/distillation"),
         frozen_layers=10,
         save_checkpoint_every=25,
         hyperparams=hyperparams,
         resume_checkpoint=None,
-        output_dir=Path("mock_io/model_registry/distilled"),
-        final_model_dir=Path("mock_io/model_registry/distilled/latest"),
+        output_dir=Path("automl_workspace/model_registry/distilled"),
+        final_model_dir=Path("automl_workspace/model_registry/distilled/latest"),
         log_level="batch",
         debug=False,
         distillation_config=distillation_config
