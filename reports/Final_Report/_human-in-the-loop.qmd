@@ -2,7 +2,7 @@
 
 1. **Motivation**
 
-   A **high-performing model** relies on a **high-quality labeled dataset**. While YOLOv8 and GroundingDINO agree on many predictions, there are still **mismatches** that need correction. Instead of discarding these potentially valuable samples, we introduce a **human-in-the-loop workflow** to verify and fix labeling errors. This process improves data quality with **minimal manual effort**, streamlining the correction process and reducing the need for manual file editing.
+   A **high-performing model** relies on a **high-quality labeled dataset**. While YOLOv8 and GroundingDINO agree on many predictions, there are still **mismatches** that need correction. Instead of discarding these potentially valuable samples, we introduce a **human-in-the-loop workflow** to verify and fix labeling errors with Label Studio[@labelstudio]. This process improves data quality with **minimal manual effort**, streamlining the correction process and reducing the need for manual file editing.
 
 2. **Input**
 
