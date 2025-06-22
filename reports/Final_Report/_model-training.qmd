@@ -1,0 +1,33 @@
+### Training (Outline)
+
+1. **Motivation**
+   - Once high-quality labeled and augmented data is available, the model must be re-trained to incorporate new information.
+   - Continuous re-training allows the detection model to adapt to changing wildfire patterns and newly collected data.
+   - Our goal is to automate the fine-tuning of a base YOLOv8 model using the most recent dataset, with minimal manual intervention.
+
+2. **Input**
+   - Augmented labeled images and corresponding annotation files. The non-augmented images with no labels are also used as true negative.
+   - A pre-trained YOLOv8 base model, typically selected from:
+     - The latest updated model in the model registry, or path to any compatible model (YOLO model) the user chooses
+     - Or a fallback initial base model (e.g., `nano_trained_model.pt`)
+   - Training hyperparameters (e.g., epochs, learning rate, image size) are configured in `train_config.json`
+     - Any training argument compatible with YOLOv8 settings can be defined in the `train_config.json`
+
+3. **Workflow Steps**
+   - Step 1: Load training configuration and locate the most recent base model
+   - Step 2: Organize input data into train/val/test splits
+   - Step 3: Fine-tune the base YOLOv8 model using the prepared data and configuration
+     - Training is performed using the Ultralytics training API
+     - Includes logging of model performance
+   - Step 4: Save the updated model using a timestamped filename in the model registry folder
+   - Step 5: Store metadata (e.g., training date, config, performance) in the model registry folder with same name as the updated model.
+
+4. **Output**
+   - A fine-tuned YOLOv8 model that incorporates the latest training data
+   - Model file saved with a naming pattern like: `[YYYY-MM-DD]_[HH_MM]_updated_yolo.pt`
+   - Corresponding metadata and training outputs stored alongside the model for tracking and reproducibility
+
+5. **Impact**
+   - Enables fine-tuning as new data becomes available monthly
+   - Ensures the detection model stays current and improves over time
+   - Modular structure allows partners to adjust hyperparameters or retrain older models as needed

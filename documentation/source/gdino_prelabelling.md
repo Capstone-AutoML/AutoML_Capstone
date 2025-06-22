@@ -55,6 +55,20 @@ Main function that runs Grounding DINO to detect prompted classes in images.
 
 ---
 
+## Configuration Parameters (from `pipeline_config.json`)
+
+The following fields from the configuration file directly control **Grounding DINO’s** behavior:
+
+ | **Key**                         | **Description**                                                                 |
+ |--------------------------------|---------------------------------------------------------------------------------|
+ | `torch_device`                 | Device to run the model on (`"cpu"` or `"cuda"`).                               |
+ | `dino_box_threshold`           | Minimum confidence required for bounding boxes to be retained (default: `0.3`). |
+ | `dino_text_threshold`          | Minimum alignment confidence between text prompt and region (default: `0.25`).  |
+ | `dino_false_negative_threshold`| Confidence threshold to flag potential false negatives for review (default: `0.5`). |
+These values can be overridden or adjusted in the configuration dictionary passed to the function.
+
+---
+
 ## Example Usage
 
 ```python

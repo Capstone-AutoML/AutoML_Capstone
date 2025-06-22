@@ -12,12 +12,6 @@ This script compares YOLO and Grounding DINO predictions for the same image and 
   - Matched files → saved to `labeled_dir`  
   - Mismatched files → saved to `pending_dir`
 
-- **Configurable Thresholds**:  
-  - `iou_threshold`  
-  - `low_conf_threshold`  
-  - `mid_conf_threshold`  
-  - `dino_false_negative_threshold`
-
 ---
 
 ## Functions
@@ -78,6 +72,22 @@ config = {
 - Files that failed to process due to error
 
 ---
+
+## Configuration Parameters (from `pipeline_config.json`)
+
+The following fields from the `pipeline_config.json` file directly control **YOLO–DINO Matching Behavior**:
+
+ | **Key**                         | **Description**                                                                 |
+ |--------------------------------|---------------------------------------------------------------------------------|
+ | `iou_threshold`                | Minimum IoU score to consider two boxes (YOLO and DINO) a match (default: `0.5`). |
+ | `low_conf_threshold`           | YOLO confidence below this is considered a likely false positive (default: `0.3`). |
+ | `mid_conf_threshold`           | YOLO confidence below this (but above low) triggers a human review (default: `0.6`). |
+ | `dino_false_negative_threshold`| If DINO detects an object above this confidence and YOLO misses it, flag for review (default: `0.5`). |
+
+These thresholds guide whether a prediction is confidently accepted, flagged for review, or rejected.
+
+---
+
 
 ## Example Usage
 

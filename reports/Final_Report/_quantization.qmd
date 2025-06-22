@@ -1,0 +1,26 @@
+### Quantization (Outline)
+
+1. **Motivation**
+   - Even after model distillation, inference on edge devices (e.g., drones or cameras) can still be too slow or resource-intensive
+   - Quantization reduces model size and speeds up inference by reducing the precision of model weights
+
+2. **Input**
+   - The distilled YOLO model from the previous distillation step of the pipeline
+   - Optional: labeled images and JSON annotations for calibration (required for IMX quantization)
+
+3. **Workflow Steps**
+   - Step 1: Set quantization method in `quantize_config.json` (`"FP16"`, `"ONNX"`, or `"IMX"`)
+   - Step 2: Based on method:
+     - **FP16**: Converts weights to float16, fast and accurate, saved as `_fp16.pt`
+     - **ONNX**: Converts to ONNX and applies dynamic quantization, saved as `_onnx_quantized.onnx`
+     - **IMX**: Uses Ultralytics export with calibration data to create IMX-ready format (Linux only), saved as `_imx.onnx`
+   - Step 3: Quantized model is saved in `mock_io/model_outputs/quantized/`
+
+4. **Output**
+   - A smaller, faster model ready for deployment:
+     - ~50% size reduction with FP16, minimal accuracy drop
+     - ~75% size reduction with ONNX, slight accuracy tradeoff
+     - IMX-ready model for Sony Raspberry Pi AI Camera
+
+5. **Impact**
+   - The quantized model can run directly on edge devices, enabling real-time fire alerts in the field

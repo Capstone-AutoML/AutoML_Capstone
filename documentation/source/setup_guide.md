@@ -118,8 +118,9 @@ For human-in-the-loop validation using Label Studio, refer to the [Human Interve
 
 These two config files control pipeline behavior:
 
-* `train_config.json`: Training parameters, dataset paths, and device.
 * `pipeline_config.json`: Pre-labeling, matching, augmentation, and distillation settings.
+* `train_config.json`: Training parameters, dataset paths, and device.
+* `quantize_config.json` : Model quantization settings (labeled images paths, quantization method, etc.)
 
 Defaults are generally sufficient, but GPU usage requires you to set:
 
@@ -129,4 +130,24 @@ Defaults are generally sufficient, but GPU usage requires you to set:
 
 ---
 
-You're now ready to use the AutoML pipeline!
+## 7. Add Your Own Dataset
+
+To start fresh with your own dataset, delete all folders inside `mock_io/` **except** for `mock_io/model_registry/model/`.
+
+Then, create a new dataset folder at:
+
+```
+mock_io/data/sampled_dataset/
+```
+
+and place your images inside it:
+
+```
+mock_io/data/sampled_dataset/
+├── your_image1.jpg
+├── your_image2.jpg
+├── ...
+```
+
+Make sure the images are in `.jpg`, `.jpeg`, or `.png` format.
+

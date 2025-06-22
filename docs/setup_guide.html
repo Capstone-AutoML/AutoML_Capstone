@@ -57,6 +57,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#generate-bounding-box-visualizations-optional">4. Generate Bounding Box Visualizations (Optional)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#human-review-with-label-studio">5. Human Review with Label Studio</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-files">6. Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#add-your-own-dataset">7. Add Your Own Dataset</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
@@ -203,15 +204,31 @@
 <h2>6. Configuration Files<a class="headerlink" href="#configuration-files" title="Link to this heading"></a></h2>
 <p>These two config files control pipeline behavior:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">train_config.json</span></code>: Training parameters, dataset paths, and device.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>: Pre-labeling, matching, augmentation, and distillation settings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">train_config.json</span></code>: Training parameters, dataset paths, and device.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quantize_config.json</span></code> : Model quantization settings (labeled images paths, quantization method, etc.)</p></li>
 </ul>
 <p>Defaults are generally sufficient, but GPU usage requires you to set:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;torch_device&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cuda&quot;</span>
 </pre></div>
 </div>
+</section>
 <hr class="docutils" />
-<p>You’re now ready to use the AutoML pipeline!</p>
+<section id="add-your-own-dataset">
+<h2>7. Add Your Own Dataset<a class="headerlink" href="#add-your-own-dataset" title="Link to this heading"></a></h2>
+<p>To start fresh with your own dataset, delete all folders inside <code class="docutils literal notranslate"><span class="pre">mock_io/</span></code> <strong>except</strong> for <code class="docutils literal notranslate"><span class="pre">mock_io/model_registry/model/</span></code>.</p>
+<p>Then, create a new dataset folder at:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mock_io</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">sampled_dataset</span><span class="o">/</span>
+</pre></div>
+</div>
+<p>and place your images inside it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>mock_io/data/sampled_dataset/
+├── your_image1.jpg
+├── your_image2.jpg
+├── ...
+</pre></div>
+</div>
+<p>Make sure the images are in <code class="docutils literal notranslate"><span class="pre">.jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">.jpeg</span></code>, or <code class="docutils literal notranslate"><span class="pre">.png</span></code> format.</p>
 </section>
 </section>
 

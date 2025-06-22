@@ -15,12 +15,12 @@ from PIL import Image
 from dotenv import load_dotenv
 
 
-mismatch_dir = Path("mock_io/data/mismatched")
-mismatch_pending_dir = mismatch_dir / "pending"
-reviewed_dir = mismatch_dir / "reviewed_results"
-image_dir = Path("mock_io/data/raw/images")
-output_dir = Path("mock_io/data/ls_tasks")
-labeled_dir = Path("mock_io/data/labeled")
+label_studio_dir = Path("automl_workspace/data_pipeline/label_studio")
+mismatch_pending_dir = label_studio_dir / "pending"
+reviewed_dir = label_studio_dir / "results"
+image_dir = Path("automl_workspace/data_pipeline/input")
+output_dir = label_studio_dir / "tasks"
+labeled_dir = Path("automl_workspace/data_pipeline/labeled")
 
 
 def _ensure_directories():
@@ -31,7 +31,7 @@ def _ensure_directories():
     Called only when the script is actually running.
     """
     directories = [
-        mismatch_dir,
+        label_studio_dir,
         mismatch_pending_dir,
         reviewed_dir,
         output_dir,
@@ -312,7 +312,7 @@ def _ensure_label_studio_running():
         bool: True if Label Studio is running successfully, False otherwise
     """
     # Get absolute path to data directory
-    data_dir = str(Path("mock_io/data").resolve())
+    data_dir = str(Path("automl_workspace/data_pipeline").resolve())
 
     # Check if Label Studio is already running
     try:
@@ -817,9 +817,9 @@ def transform_reviewed_results_to_labeled(export_results: list,
         int: Number of files transformed
     """
     if labeled_dir is None:
-        labeled_dir = Path("mock_io/data/labeled")
+        labeled_dir = Path("automl_workspace/data_pipeline/labeled")
     if image_dir is None:
-        image_dir = Path("mock_io/data/raw/images")
+        image_dir = Path("automl_workspace/data_pipeline/input")
     transformed_count = 0
 
     # Transform results to original format
