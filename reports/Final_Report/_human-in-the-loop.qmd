@@ -6,7 +6,7 @@
 
 2. **Input**
 
-   - JSON files with incorrect or uncertain predictions from YOLO, containing labels, bounding boxes coordinates, and confidence score
+   - JSON files with incorrect or uncertain predictions from YOLO, containing labels, bounding box coordinates, and confidence score
    - Corresponding image files referenced in those predictions
 
 3. **Workflow Steps**
