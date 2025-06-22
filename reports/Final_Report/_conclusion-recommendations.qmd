@@ -13,7 +13,7 @@ To address our partner's need, we developed an **automated**, **continuous**, **
 
 ### Limitations & Recommendations
 
-While our pipeline meets the core requirements, there are some limitations that restricts the scalability of the pipeline:
+While our pipeline meets the core requirements, there are some limitations that restrict the scalability of the pipeline:
 
 - **Local-first design**: Running the pipeline locally limits deployment flexibility
 - **Scattered data and model files**: Data and model files are saved in local folders, which makes tracking progress and maintaining consistency more difficult
