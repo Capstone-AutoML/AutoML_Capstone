@@ -9,7 +9,7 @@ from pathlib import Path
 
 from ultralytics.utils import YAML
 
-from pipeline.fetch_data import fetch_and_organize_images
+from pipeline.fetch_data import validate_input_images
 from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
 from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelabelling
 from pipeline.prelabelling.matching import match_and_filter
@@ -98,16 +98,9 @@ def main():
     tasks_dir = label_studio_dir / "tasks"
     results_dir = label_studio_dir / "results"
 
-    print(" --- Step 1: Fetching images from input folder --- ")
-    # 1. Fetch images from input folder
-    image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
-    images = [f for f in source_dir.glob('*') if f.is_file() and f.suffix.lower() in image_extensions]
-    print(f"Found {len(images)} images in {source_dir}")
-
-    if len(images) == 0:
-        print("[ERROR] No images found in input directory.\
-            Please add images to automl_workspace/data_pipeline/input/")
-        return
+    print(" --- Step 1: Validating images in input folder --- ")
+    # 1. Validate images in input folder
+    validate_input_images(input_dir=source_dir)
 
     print("-----------------------------------------------\n")
     print(" --- Step 2: Generating YOLO prelabelling --- ")
