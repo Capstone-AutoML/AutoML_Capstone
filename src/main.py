@@ -100,7 +100,11 @@ def main():
 
     print(" --- Step 1: Validating images in input folder --- ")
     # 1. Validate images in input folder
-    validate_input_images(input_dir=source_dir)
+    try:
+        validate_input_images(input_dir=source_dir)
+    except ValueError as e:
+        print(f"[ERROR] {e}")
+        return
 
     print("-----------------------------------------------\n")
     print(" --- Step 2: Generating YOLO prelabelling --- ")
