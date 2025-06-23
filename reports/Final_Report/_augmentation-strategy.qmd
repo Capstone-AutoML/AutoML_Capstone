@@ -1,0 +1,36 @@
+### Augmentation (Outline)
+
+1. **Motivation**
+   - A single image can appear in many different forms under varying conditions (e.g., lighting, weather, occlusion, angle of camera).
+   - Augmentation increases dataset diversity and robustness, helping the model generalize better to unseen scenarios.
+   - Our partner specifically requested augmentations to be done before training, as in-training augmentation could be too computationally expensive and time-consuming.
+
+
+2. **Input**
+   - Labeled images and their corresponding YOLO-formatted annotation files
+   - Images sourced from the matched outputs of the pre-labeling pipeline saved in `labeled` folder.
+   - Augmentation parameters specified in `pipeline_config.json` (e.g., number of augmentations, probabilities, blur limits)
+
+3. **Workflow Steps**
+   - Step 1: Load each image and its corresponding annotation
+   - Step 2: For each image, generate a fixed number of augmented versions (e.g., 3)
+   - Step 3: Apply image transformations using the **Albumentations** library, including:
+     - Horizontal flips
+     - Brightness and contrast adjustment
+     - Hue and saturation shifts
+     - Gaussian blur (with a configurable limit)
+     - Gaussian noise
+     - Rotation
+     - Color adjustment to grayscale
+   - Step 4: Update the bounding boxes to reflect each transformation - handled by Albumentations library automatically.
+   - Note that images that do not contain objects of interest will not undergo augmentation.
+   - Step 5: Save the augmented images and updated labels.
+
+4. **Output**
+   - A significantly larger and more diverse labeled dataset ready for training including:
+    - Augmented images and annotations in json files 
+    - Non-augmented images saved in `no_prediction_images` folder as they do not contain any of the object of interest.
+
+5. **Impact**
+   - Reduces overfitting and improves model generalization across lighting conditions and camera angles
+   - Provides more training samples without requiring manual data collection or annotation

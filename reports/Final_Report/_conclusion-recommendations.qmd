@@ -1,0 +1,20 @@
+### Problem Recap
+
+- Bayes Studio needed a continuous pipeline to keep ML models accurate and up to date
+- Manual labeling, training, and deployment slowed down real-time wildfire detection and response
+
+### What We Delivered
+
+- An **automated**, **continuous**, **dynamic**, and **efficient** pipeline that streamlines pre-labeling, human-in-the-loop review, model training, optimization, and deployment:
+  - **Automated**: From labeling to training and compression, everything flows with minimal manual effort
+  - **Continuous**: Updated models help label data in future runs, improving over time
+  - **Dynamic**: Easy to plug in new models or modules as requirements change
+  - **Efficient**: Greatly reduces model update time - from weeks to just hours
+
+### Limitations & Recommendations
+
+| Limitation                        | Recommendation                                                                     |
+|-----------------------------------|------------------------------------------------------------------------------------|
+| Local-only pipeline               | Add cloud storage and remote triggering for better scalability                     |
+| Scattered data and model files    | Integrate a lightweight database to centralize images, labels, and model metadata  |
+| No monitoring interface           | Build a simple dashboard to track pipeline runs and model performance in real time |

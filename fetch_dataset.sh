@@ -20,10 +20,10 @@ fi
 
 GITHUB_TOKEN=$(cat token.txt)
 
-ZIP_DATA="mock_io/data/sampled_dataset.zip"
-ZIP_MODEL="mock_io/model_registry/model_weights.zip"
-IMAGE_DIR="mock_io/data/sampled_dataset/images"
-MODEL_DIR="mock_io/model_registry/model"
+ZIP_DATA="automl_workspace/data_pipeline/input.zip"
+ZIP_MODEL="automl_workspace/model_registry/model_weights.zip"
+IMAGE_DIR="automl_workspace/data_pipeline/input"
+MODEL_DIR="automl_workspace/model_registry/model"
 
 DATA_ASSET_ID=262360637
 MODEL_ASSET_ID=259250340
@@ -31,13 +31,13 @@ MODEL_ASSET_ID=259250340
 # Dataset
 if [ ! -d "$IMAGE_DIR" ]; then
     echo "📥 Downloading dataset..."
-    mkdir -p "mock_io/data/sampled_dataset"
+    mkdir -p "automl_workspace/data_pipeline/input"
     curl -L \
       -H "Authorization: token $GITHUB_TOKEN" \
       -H "Accept: application/octet-stream" \
       -o "$ZIP_DATA" \
       https://api.github.com/repos/Elshaday-Tamire/capstone-assets/releases/assets/$DATA_ASSET_ID
-    unzip "$ZIP_DATA" -d "mock_io/data/sampled_dataset/"
+    unzip "$ZIP_DATA" -d "automl_workspace/data_pipeline/input"
     rm "$ZIP_DATA"
 else
     echo "✅ Dataset already exists."
@@ -52,26 +52,27 @@ if [ ! -d "$MODEL_DIR" ]; then
       -H "Accept: application/octet-stream" \
       -o "$ZIP_MODEL" \
       https://api.github.com/repos/Elshaday-Tamire/capstone-assets/releases/assets/$MODEL_ASSET_ID
-    unzip "$ZIP_MODEL" -d "mock_io/model_registry/"
+    unzip "$ZIP_MODEL" -d "automl_workspace/model_registry/"
     rm "$ZIP_MODEL"
 else
     echo "✅ Model weights already exist."
 fi
 
 # Distillation dataset
-DISTILLATION_DIR="mock_io/data/distillation/distillation_dataset"
-ZIP_DISTILLATION="mock_io/data/distillation_dataset.zip"
+# automl_workspace/data_pipeline/distillation/distillation_dataset
+DISTILLATION_DIR="automl_workspace/data_pipeline/distillation/distillation_dataset"
+ZIP_DISTILLATION="automl_workspace/data_pipeline/distillation/distillation_dataset.zip"
 DISTILLATION_ASSET_ID=262351896
 
 if [ ! -d "$DISTILLATION_DIR" ]; then
     echo "📥 Downloading distillation dataset..."
-    mkdir -p "mock_io/data/distillation"
+    mkdir -p "automl_workspace/data_pipeline/distillation/"
     curl -L \
       -H "Authorization: token $GITHUB_TOKEN" \
       -H "Accept: application/octet-stream" \
       -o "$ZIP_DISTILLATION" \
       https://api.github.com/repos/Elshaday-Tamire/capstone-assets/releases/assets/$DISTILLATION_ASSET_ID
-    unzip "$ZIP_DISTILLATION" -d "mock_io/data/distillation/"
+    unzip "$ZIP_DISTILLATION" -d "automl_workspace/data_pipeline/distillation/"
     rm "$ZIP_DISTILLATION"
 else
     echo "✅ Distillation dataset already exists."

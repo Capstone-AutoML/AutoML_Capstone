@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 from PIL import Image
 import albumentations as A
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
 
 # Create augmentation pipeline
 def build_augmentation_transform(config: dict) -> A.Compose:
@@ -103,7 +106,7 @@ def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
     """
     num_augmentations = config.get("num_augmentations", 3)
 
-    labeled_json_dir = Path("mock_io/data/labeled")
+    labeled_json_dir = Path("automl_workspace/data_pipeline/labeled")
     output_img_dir = output_dir / "images"
     output_json_dir = output_dir / "labels"
 

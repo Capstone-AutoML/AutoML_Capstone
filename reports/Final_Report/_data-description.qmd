@@ -1,0 +1,24 @@
+- **Data Format**
+  - The input to our pipeline consists of:
+    - Images in standard formats (e.g., `.jpg`)
+    - Corresponding YOLO-formatted `.txt` label files
+      - Each line in a label file includes: class ID, normalized bounding box coordinates (x_center, y_center, width, height)
+      - Example: `1 0.757593 0.34663 0.06101 0.3655`
+
+- **Object Categories**
+  - The detection task focuses on five classes:
+    1. Fire
+    2. Smoke
+    3. Lightning
+    4. Vehicle
+    5. Person
+
+- **Data Volume**
+  - Partner expects approximately 500 new images per month
+
+- **Role in Pipeline**
+  - This incoming data serves as the foundation for the pipeline’s three core stages:
+    1. Labeling via dual-model process and human in the loop
+    2. Data augmentation for increase diversity
+    3. Base model re-training
+

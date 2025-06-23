@@ -1,0 +1,29 @@
+### Automated Labeling and Matching (Outline)
+
+1. **Motivation**
+   - Manual annotation is time-consuming and error-prone.
+   - Our dual-model strategy leverages the strengths of both YOLOv8 and Grounding DINO for pre-labeling.
+   - The goal is to automatically generate reliable labels with minimal human input.
+
+2. **Input**
+   - Unlabeled images placed in `mock_io/data/raw/images/`
+   - Pre-trained detection models:
+     - **YOLOv8** – trained specifically on our five target categories (Fire, Smoke, Lightning, Human, Vehicle)
+     - **Grounding DINO** – accurate grounding with text prompts like "fire", "smoke", etc.
+
+3. **Workflow Steps**
+   - Step 1: YOLOv8 runs on the images and outputs predicted bounding boxes and class labels.
+   - Step 2: Grounding DINO runs with category prompts to generate alternative object proposals.
+   - Step 3: A custom matching script compares both outputs using IOU thresholds to identify:
+     - Agreed labels → moved to `mock_io/data/labeled/`
+     - Disagreements or missing detections → moved to `mock_io/data/mismatched/pending/` for review
+   - Step 4: All matched results are saved in YOLO-style JSON files for downstream training and augmentation.
+
+4. **Output**
+   - Automatically labeled dataset stored in `mock_io/data/labeled/`
+   - Uncertain or mismatched files routed to the human-in-the-loop review process
+   - Each label includes bounding box, class, and confidence score
+
+5. **Impact**
+   - Significantly accelerates the annotation process
+   - Boosts label consistency and enables scalable dataset expansion
