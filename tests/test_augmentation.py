@@ -105,15 +105,19 @@ def test_augment_dataset_integration(tmp_path, sample_config, temp_image_and_jso
     image_dir.mkdir()
     shutil.copy(temp_image_and_json[0][1], image_dir / "test_image.jpg")
 
-    # Patch mock_io/data/labeled to point to the label file
-    mock_labeled = Path("mock_io/data/labeled")
-    mock_labeled.mkdir(parents=True, exist_ok=True)
-    shutil.copy(temp_image_and_json[0][0], mock_labeled / "test_image.json")
+    # Patch automl_workspace/data_pipeline/labeled to point to the label file
+    labeled_dir = Path("automl_workspace/data_pipeline/labeled")
+    labeled_dir.mkdir(parents=True, exist_ok=True)
+    test_json_file = labeled_dir / "test_image.json"
+    shutil.copy(temp_image_and_json[0][0], test_json_file)
 
-    augment_dataset(image_dir, output_dir, sample_config)
+    try:
+        augment_dataset(image_dir, output_dir, sample_config)
 
-    assert (output_dir / "images").exists()
-    assert (output_dir / "labels").exists()
-
-    assert len(list((output_dir / "images").glob("*.jpg"))) >= 1
-    assert len(list((output_dir / "labels").glob("*.json"))) >= 1
+        assert (output_dir / "images").exists()
+        assert (output_dir / "labels").exists()
+        assert len(list((output_dir / "images").glob("*.jpg"))) >= 1
+        assert len(list((output_dir / "labels").glob("*.json"))) >= 1
+    finally:
+        if test_json_file.exists():
+            test_json_file.unlink()

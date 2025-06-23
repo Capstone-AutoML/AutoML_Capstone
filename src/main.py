@@ -10,16 +10,18 @@ import shutil
 
 from ultralytics.utils import YAML
 
-from pipeline.fetch_data import fetch_and_organize_images
-from pipeline.prelabelling.yolo_prelabelling import generate_yolo_prelabelling
-from pipeline.prelabelling.grounding_dino_prelabelling import generate_gd_prelabelling
-from pipeline.prelabelling.matching import match_and_filter
-from pipeline.human_intervention import run_human_review
-from pipeline.augmentation import augment_dataset
-from pipeline.train import train_model
-from pipeline.distillation.distillation import start_distillation
-from pipeline.quantization import quantize_model
-from pipeline.save_model import register_models
+from pipeline import (
+    validate_input_images,
+    generate_yolo_prelabelling,
+    generate_gd_prelabelling,
+    match_and_filter,
+    run_human_review,
+    augment_dataset,
+    train_model,
+    start_distillation,
+    quantize_model,
+    register_models
+)
 from directory_setup import create_automl_workspace
 from utils import load_config, prepare_training_data, detect_device
 
@@ -27,10 +29,11 @@ from utils import load_config, prepare_training_data, detect_device
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
+
 def parse_args():
     """
     Parse command line arguments.
-    
+
     Returns:
         argparse.Namespace: Parsed command line arguments
     """
@@ -38,14 +41,10 @@ def parse_args():
     parser.add_argument(
         '--config',
         type=str,
-        help='Path to the pipeline configuration file (default: pipeline_config.json in the same directory as main.py)'
-    )
-    parser.add_argument(
-        '--skip-human-review',
-        action='store_true',
-        help='Skip human intervention and continue with automated pipeline'
+        help='Path to the pipeline configuration file (default: pipeline_config.json in config directory)'
     )
     return parser.parse_args()
+
 
 def main():
     """
@@ -72,6 +71,20 @@ def main():
 
     config = load_config(pipeline_config_path)
 
+    # Get process options from config
+    process_options = config.get("process_options", {})
+    skip_human_review = process_options.get("skip_human_review", False)
+    skip_training = process_options.get("skip_training", False)
+    skip_distillation = process_options.get("skip_distillation", False)
+    skip_quantization = process_options.get("skip_quantization", False)
+
+    print(" --- PIPELINE CONFIGURATION --- ")
+    print(f"Human Review: {'Disabled' if skip_human_review else 'Enabled'}")
+    print(f"Training: {'Disabled' if skip_training else 'Enabled'}")
+    print(f"Distillation: {'Disabled' if skip_distillation else 'Enabled'}")
+    print(f"Quantization: {'Disabled' if skip_quantization else 'Enabled'}")
+    print("-----------------------------------------------\n")
+
     # Training configuration
     train_config_path = config_dir / "train_config.json"
     train_config = load_config(train_config_path)
@@ -95,7 +108,10 @@ def main():
     quantization_dir = data_pipeline_dir / "quantization"
 
     # Model paths
-    model_path = model_registry_dir / "model" / "nano_trained_model.pt"
+    base_model_path = model_registry_dir / "model" / "nano_trained_model.pt"
+    trained_model_path = None
+    distilled_model_path = None
+    quantized_model_path = None
     distilled_output_dir = model_registry_dir / "distilled"
     quantized_output_dir = model_registry_dir / "quantized"
 
@@ -105,28 +121,28 @@ def main():
     tasks_dir = label_studio_dir / "tasks"
     results_dir = label_studio_dir / "results"
 
-    print(" --- Step 1: Fetching images from input folder --- ")
-    # 1. Fetch images from input folder
-    image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
-    images = [f for f in source_dir.glob('*') if f.is_file() and f.suffix.lower() in image_extensions]
-    print(f"Found {len(images)} images in {source_dir}")
+    # Track the current model in pipeline
+    current_model_path = base_model_path
 
-    if len(images) == 0:
-        print("[ERROR] No images found in input directory.\
-            Please add images to automl_workspace/data_pipeline/input/")
+    print(" --- Step 1: Validating images in input folder --- ")
+    # 1. Validate images in input folder
+    try:
+        validate_input_images(input_dir=source_dir)
+    except ValueError as e:
+        print(f"[ERROR] {e}")
         return
 
     print("-----------------------------------------------\n")
     print(" --- Step 2: Generating YOLO prelabelling --- ")
-    
+
     # 2. Generate predictions for raw images
     generate_yolo_prelabelling(
         raw_dir=source_dir,
         output_dir=prelabelled_dir / "yolo",
-        model_path=model_path,
+        model_path=base_model_path,
         config=config
     )
-    
+
     print("-----------------------------------------------\n")
     print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
 
@@ -155,8 +171,8 @@ def main():
     print(" --- Step 5: Human intervention --- ")
 
     # 5. Human intervention
-    if args.skip_human_review:
-        print("[Info] Skipping human review and continuing with automated pipeline...")
+    if skip_human_review:
+        print("[Info] Human review is disabled, skipping...")
     else:
         from dotenv import load_dotenv
         load_dotenv()
@@ -189,61 +205,80 @@ def main():
     print(" --- Step 7: Model training --- ")
 
     # 7. Model training
-    prepare_training_data(config)
-    model_path = train_model(train_config)
+    if skip_training:
+        print("[Info] Training is disabled, skipping...")
+    else:
+        prepare_training_data(config)
+        trained_model_path = train_model(train_config)
+        current_model_path = trained_model_path
 
     print("-----------------------------------------------\n")
     print(" --- Step 8: Model Distillation --- ")
 
     # 8. Model Distillation
-    # Define distillation hyperparameters
-    distillation_hyperparams = {
-        "lambda_distillation": 1.0,
-        "lambda_detection": 1.0,
-        "lambda_dist_ciou": 1.0,
-        "lambda_dist_kl": 1.0,
-        "temperature": 2.0
-    }
-    
-    # Start distillation process
-    start_distillation(
-        device=config.get("torch_device", "cpu") if config.get("torch_device", "cpu") else detect_device(),
-        base_dir=SCRIPT_DIR,
-        img_dir=distillation_dir / "distillation_dataset",
-        frozen_layers=10,  # Freeze backbone layers
-        save_checkpoint_every=25,
-        hyperparams=distillation_config.get("distillation_hyperparams", distillation_hyperparams),
-        resume_checkpoint=None,  # Can be set to resume from a checkpoint if needed
-        output_dir=distilled_output_dir,
-        final_model_dir=distilled_output_dir / "latest",
-        log_level="batch",
-        debug=False,
-        distillation_config=distillation_config,
-        pipeline_config=config
-    )
-    shutil.rmtree(distillation_dir / "DELETE_ME")
-    
-    
-    # Get the path to the distilled model
-    distilled_model_path = distilled_output_dir / "latest" / "model.pt"
+    if skip_distillation:
+        print("[Info] Distillation is disabled, skipping...")
+    else:
+        # Define distillation hyperparameters
+        distillation_hyperparams = {
+            "lambda_distillation": 2.0,
+            "lambda_detection": 1.0,
+            "lambda_dist_ciou": 1.0,
+            "lambda_dist_kl": 2.0,
+            "temperature": 2.0
+        }
+
+        # Start distillation process using current model
+        start_distillation(
+            device=config.get("torch_device", "cpu") if config.get("torch_device", "cpu") else detect_device(),
+            base_dir=SCRIPT_DIR,
+            img_dir=distillation_dir / "distillation_dataset",
+            frozen_layers=10,  # Freeze backbone layers
+            save_checkpoint_every=25,
+            hyperparams=distillation_hyperparams,
+            resume_checkpoint=None,  # Can be set to resume from a checkpoint if needed
+            output_dir=distilled_output_dir,
+            final_model_dir=distilled_output_dir / "latest",
+            log_level="batch",
+            debug=False,
+            distillation_config=distillation_config,
+            pipeline_config=config
+        )
+
+        # Get the path to the distilled model
+        distilled_model_path = distilled_output_dir / "latest" / "model.pt"
+        current_model_path = distilled_model_path
 
     print("-----------------------------------------------\n")
     print(" --- Step 9: Model quantization --- ")
     # 9. Model quantization
-    quantized_model_path = quantize_model(
-        model_path=str(distilled_model_path),
-        quantize_config_path=str(quantize_config_path)
-    )
+    if skip_quantization:
+        print("[Info] Quantization is disabled, skipping...")
+    else:
+        quantized_model_path = quantize_model(
+            model_path=str(current_model_path),
+            quantize_config_path=str(quantize_config_path)
+        )
 
     print("-----------------------------------------------\n")
     print(" --- Step 10: Model registration --- ")
 
     # 10. Model registration
+    print("[Info] Registering models:")
+    print(f"Base model: {base_model_path}")
+    if trained_model_path:
+        print(f"Trained model: {trained_model_path}")
+    if distilled_model_path:
+        print(f"Distilled model: {distilled_model_path}")
+    if quantized_model_path:
+        print(f"Quantized model: {quantized_model_path}")
+
     register_models(
-        full_model=model_path,
+        full_model=trained_model_path,
         distilled_model=distilled_model_path,
         quantized_model=quantized_model_path
     )
+
 
 if __name__ == "__main__":
     main()
