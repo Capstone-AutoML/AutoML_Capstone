@@ -25,6 +25,7 @@ from datetime import datetime
 
 # Add parent directory to path
 sys.path.append("..")
+sys.path.append("../..")  # Add this to reach src/
 
 # Ultralytics imports
 from ultralytics import YOLO
