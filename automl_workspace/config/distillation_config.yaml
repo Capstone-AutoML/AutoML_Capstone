@@ -1,6 +1,6 @@
 ## DISTILLATION CONFIG
-teacher_model: "mock_io/model_registry/model/nano_trained_model.pt" # relative to main.py
-distillation_dataset: "mock_io/data/distillation" # relative to main.py
+teacher_model: "automl_workspace/model_registry/model/nano_trained_model.pt" # relative to main.py
+distillation_dataset: "automl_workspace/data_pipeline/distillation" # relative to main.py
 distillation_hyperparams:
   lambda_distillation: 1.0
   lambda_detection: 2.0
