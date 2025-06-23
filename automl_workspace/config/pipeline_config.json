@@ -1,4 +1,10 @@
 {
+  "process_options": {
+    "skip_human_review": false,
+    "skip_training": false,
+    "skip_distillation": false,
+    "skip_quantization": false
+  },
   "distillation_image_prop": 0.2,
   "torch_device": "cpu",
   "iou_threshold": 0.5,
