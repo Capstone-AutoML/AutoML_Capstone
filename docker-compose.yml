@@ -1,7 +1,7 @@
 services:
   capstone:
     image: celt313/automl_capstone:v0.0.2
-    shm_size: "4gb"
+    ipc: host
     container_name: automl_capstone
     working_dir: /app
     entrypoint: bash
