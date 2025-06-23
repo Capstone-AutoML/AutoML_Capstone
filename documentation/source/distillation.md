@@ -15,7 +15,7 @@ The distillation process is a knowledge transfer technique that trains a smaller
 
 - **Teacher Model**: A pre-trained YOLOv8 model that serves as the knowledge source
 - **Student Model**: A smaller YOLOv8 model (YOLOv8n) that will be trained to mimic the teacher
-- **Training Data**: Images and their corresponding annotations for wildfire detection
+- **Training Data**: Images and their corresponding annotations for wildfire detection (5 classes: FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI)
 - **Configuration**: Training parameters defined in `student_model_cfg.yaml`
 
 ### Processing
@@ -30,6 +30,7 @@ The distillation process follows these main steps:
 2. **Data Preparation**
    - Sets up training and validation datasets
    - Configures data loaders with appropriate batch sizes and augmentations
+   - Automatically creates dataset directories and YAML configuration files
 
 3. **Training Loop**
    - Implements knowledge distillation through a combination of:
@@ -37,6 +38,7 @@ The distillation process follows these main steps:
      - Distillation loss (to mimic teacher's predictions)
    - Uses gradient clipping and learning rate scheduling
    - Supports checkpointing for training resumption
+   - Includes validation during training with early stopping
 
 ### Outputs
 
@@ -49,26 +51,31 @@ The distillation process follows these main steps:
   - Gradient norms
 - **Checkpoints**: Model states saved at regular intervals
 - **Validation Results**: Performance metrics on the validation dataset
+- **Best Model**: Automatically saved model with highest validation fitness
 
 ### Key Features
 
 - Supports layer freezing for transfer learning
 - Implements both detection and distillation losses
 - Provides comprehensive logging and checkpointing
-- Includes validation during training
+- Includes validation during training with early stopping
 - Supports training resumption from checkpoints
+- Automatic best model tracking and restoration
+- Debug mode for detailed loss component analysis
+- NaN/Inf detection and handling for training stability
+- Flexible logging at batch or epoch level
 
 ## Distillation Method and Hyperparameter Justification
 
-### Method: Response-Based Distillation
+### Method: Response-Based Distillation with Top-K Selection
 
-This method distills the final outputs of the teacher model—bounding boxes and class confidence scores—into the student model. The key idea is to encourage the student to mimic the teacher's final decision-making process.
+This method distills the final outputs of the teacher model—bounding boxes and class confidence scores—into the student model. The key innovation is using **Top-K selection** instead of NMS filtering to identify the most confident teacher predictions for distillation.
 
--**Why NMS-filtered predictions?**
-  Applying Non-Max Suppression (NMS) on the teacher’s outputs ensures we only transfer confident and relevant predictions, which stabilizes learning and avoids overfitting to noisy outputs.
+**Why Top-K selection instead of NMS?**
+  Top-K selection provides more stable and predictable distillation targets by selecting the K most confident predictions from the teacher, regardless of spatial overlap. This approach ensures consistent distillation signal and avoids the complexity of NMS parameter tuning.
 
--**Why response-based?**
-  This avoids needing to align intermediate representations, which is especially useful when teacher and student have different depths or backbones. Instead, we treat the teacher’s predictions as refined pseudo-labels. This is a good baseline for distillation setup.
+**Why response-based?**
+  This avoids needing to align intermediate representations, which is especially useful when teacher and student have different depths or backbones. Instead, we treat the teacher's predictions as refined pseudo-labels. This is a good baseline for distillation setup.
 
 ### Loss Weight Hyperparameters
 
@@ -101,7 +108,7 @@ hyperparams = {
 
 4. **`lambda_dist_kl = 2.0`**
 
-   -A higher weight helps capture the teacher’s soft class probabilities, which encode "dark knowledge" (i.e., relative confidence between classes).
+   -A higher weight helps capture the teacher's soft class probabilities, which encode "dark knowledge" (i.e., relative confidence between classes).
    -Especially important for class imbalance scenarios or rare classes.
 
 5. **`temperature = 2.0`**
@@ -132,12 +139,14 @@ Each training step includes:
 
 1. Forward pass of student on batch images.
 2. Forward pass of teacher (in `eval` mode) to get stable predictions.
-3. Application of NMS to teacher outputs to extract confident targets.
-4. Matching student and teacher predictions.
+3. **Top-K selection** of teacher predictions based on confidence scores.
+4. Matching student and teacher predictions using the selected top-K indices.
 5. Computing the loss:
    -Detection loss using YOLOv8's native `v8DetectionLoss`
    -Distillation loss with CIoU (for box) and KL divergence (for class), using softened logits.
 6. Combining both using weighted sum and backpropagating.
+7. **Validation step** after each epoch with fitness calculation.
+8. **Best model tracking** and early stopping based on validation fitness.
 
 ### Loss Components
 
@@ -147,7 +156,7 @@ Each training step includes:
   -Distribution Focal Loss (DFL) for box refinement
 
 -**Distillation Loss**
-  -**Box:** CIoU between student and teacher predictions
+  -**Box:** CIoU between student and teacher predictions (top-K selected)
   -**Class:** KL divergence between softened logits (student vs. teacher)
   -Combined via `lambda_distillation * (λ_ciou * ciou_loss + λ_kl * kl_loss)`
 
@@ -161,19 +170,34 @@ total_loss = (
 )
 ```
 
+### Top-K Selection Process
+
+The distillation loss computation follows these steps:
+
+1. **Extract teacher confidence scores** from class predictions
+2. **Select top-K predictions** per image based on confidence
+3. **Gather corresponding student predictions** using the same indices
+4. **Compute losses** on the matched prediction pairs
+5. **Apply temperature scaling** for KL divergence computation
+
+This approach ensures that distillation focuses on the teacher's most confident predictions, providing cleaner learning signals to the student.
+
 ## Model Architecture Considerations
 
 -**Student Model:** YOLOv8n (lightweight and fast)
 -**Teacher Model:** Larger YOLOv8 variant (e.g., `m`, `l`, or `x`)
 -**Freezing:** You may freeze early layers of the student backbone to focus learning on the head. This is because the backbone is already pretrained features that are useful for the student to learn from.
 -**Anchor points, feature map resolution:** Kept consistent between student and teacher for compatibility
+-**Class count:** Configured for 5 wildfire-specific classes instead of COCO's 80 classes
 
 ## Training Stability Features
 
 -**Gradient Clipping (10.0):** Prevents instability from large gradients
 -**Monitoring for NaNs/Infs:** Training loop skips if numerical instability is detected
--**Loss logging per batch:** Helps isolate spikes or anomalies in distillation loss
+-**Loss logging per batch/epoch:** Helps isolate spikes or anomalies in distillation loss
 -**Temperature scaling:** Avoids overly confident logits that could destabilize KL divergence
+-**Model copying for validation:** Prevents training mode conflicts during validation
+-**Best model state tracking:** Maintains the best performing model throughout training
 
 ## Final Remarks
 
