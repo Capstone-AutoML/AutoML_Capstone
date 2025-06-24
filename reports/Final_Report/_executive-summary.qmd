@@ -1,5 +1,3 @@
-## Executive Summary
-
 Wildfires are becoming increasingly frequent and severe due to shifting climate patterns, making early detection a critical component of disaster response and mitigation. This project, conducted in partnership with Bayes Studio—a Vancouver-based startup specializing in environmental monitoring—addresses the need for a more scalable and automated approach to updating wildfire detection models deployed on edge devices.
 
 Bayes Studio's existing workflow for model development involves several manual steps, including labeling environmental imagery, fine-tuning a base object detection model, and compressing it for deployment. These steps are necessary but time-consuming, creating a bottleneck that limits the speed at which models can adapt to new data.
