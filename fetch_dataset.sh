@@ -29,7 +29,7 @@ DATA_ASSET_ID=262360637
 MODEL_ASSET_ID=259250340
 
 # Dataset
-if [ ! -d "$IMAGE_DIR" ]; then
+if [ ! -d "$IMAGE_DIR" ] || [ -z "$(ls -A "$IMAGE_DIR")" ]; then
     echo "📥 Downloading dataset..."
     mkdir -p "automl_workspace/data_pipeline/input"
     curl -L \
@@ -44,7 +44,7 @@ else
 fi
 
 # Model
-if [ ! -d "$MODEL_DIR" ]; then
+if [ ! -d "$MODEL_DIR" ] || [ -z "$(ls -A "$MODEL_DIR")" ]; then
     echo "📥 Downloading model weights..."
     mkdir -p "$MODEL_DIR"
     curl -L \
@@ -64,7 +64,7 @@ DISTILLATION_DIR="automl_workspace/data_pipeline/distillation/distillation_datas
 ZIP_DISTILLATION="automl_workspace/data_pipeline/distillation/distillation_dataset.zip"
 DISTILLATION_ASSET_ID=262351896
 
-if [ ! -d "$DISTILLATION_DIR" ]; then
+if [ ! -d "$DISTILLATION_DIR" ] || [ -z "$(ls -A "$DISTILLATION_DIR")" ]; then
     echo "📥 Downloading distillation dataset..."
     mkdir -p "automl_workspace/data_pipeline/distillation/"
     curl -L \

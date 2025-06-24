@@ -20,7 +20,8 @@ from pipeline import (
     train_model,
     start_distillation,
     quantize_model,
-    register_models
+    register_models,
+    clean_pipeline_workspace
 )
 from directory_setup import create_automl_workspace
 from utils import load_config, prepare_training_data, detect_device
@@ -278,6 +279,11 @@ def main():
         distilled_model=distilled_model_path,
         quantized_model=quantized_model_path
     )
+
+    print("-----------------------------------------------\n")
+    print(" --- Step 11: Final Cleanup and Archival --- ")
+    clean_pipeline_workspace(data_pipeline_dir, master_dataset_dir)
+
 
 
 if __name__ == "__main__":
