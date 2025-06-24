@@ -1,11 +1,12 @@
 The input to the pipeline consists of image files in standard formats such as `.jpg`, paired with YOLO-formatted `.txt` label files. 
 Each label file corresponds to a single image and contains one line per object instance. 
 These lines specify the object’s class ID and normalized bounding box coordinates in the following format: `x_center`, `y_center`, `width`, `height`. 
-For example: `1 0.757593 0.34663 0.06101 0.3655`.
+For example: `"1 0.757593 0.34663 0.06101 0.3655"`.
 
 This line represents an object of class ID 1 with a bounding box centered at (0.757593, 0.34663) and a normalized width and height of 0.06101 and 0.3655, respectively.
 
 The object detection task focuses on five relevant classes:
+
 1. Fire  
 2. Smoke  
 3. Lightning  
@@ -14,9 +15,4 @@ The object detection task focuses on five relevant classes:
 
 These categories were selected based on their relevance to early wildfire detection and response.
 
-In terms of volume, the partner anticipates receiving approximately 500 new images per month. This stream of incoming data forms the basis for the pipeline’s three core stages:  
-(1) semi-automated labeling supported by a dual-model system and human-in-the-loop review,  
-(2) data augmentation to increase class and image diversity, and  
-(3) re-training of the base detection model on the updated dataset.
-
-This setup ensures that the model can continue to adapt to new environmental conditions and remain effective over time.
+In terms of volume, the partner anticipates receiving approximately 500 new images per month. This stream of incoming data forms the basis for the pipeline’s three core stages.

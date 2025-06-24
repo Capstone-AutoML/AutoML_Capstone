@@ -1,8 +1,8 @@
-Our AutoML pipeline is designed for wildfire object detection, with a focus on automation, accuracy, and efficiency. The system continuously processes new data and improves model performance through an iterative loop of labeling, training, distillation, and quantization. Below is a high-level summary of the core components:
+Our AutoML pipeline is designed for wildfire object detection, with a focus on automation, configurability, and efficiency. The system continuously processes new data and improves model performance through an iterative loop of labeling, training, distillation, and quantization. Below is a high-level summary of the core components:
 
 ### End-to-End Pipeline Flow
 
-![Pipeline Overview Diagram](img/pipeline_overview.png){width="100%"}
+![Pipeline Overview Diagram](img/pipeline_overview.png){width="100%"} 
 
 ### Pipeline Stages
 

@@ -5,8 +5,8 @@
    While large object detection models can achieve high accuracy, they often require significant computational resources that are impractical for real-time wildfire detection on edge devices. Knowledge distillation addresses this challenge by transferring the expertise of a larger, more capable teacher model to a smaller, more efficient student model. This process enables faster inference times while maintaining detection accuracy, making the model suitable for deployment in resource-constrained environments.
 
 2. **Input**
-   - Teacher model: The latest fine-tuned YOLOv8 model from the Model Training & Finetuning step, which has demonstrated strong performance in wildfire detection. This model should be larger than the YOLOv8 nano model.
-   - Student model: A smaller YOLOv8n architecture model initialized with pretrained weights from COCO 80 classes.
+   - Teacher model: The latest fine-tuned YOLOv8 model from the fine-tuning step, which has demonstrated strong performance in wildfire detection. This model should be larger than the YOLOv8 nano model.
+   - Student model: A smaller YOLOv8n architecture model initialized with pre-trained weights from COCO 80 classes.
    - Distillation dataset with 5 classes (FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI)
    - The configuration file `distillation_config.yaml` specifying teacher model path, dataset path, and distillation parameters/hyperparameters.
 
@@ -38,4 +38,4 @@
 
 5. **Impact**
 
-   Knowledge distillation provides a practical solution for deploying wildfire detection models by significantly reducing model size and computational load. While some performance drop is inevitable during the distillation process, effective knowledge transfer from the teacher model helps minimize this loss. The resulting model achieves faster inference, making it well-suited for real-time applications on edge devices such as drones and monitoring cameras.
+   Knowledge distillation provides a practical solution for deploying wildfire detection models by significantly reducing model size and computational load. While some performance drop is inevitable during the distillation process, effective knowledge transfer from the teacher model helps minimize this loss. The resulting model achieves faster inference, making it well-suited for real-time applications on edge devices.

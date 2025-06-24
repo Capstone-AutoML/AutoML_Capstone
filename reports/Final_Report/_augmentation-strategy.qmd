@@ -25,9 +25,8 @@ Augmentation behavior is controlled via the `augmentation_config.json` file, whi
   - Gaussian blur (with a configurable limit)  
   - Gaussian noise  
   - Rotations  
-  - Conversion to grayscale  
-- **Step 4**: Update the bounding boxes to reflect the applied transformations. This is handled automatically by the `Albumentations` library.
-- **Note**: Images without any objects of interest are excluded from augmentation.
+  - Conversion to grayscale
+- **Step 4**: Update the bounding boxes to reflect the applied transformations. This is handled automatically by the `Albumentations` library. Images without any objects of interest are excluded from augmentation.
 - **Step 5**: Save the augmented images along with their updated annotations.
 
 4. **Output**
