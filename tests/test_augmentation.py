@@ -78,7 +78,7 @@ def test_augment_images_creates_augmented_files(tmp_path, sample_config, temp_im
     matched_pairs = temp_image_and_json
     transform = build_augmentation_transform(sample_config)
 
-    augment_images(matched_pairs, transform, output_img_dir, output_json_dir, num_augmentations=2)
+    augment_images(matched_pairs, transform, output_img_dir, output_json_dir, num_augmentations=2, config=sample_config)
 
     images = list(output_img_dir.glob("*.jpg"))
     labels = list(output_json_dir.glob("*.json"))

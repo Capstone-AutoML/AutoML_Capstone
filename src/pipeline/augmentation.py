@@ -39,7 +39,8 @@ def augment_images(matched_pairs: list,
                    transform: A.Compose, 
                    output_img_dir: Path, 
                    output_json_dir: Path, 
-                   num_augmentations: int
+                   num_augmentations: int,
+                   config: dict
     ) -> None:
     """Applies augmentations to each image N times and saves results.
     Also saves un-augmented images with no predictions into separate folders.
@@ -50,6 +51,9 @@ def augment_images(matched_pairs: list,
     output_img_dir.mkdir(parents=True, exist_ok=True)
     output_json_dir.mkdir(parents=True, exist_ok=True)
     no_pred_img_dir.mkdir(parents=True, exist_ok=True)
+
+    # Get base seed from augmentation config file
+    base_seed = config.get("seed", None)
 
     for json_path, image_path in matched_pairs:
         image = cv2.imread(str(image_path))
@@ -70,6 +74,11 @@ def augment_images(matched_pairs: list,
             continue
 
         for i in range(num_augmentations):
+
+            # If base seed is set, adjust for iteration
+            if base_seed is not None:
+                transform.set_random_seed(base_seed + i * 2)
+
             augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
             aug_image = augmented["image"]
             aug_bboxes = augmented["bboxes"]
@@ -121,7 +130,7 @@ def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
     ]   
 
     transform = build_augmentation_transform(config)
-    augment_images(matched_pairs, transform, output_img_dir, output_json_dir, num_augmentations)
+    augment_images(matched_pairs, transform, output_img_dir, output_json_dir, num_augmentations, config)
 
     print(f"Found {len(json_files)} label files")
     print(f"Found {len(image_lookup)} image stems")
