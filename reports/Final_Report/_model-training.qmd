@@ -20,7 +20,7 @@ Training hyperparameters including settings like the number of epochs, learning 
 - **Step 4**: Save the updated model in the model registry using a timestamped filename.
 - **Step 5**: Store metadata, including training date, configuration settings, and performance results, in a corresponding metadata file.
 
-4. **Workflow**
+4. **Output**
 
 The training stage produces a fine-tuned YOLOv8 model that reflects the latest available data. The model is saved with a filename that follows the pattern `[YYYY-MM-DD]_[HH_MM]_updated_yolo.pt`, and is stored in the model registry. A metadata file with the same name records training details and performance metrics to support versioning and reproducibility.
 
