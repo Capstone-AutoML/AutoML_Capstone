@@ -1,33 +1,29 @@
-### Training (Outline)
+## Model Training & Fine Tuning
 
-1. **Motivation**
-   - Once high-quality labeled and augmented data is available, the model must be re-trained to incorporate new information.
-   - Continuous re-training allows the detection model to adapt to changing wildfire patterns and newly collected data.
-   - Our goal is to automate the fine-tuning of a base YOLOv8 model using the most recent dataset, with minimal manual intervention.
+### Motivation
 
-2. **Input**
-   - Augmented labeled images and corresponding annotation files. The non-augmented images with no labels are also used as true negative.
-   - A pre-trained YOLOv8 base model, typically selected from:
-     - The latest updated model in the model registry, or path to any compatible model (YOLO model) the user chooses
-     - Or a fallback initial base model (e.g., `nano_trained_model.pt`)
-   - Training hyperparameters (e.g., epochs, learning rate, image size) are configured in `train_config.json`
-     - Any training argument compatible with YOLOv8 settings can be defined in the `train_config.json`
+Once labeled and augmented data is available, the detection model must be re-trained to incorporate new information. Continuous re-training enables the model to adapt to evolving wildfire conditions and the characteristics of newly collected data. The goal of this stage is to automate the fine-tuning of a base YOLOv8 model using the most recent dataset, minimizing the need for manual effort.
 
-3. **Workflow Steps**
-   - Step 1: Load training configuration and locate the most recent base model
-   - Step 2: Organize input data into train/val/test splits
-   - Step 3: Fine-tune the base YOLOv8 model using the prepared data and configuration
-     - Training is performed using the Ultralytics training API
-     - Includes logging of model performance
-   - Step 4: Save the updated model using a timestamped filename in the model registry folder
-   - Step 5: Store metadata (e.g., training date, config, performance) in the model registry folder with same name as the updated model.
+### Input
 
-4. **Output**
-   - A fine-tuned YOLOv8 model that incorporates the latest training data
-   - Model file saved with a naming pattern like: `[YYYY-MM-DD]_[HH_MM]_updated_yolo.pt`
-   - Corresponding metadata and training outputs stored alongside the model for tracking and reproducibility
+The training stage uses the full set of labeled images, including both augmented and non-augmented examples. Images without any labeled objects are also included as true negatives. The model to be fine-tuned is selected from the model registry. By default, this is the most recently updated model yolo model from previous iteration of the pipeline, though users can also specify a custom path or fall back to an initial base model such as `nano_trained_model.pt`.
 
-5. **Impact**
-   - Enables fine-tuning as new data becomes available monthly
-   - Ensures the detection model stays current and improves over time
-   - Modular structure allows partners to adjust hyperparameters or retrain older models as needed
+Training hyperparameters including settings like the number of epochs, learning rate, and input image size—are defined in the `train_config.json` file. This configuration supports any training argument compatible with the YOLOv8 framework.
+
+### Workflow
+
+- **Step 1**: Load the training configuration and identify the most recent base model.
+- **Step 2**: Organize the data into training, validation, and test splits.
+- **Step 3**: Fine-tune the base YOLOv8 model using the prepared data and configuration settings.
+  - Training is conducted using the Ultralytics YOLOv8 training API.
+  - Performance metrics are logged during training.
+- **Step 4**: Save the updated model in the model registry using a timestamped filename.
+- **Step 5**: Store metadata, including training date, configuration settings, and performance results, in a corresponding metadata file.
+
+### Output
+
+The training stage produces a fine-tuned YOLOv8 model that reflects the latest available data. The model is saved with a filename that follows the pattern `[YYYY-MM-DD]_[HH_MM]_updated_yolo.pt`, and is stored in the model registry. A metadata file with the same name records training details and performance metrics to support versioning and reproducibility.
+
+### Impact
+
+This process enables regular fine-tuning as new data becomes available, helping ensure that the detection model remains accurate and up-to-date. The modular structure also allows users to experiment with different hyperparameters or revisit older models for retraining as needed. Over time, this approach supports continual improvement in model performance and maintainability.
