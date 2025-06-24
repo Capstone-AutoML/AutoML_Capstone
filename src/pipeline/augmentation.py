@@ -77,7 +77,7 @@ def augment_images(matched_pairs: list,
 
             # If base seed is set, adjust for iteration
             if base_seed is not None:
-                transform.set_seed(base_seed + i * 2)
+                transform.set_random_seed(base_seed + i * 2)
 
             augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
             aug_image = augmented["image"]
