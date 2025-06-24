@@ -32,7 +32,7 @@
 4. **Output**
 
    - Corrected label files (JSON), ready for training
-   - Results are versioned automatically for easy tracking
+   - The file names of Label Studio outputs are versioned with timestamps automatically for easy tracking
 
 5. **Impact**
 
