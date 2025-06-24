@@ -53,6 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -159,11 +160,11 @@
 <span class="sd">        str: Path to the saved trained model (.pt)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Define paths</span>
-    <span class="n">model_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/model&quot;</span><span class="p">)</span>
+    <span class="n">model_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/model_registry/model&quot;</span><span class="p">)</span>
     <span class="n">model_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">user_model_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;model_path&quot;</span><span class="p">)</span>
-    <span class="n">initial_model_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;initial_model_path&quot;</span><span class="p">,</span> <span class="s2">&quot;mock_io/model_registry/model/nano_trained_model.pt&quot;</span><span class="p">)</span>
+    <span class="n">initial_model_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;initial_model_path&quot;</span><span class="p">,</span> <span class="s2">&quot;automl_workspace/model_registry/model/nano_trained_model.pt&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">user_model_path</span><span class="p">:</span>
         <span class="n">model_path</span> <span class="o">=</span> <span class="n">user_model_path</span>

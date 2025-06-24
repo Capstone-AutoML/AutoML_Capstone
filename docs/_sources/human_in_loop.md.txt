@@ -38,20 +38,34 @@ conda activate human_review_env
 
 ---
 
-### 2. Directory Setup
+### 2. Pipeline Configuration
+
+Configure human review in `automl_workspace/config/pipeline_config.json`:
+
+```json
+{
+  "process_options": {
+    "skip_human_review": false // Set to true to skip human review
+  }
+}
+```
+
+---
+
+### 3. Directory Setup
 
 The following folders are initialized automatically if not present:
 
 ```bash
-mock_io/
-├── data/
-│   ├── mismatched/
-│   │   ├── pending/           # Place raw YOLO output JSONs here
-│   │   └── reviewed_results/  # Human-reviewed output ends up here
-│   ├── raw/
-│   │   └── images/            # All referenced images
-│   └── ls_tasks/              # Temporary task JSONs for import
-.env                           # Put your API key here
+AutoML_Capstone/
+├── .env                   # Put your API key here
+└── automl_workspace/data_pipeline/
+    ├── input/             # All referenced images
+    ├── label_studio/
+    │   ├── pending/       # Mismatches (raw YOLO output JSONs)
+    │   ├── tasks/         # Temporary task JSONs for import
+    │   └── results/       # Human-reviewed output ends up here
+    └── labeled/           # Final labeled data
 ```
 
 ## Workflow
@@ -77,6 +91,12 @@ This makes it easy to resume or rerun reviews without duplicating work.
 ---
 
 ### 2. Main Functions
+
+#### `_initialize_json_files()`
+
+- Scans pending directory for new JSON files
+- Sets `label_status = 0` for files without status field
+- Prepares files for import to Label Studio
 
 #### `_generate_ls_tasks()`
 
@@ -106,18 +126,38 @@ This makes it easy to resume or rerun reviews without duplicating work.
 - Saves versioned result file: `review_results_YYYYMMDD_HHMMSS.json`
 - Updates `label_status` to `2` for completed tasks
 
+#### `transform_reviewed_results_to_labeled()`
+
+- Converts Label Studio export format back to original JSON structure
+- Moves completed files from `pending/` to `labeled/` directory
+- Enables automatic pipeline continuation to training step
+
 ---
 
-## Full Review Pipeline Usage
+## Example Usage
 
 ### 1. Place Files for Review
 
-- Put JSON files in `mock_io/data/mismatched/pending/`
-- Ensure referenced images exist in `mock_io/data/raw/images/`
+- Mismatched JSON files are automatically placed in `automl_workspace/data_pipeline/label_studio/pending/`
+- Ensure referenced images exist in `automl_workspace/data_pipeline/input/`
 
-### 2. Run the Review Pipeline
+### 2. Run the Review Process
 
-Run the full review pipeline via:
+**Option A**: Run the full AutoML pipeline with human review enabled
+
+```json
+// Configure in pipeline_config.json
+"process_options": {
+  "skip_human_review": false
+}
+```
+
+```bash
+# Run main pipeline
+python src/main.py
+```
+
+**Option B**: Run human review independently
 
 ```bash
 # Run without export
@@ -154,6 +194,6 @@ python src/pipeline/human_intervention.py --export
 }
 ```
 
-- `image_path`: Must point to a valid file in `raw/images`
 - `bbox`: Format is `[x_min, y_min, x_max, y_max]` in pixels
-- Final reviewed results will be saved under `mock_io/data/mismatched/reviewed_results`
+- Final reviewed results will be saved under `automl_workspace/data_pipeline/label_studio/results/`
+- Processed files automatically move to `automl_workspace/data_pipeline/labeled/` for training

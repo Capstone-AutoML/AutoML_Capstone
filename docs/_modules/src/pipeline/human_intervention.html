@@ -53,6 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -98,12 +99,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
 
 
-<span class="n">mismatch_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/mismatched&quot;</span><span class="p">)</span>
-<span class="n">mismatch_pending_dir</span> <span class="o">=</span> <span class="n">mismatch_dir</span> <span class="o">/</span> <span class="s2">&quot;pending&quot;</span>
-<span class="n">reviewed_dir</span> <span class="o">=</span> <span class="n">mismatch_dir</span> <span class="o">/</span> <span class="s2">&quot;reviewed_results&quot;</span>
-<span class="n">image_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/raw/images&quot;</span><span class="p">)</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/ls_tasks&quot;</span><span class="p">)</span>
-<span class="n">labeled_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/labeled&quot;</span><span class="p">)</span>
+<span class="n">label_studio_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/label_studio&quot;</span><span class="p">)</span>
+<span class="n">mismatch_pending_dir</span> <span class="o">=</span> <span class="n">label_studio_dir</span> <span class="o">/</span> <span class="s2">&quot;pending&quot;</span>
+<span class="n">reviewed_dir</span> <span class="o">=</span> <span class="n">label_studio_dir</span> <span class="o">/</span> <span class="s2">&quot;results&quot;</span>
+<span class="n">image_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/input&quot;</span><span class="p">)</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="n">label_studio_dir</span> <span class="o">/</span> <span class="s2">&quot;tasks&quot;</span>
+<span class="n">labeled_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/labeled&quot;</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_directories</span><span class="p">():</span>
@@ -114,7 +115,7 @@
 <span class="sd">    Called only when the script is actually running.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">directories</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">mismatch_dir</span><span class="p">,</span>
+        <span class="n">label_studio_dir</span><span class="p">,</span>
         <span class="n">mismatch_pending_dir</span><span class="p">,</span>
         <span class="n">reviewed_dir</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">,</span>
@@ -395,7 +396,7 @@
 <span class="sd">        bool: True if Label Studio is running successfully, False otherwise</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Get absolute path to data directory</span>
-    <span class="n">data_dir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+    <span class="n">data_dir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
 
     <span class="c1"># Check if Label Studio is already running</span>
     <span class="k">try</span><span class="p">:</span>
@@ -536,81 +537,81 @@
         <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_connect_local_storage</span><span class="p">(</span><span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-                           <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                           <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Connect a Label Studio project to the local file system.</span>
+<span class="c1"># def _connect_local_storage(base_url: str, headers: Dict[str, str],</span>
+<span class="c1">#                            project_id: int, project_name: str,</span>
+<span class="c1">#                            output_dir: str) -&gt; Optional[int]:</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Connect a Label Studio project to the local file system.</span>
 
-<span class="sd">    This sets up or reuses a local storage so the project can access images</span>
-<span class="sd">    from a specified directory. It then triggers a sync to load files.</span>
+<span class="c1">#     This sets up or reuses a local storage so the project can access images</span>
+<span class="c1">#     from a specified directory. It then triggers a sync to load files.</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        base_url: Label Studio server URL.</span>
-<span class="sd">        headers: HTTP headers with the API token.</span>
-<span class="sd">        project_id: ID of the Label Studio project.</span>
-<span class="sd">        project_name: Name of the project (used as the storage title).</span>
-<span class="sd">        output_dir: Path to the local directory with image files.</span>
+<span class="c1">#     Args:</span>
+<span class="c1">#         base_url: Label Studio server URL.</span>
+<span class="c1">#         headers: HTTP headers with the API token.</span>
+<span class="c1">#         project_id: ID of the Label Studio project.</span>
+<span class="c1">#         project_name: Name of the project (used as the storage title).</span>
+<span class="c1">#         output_dir: Path to the local directory with image files.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        int: The storage ID if successful, otherwise None.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># Check if storage already exists</span>
-        <span class="n">storage_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/storages/localfiles?project=</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span>
-        <span class="p">)</span>
-        <span class="n">storage_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-        <span class="n">storages</span> <span class="o">=</span> <span class="n">storage_response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<span class="c1">#     Returns:</span>
+<span class="c1">#         int: The storage ID if successful, otherwise None.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     try:</span>
+<span class="c1">#         # Check if storage already exists</span>
+<span class="c1">#         storage_response = requests.get(</span>
+<span class="c1">#             f&quot;{base_url}/api/storages/localfiles?project={project_id}&quot;,</span>
+<span class="c1">#             headers=headers</span>
+<span class="c1">#         )</span>
+<span class="c1">#         storage_response.raise_for_status()</span>
+<span class="c1">#         storages = storage_response.json()</span>
 
-        <span class="k">if</span> <span class="n">storages</span><span class="p">:</span>
-            <span class="n">storage_id</span> <span class="o">=</span> <span class="n">storages</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Using existing storage (ID: </span><span class="si">{</span><span class="n">storage_id</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">document_root</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Debug] Setting up storage with path: </span><span class="si">{</span><span class="n">document_root</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="c1">#         if storages:</span>
+<span class="c1">#             storage_id = storages[0][&quot;id&quot;]</span>
+<span class="c1">#             print(f&quot;[✓] Using existing storage (ID: {storage_id})&quot;)</span>
+<span class="c1">#         else:</span>
+<span class="c1">#             document_root = str(Path(&quot;mock_io/data&quot;).resolve()).replace(&quot;\\&quot;, &quot;/&quot;)</span>
+<span class="c1">#             print(f&quot;[Debug] Setting up storage with path: {document_root}&quot;)</span>
 
-            <span class="c1"># Create storage pointing to the parent directory</span>
-            <span class="n">storage_data</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">&quot;project&quot;</span><span class="p">:</span> <span class="n">project_id</span><span class="p">,</span>
-                <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">project_name</span><span class="si">}</span><span class="s2"> Local Storage&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">document_root</span><span class="p">,</span>  <span class="c1"># Keep this at mock_io/data level</span>
-                <span class="s2">&quot;regex_filter&quot;</span><span class="p">:</span> <span class="s2">&quot;.*</span><span class="se">\\</span><span class="s2">.(jpg|jpeg|png)$&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;use_blob_urls&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-                <span class="s2">&quot;presign&quot;</span><span class="p">:</span> <span class="kc">False</span>
-            <span class="p">}</span>
+<span class="c1">#             # Create storage pointing to the parent directory</span>
+<span class="c1">#             storage_data = {</span>
+<span class="c1">#                 &quot;project&quot;: project_id,</span>
+<span class="c1">#                 &quot;title&quot;: f&quot;{project_name} Local Storage&quot;,</span>
+<span class="c1">#                 &quot;path&quot;: document_root,  # Keep this at mock_io/data level</span>
+<span class="c1">#                 &quot;regex_filter&quot;: &quot;.*\\.(jpg|jpeg|png)$&quot;,</span>
+<span class="c1">#                 &quot;use_blob_urls&quot;: False,</span>
+<span class="c1">#                 &quot;presign&quot;: False</span>
+<span class="c1">#             }</span>
 
-            <span class="n">storage_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/storages/localfiles&quot;</span><span class="p">,</span>
-                <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> 
-                <span class="n">json</span><span class="o">=</span><span class="n">storage_data</span>
-            <span class="p">)</span>
+<span class="c1">#             storage_response = requests.post(</span>
+<span class="c1">#                 f&quot;{base_url}/api/storages/localfiles&quot;,</span>
+<span class="c1">#                 headers=headers, </span>
+<span class="c1">#                 json=storage_data</span>
+<span class="c1">#             )</span>
 
-            <span class="c1"># Print full response for debugging</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Debug] Storage setup response: </span><span class="si">{</span><span class="n">storage_response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">storage_response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">&gt;=</span> <span class="mi">400</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Debug] Error response: </span><span class="si">{</span><span class="n">storage_response</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Warning] Could not set up local storage. Make sure Label Studio is running with:&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Warning] LOCAL_FILES_SERVING_ENABLED=true label-studio start&quot;</span><span class="p">)</span>
-                <span class="k">return</span> <span class="kc">None</span>
+<span class="c1">#             # Print full response for debugging</span>
+<span class="c1">#             print(f&quot;[Debug] Storage setup response: {storage_response.status_code}&quot;)</span>
+<span class="c1">#             if storage_response.status_code &gt;= 400:</span>
+<span class="c1">#                 print(f&quot;[Debug] Error response: {storage_response.text}&quot;)</span>
+<span class="c1">#                 print(&quot;[Warning] Could not set up local storage. Make sure Label Studio is running with:&quot;)</span>
+<span class="c1">#                 print(&quot;[Warning] LOCAL_FILES_SERVING_ENABLED=true label-studio start&quot;)</span>
+<span class="c1">#                 return None</span>
 
-            <span class="n">storage_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-            <span class="n">storage_id</span> <span class="o">=</span> <span class="n">storage_response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[✓] Created new storage (ID: </span><span class="si">{</span><span class="n">storage_id</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<span class="c1">#             storage_response.raise_for_status()</span>
+<span class="c1">#             storage_id = storage_response.json()[&quot;id&quot;]</span>
+<span class="c1">#             print(f&quot;[✓] Created new storage (ID: {storage_id})&quot;)</span>
 
-        <span class="c1"># Sync storage</span>
-        <span class="n">sync_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/storages/localfiles/</span><span class="si">{</span><span class="n">storage_id</span><span class="si">}</span><span class="s2">/sync&quot;</span><span class="p">,</span>
-            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span>
-        <span class="p">)</span>
-        <span class="n">sync_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[✓] Storage sync initiated&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">storage_id</span>
+<span class="c1">#         # Sync storage</span>
+<span class="c1">#         sync_response = requests.post(</span>
+<span class="c1">#             f&quot;{base_url}/api/storages/localfiles/{storage_id}/sync&quot;,</span>
+<span class="c1">#             headers=headers</span>
+<span class="c1">#         )</span>
+<span class="c1">#         sync_response.raise_for_status()</span>
+<span class="c1">#         print(&quot;[✓] Storage sync initiated&quot;)</span>
+<span class="c1">#         return storage_id</span>
 
-    <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Error] Failed to set up storage: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
+<span class="c1">#     except requests.RequestException as e:</span>
+<span class="c1">#         print(f&quot;[Error] Failed to set up storage: {e}&quot;)</span>
+<span class="c1">#         return None</span>
 
 
 <div class="viewcode-block" id="setup_label_studio">
@@ -646,12 +647,12 @@
     <span class="c1"># Configure labeling interface</span>
     <span class="n">_configure_interface</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">project_id</span><span class="p">)</span>
 
-    <span class="c1"># Setup storage</span>
-    <span class="n">storage_id</span> <span class="o">=</span> <span class="n">_connect_local_storage</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">project_id</span><span class="p">,</span> <span class="n">project_name</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+    <span class="c1"># # Skip storage setup (base64-encoded images)</span>
+    <span class="c1"># storage_id = _connect_local_storage(base_url, headers, project_id, project_name, output_dir)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">&quot;project_id&quot;</span><span class="p">:</span> <span class="n">project_id</span><span class="p">,</span>
-        <span class="s2">&quot;storage_id&quot;</span><span class="p">:</span> <span class="n">storage_id</span><span class="p">,</span>
+        <span class="s2">&quot;storage_id&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s2">&quot;project_url&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/data&quot;</span>
     <span class="p">}</span></div>
 
@@ -911,9 +912,9 @@
 <span class="sd">        int: Number of files transformed</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">labeled_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">labeled_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/labeled&quot;</span><span class="p">)</span>
+        <span class="n">labeled_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/labeled&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">image_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">image_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/raw/images&quot;</span><span class="p">)</span>
+        <span class="n">image_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/input&quot;</span><span class="p">)</span>
     <span class="n">transformed_count</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="c1"># Transform results to original format</span>

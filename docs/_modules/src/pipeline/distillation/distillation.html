@@ -53,6 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -87,6 +88,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 <span class="c1"># Set environment variable for MPS fallback</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PYTORCH_ENABLE_MPS_FALLBACK&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span>
 
@@ -106,22 +109,24 @@
 
 <span class="c1"># Add parent directory to path</span>
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;..&quot;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;../..&quot;</span><span class="p">)</span>  <span class="c1"># Add this to reach src/</span>
 
 <span class="c1"># Ultralytics imports</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">YAML</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.models.yolo.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">DetectionModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.cfg</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_cfg</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">v8DetectionLoss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">v8DetectionLoss</span><span class="p">,</span> <span class="n">BboxLoss</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.data.build</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_yolo_dataset</span><span class="p">,</span> <span class="n">build_dataloader</span><span class="p">,</span> <span class="n">YOLODataset</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.models.yolo.detect.train</span><span class="w"> </span><span class="kn">import</span> <span class="n">DetectionTrainer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.models.yolo.detect.val</span><span class="w"> </span><span class="kn">import</span> <span class="n">DetectionValidator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">bbox_iou</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils.tal</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_anchors</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils.ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">non_max_suppression</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils.torch_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">one_cycle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics.utils.torch_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">one_cycle</span><span class="p">,</span> <span class="n">EarlyStopping</span><span class="p">,</span> <span class="n">ModelEMA</span>
 
 <span class="c1"># Custom modules</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">src.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">detect_device</span><span class="p">,</span> <span class="n">create_distill_yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">detect_device</span><span class="p">,</span> <span class="n">create_distill_yaml</span>
 
 <span class="n">SCRIPT_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
 
@@ -271,122 +276,218 @@
     <span class="k">return</span> <span class="n">pred_concatted</span></div>
 
 
-<div class="viewcode-block" id="compute_distillation_loss">
-<a class="viewcode-back" href="../../../../api_reference/distillation.html#src.pipeline.distillation.distillation.compute_distillation_loss">[docs]</a>
+<span class="c1">## This is the original distillation loss function, but it is not used in the current implementation</span>
+<span class="c1">## Distillation loss with NMS preprocessing</span>
+<span class="c1"># def compute_distillation_loss(</span>
+<span class="c1">#     student_preds: torch.Tensor, </span>
+<span class="c1">#     teacher_preds: torch.Tensor, </span>
+<span class="c1">#     args: Dict[str, Any], </span>
+<span class="c1">#     nc: int = 80, </span>
+<span class="c1">#     device: str = &quot;cpu&quot;, </span>
+<span class="c1">#     eps: float = 1e-7,</span>
+<span class="c1">#     reduction: Literal[&quot;batchmean&quot;, &quot;sum&quot;] = &quot;batchmean&quot;,</span>
+<span class="c1">#     hyperparams: Dict[str, float] = {</span>
+<span class="c1">#         &quot;lambda_dist_ciou&quot;: 1.0,</span>
+<span class="c1">#         &quot;lambda_dist_kl&quot;: 2.0</span>
+<span class="c1">#     }</span>
+<span class="c1"># ) -&gt; torch.Tensor:</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Compute the distillation loss between the student and teacher predictions.</span>
+    
+<span class="c1">#     Args:</span>
+<span class="c1">#         student_preds: The student predictions</span>
+<span class="c1">#         teacher_preds: The teacher predictions</span>
+<span class="c1">#         args: Configuration arguments</span>
+<span class="c1">#         nc: Number of classes</span>
+<span class="c1">#         device: Device to perform computations on</span>
+<span class="c1">#         eps: Small epsilon value for numerical stability</span>
+<span class="c1">#         reduction: Reduction method for the loss (&quot;batchmean&quot; or &quot;sum&quot;)</span>
+<span class="c1">#         hyperparams: Dictionary of hyperparameters for loss functions</span>
+        
+<span class="c1">#     Returns:</span>
+<span class="c1">#         Total distillation loss</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     if not isinstance(student_preds, torch.Tensor) or not isinstance(teacher_preds, torch.Tensor):</span>
+<span class="c1">#         raise ValueError(&quot;student_preds and teacher_preds must be tensors&quot;)</span>
+
+<span class="c1">#     batch_size = student_preds.shape[0]</span>
+<span class="c1">#     dtype = teacher_preds.dtype</span>
+<span class="c1">#     kldivloss = nn.KLDivLoss(reduction=reduction, log_target=True)</span>
+<span class="c1">#     # eps = torch.finfo().eps</span>
+<span class="c1">#     eps = 1e-7</span>
+
+<span class="c1">#     # Split the concatenated bounding boxes and class scores</span>
+<span class="c1">#     s_bbox, s_cls_logits = torch.split(student_preds, (4, nc), dim=1)</span>
+<span class="c1">#     s_cls_sigmoid = torch.sigmoid(s_cls_logits)</span>
+<span class="c1">#     assert torch.all(s_cls_sigmoid &gt;= 0) and torch.all(s_cls_sigmoid &lt;= 1), &quot;s_cls_sigmoid should be sigmoid, not logits&quot;</span>
+<span class="c1">#     teacher_preds_full = teacher_preds.clone()</span>
+<span class="c1">#     assert torch.all(teacher_preds_full[:, 4:, :] &gt;= 0) and torch.all(teacher_preds_full[:, 4:, :] &lt;= 1), &quot;teacher_preds_full should be sigmoid, not logits&quot;</span>
+<span class="c1">#     student_preds_full = torch.cat((s_bbox, s_cls_sigmoid), dim=1)</span>
+    
+<span class="c1">#     common_nms_args = {</span>
+<span class="c1">#         &quot;conf_thres&quot;: args.get(&quot;conf&quot;, 0.25) if args.get(&quot;conf&quot;) else 0.25,</span>
+<span class="c1">#         &quot;iou_thres&quot;: args.get(&quot;iou&quot;, 0.7) if args.get(&quot;iou&quot;) else 0.7,</span>
+<span class="c1">#         &quot;classes&quot;: args.get(&quot;classes&quot;, None),</span>
+<span class="c1">#         &quot;agnostic&quot;: args.get(&quot;agnostic_nms&quot;, False) if args.get(&quot;agnostic_nms&quot;) else False,</span>
+<span class="c1">#         &quot;max_det&quot;: args.get(&quot;max_det&quot;, 300) if args else 300,</span>
+<span class="c1">#         &quot;nc&quot;: 0,</span>
+<span class="c1">#         &quot;return_idxs&quot;: True,</span>
+<span class="c1">#         &quot;max_time_img&quot;: 1</span>
+<span class="c1">#     }</span>
+
+<span class="c1">#     _, teacher_preds_final_idxs = non_max_suppression(</span>
+<span class="c1">#         prediction=teacher_preds_full,</span>
+<span class="c1">#         **common_nms_args,</span>
+<span class="c1">#     )</span>
+    
+<span class="c1">#     selected_student_raw_predictions_list = []</span>
+<span class="c1">#     selected_teacher_raw_predictions_list = []</span>
+
+<span class="c1">#     for i in range(batch_size):</span>
+<span class="c1">#         student_preds_for_image_i = student_preds_full[i, ...].transpose(0, 1)</span>
+<span class="c1">#         teacher_preds_for_image_i = teacher_preds_full[i, ...].transpose(0, 1)</span>
+<span class="c1">#         indices_to_select = teacher_preds_final_idxs[i]</span>
+        
+<span class="c1">#         if indices_to_select.numel() &gt; 0:</span>
+<span class="c1">#             selected_student_preds = student_preds_for_image_i[indices_to_select]</span>
+<span class="c1">#             selected_teacher_preds = teacher_preds_for_image_i[indices_to_select]</span>
+            
+<span class="c1">#             selected_student_raw_predictions_list.append(selected_student_preds)</span>
+<span class="c1">#             selected_teacher_raw_predictions_list.append(selected_teacher_preds)</span>
+
+<span class="c1">#     # get the actual batch size (batches with results)</span>
+<span class="c1">#     actual_batch_size = len(selected_student_raw_predictions_list)</span>
+<span class="c1">#     batch_box_regression_loss = torch.zeros(actual_batch_size, dtype=dtype)</span>
+<span class="c1">#     batch_cls_loss = torch.zeros(actual_batch_size, dtype=dtype)</span>
+    
+<span class="c1">#     for i in range(actual_batch_size):</span>
+            
+<span class="c1">#         tp, sp = selected_teacher_raw_predictions_list[i], selected_student_raw_predictions_list[i]</span>
+<span class="c1">#         s_bboxes, s_cls_sigmoid = torch.split(sp, (4, nc), dim=1)</span>
+<span class="c1">#         t_bboxes, t_cls_sigmoid = torch.split(tp, (4, nc), dim=1)</span>
+
+<span class="c1">#         assert torch.all(s_bboxes[..., 0] &lt;= s_bboxes[..., 2]), &quot;x1 coordinate should be less than x2 coordinate&quot;</span>
+<span class="c1">#         assert torch.all(t_bboxes[..., 0] &lt;= t_bboxes[..., 2]), &quot;x1 coordinate should be less than x2 coordinate&quot;</span>
+<span class="c1">#         assert torch.all(s_bboxes[..., 1] &lt;= s_bboxes[..., 3]), &quot;y1 coordinate should be less than y2 coordinate&quot;</span>
+<span class="c1">#         assert torch.all(t_bboxes[..., 1] &lt;= t_bboxes[..., 3]), &quot;y1 coordinate should be less than y2 coordinate&quot;</span>
+
+<span class="c1">#         ciou_loss = complete_box_iou_loss(s_bboxes, t_bboxes, reduction=&quot;mean&quot;)</span>
+        
+<span class="c1">#         s_cls_logit = torch.logit(s_cls_sigmoid, eps=eps)</span>
+<span class="c1">#         s_cls_log_softmax = F.log_softmax(s_cls_logit / hyperparams[&quot;temperature&quot;], dim=1)</span>
+<span class="c1">#         t_cls_logit = torch.logit(t_cls_sigmoid, eps=eps)</span>
+<span class="c1">#         t_cls_log_softmax = F.log_softmax(t_cls_logit / hyperparams[&quot;temperature&quot;], dim=1)</span>
+<span class="c1">#         kl_div_loss = (</span>
+<span class="c1">#             kldivloss(s_cls_log_softmax, t_cls_log_softmax) * </span>
+<span class="c1">#             (hyperparams[&quot;temperature&quot;]**2)</span>
+<span class="c1">#         )</span>
+        
+<span class="c1">#         batch_box_regression_loss[i] = ciou_loss</span>
+<span class="c1">#         batch_cls_loss[i] = kl_div_loss</span>
+    
+<span class="c1">#     if reduction == &quot;batchmean&quot;:</span>
+<span class="c1">#         total_loss = (</span>
+<span class="c1">#             hyperparams[&quot;lambda_dist_ciou&quot;] * batch_box_regression_loss.mean() + </span>
+<span class="c1">#             hyperparams[&quot;lambda_dist_kl&quot;] * batch_cls_loss.mean()</span>
+<span class="c1">#         )</span>
+<span class="c1">#     else:</span>
+<span class="c1">#         total_loss = (</span>
+<span class="c1">#             hyperparams[&quot;lambda_dist_ciou&quot;] * batch_box_regression_loss.sum() + </span>
+<span class="c1">#             hyperparams[&quot;lambda_dist_kl&quot;] * batch_cls_loss.sum()</span>
+<span class="c1">#         )</span>
+
+<span class="c1">#     return total_loss</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">compute_distillation_loss</span><span class="p">(</span>
-    <span class="n">student_preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
-    <span class="n">teacher_preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
-    <span class="n">args</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> 
-    <span class="n">nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span> 
-    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span> 
+    <span class="n">student_preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">teacher_preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">args</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">reduction</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;batchmean&quot;</span><span class="p">,</span> <span class="s2">&quot;sum&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;batchmean&quot;</span><span class="p">,</span>
     <span class="n">hyperparams</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;lambda_dist_ciou&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
-        <span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">:</span> <span class="mf">2.0</span>
+        <span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s2">&quot;temperature&quot;</span><span class="p">:</span> <span class="mf">2.0</span>
     <span class="p">}</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the distillation loss between the student and teacher predictions.</span>
-<span class="sd">    </span>
-<span class="sd">    Args:</span>
-<span class="sd">        student_preds: The student predictions</span>
-<span class="sd">        teacher_preds: The teacher predictions</span>
-<span class="sd">        args: Configuration arguments</span>
-<span class="sd">        nc: Number of classes</span>
-<span class="sd">        device: Device to perform computations on</span>
-<span class="sd">        eps: Small epsilon value for numerical stability</span>
-<span class="sd">        reduction: Reduction method for the loss (&quot;batchmean&quot; or &quot;sum&quot;)</span>
-<span class="sd">        hyperparams: Dictionary of hyperparameters for loss functions</span>
-<span class="sd">        </span>
-<span class="sd">    Returns:</span>
-<span class="sd">        Total distillation loss</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">student_preds</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">teacher_preds</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;student_preds and teacher_preds must be tensors&quot;</span><span class="p">)</span>
 
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">student_preds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">teacher_preds</span><span class="o">.</span><span class="n">dtype</span>
-    <span class="n">kldivloss</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">KLDivLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span> <span class="n">log_target</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="c1"># eps = torch.finfo().eps</span>
-    <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-7</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">num_proposals</span> <span class="o">=</span> <span class="n">student_preds</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max_det&quot;</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">)</span>
+    <span class="n">temp</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
 
-    <span class="c1"># Split the concatenated bounding boxes and class scores</span>
     <span class="n">s_bbox</span><span class="p">,</span> <span class="n">s_cls_logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">student_preds</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">s_cls_sigmoid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">s_cls_logits</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">s_cls_sigmoid</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">s_cls_sigmoid</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;s_cls_sigmoid should be sigmoid, not logits&quot;</span>
-    <span class="n">teacher_preds_full</span> <span class="o">=</span> <span class="n">teacher_preds</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">teacher_preds_full</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">teacher_preds_full</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;teacher_preds_full should be sigmoid, not logits&quot;</span>
     <span class="n">student_preds_full</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">s_bbox</span><span class="p">,</span> <span class="n">s_cls_sigmoid</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    
-    <span class="n">common_nms_args</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;conf_thres&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conf&quot;</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conf&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.25</span><span class="p">,</span>
-        <span class="s2">&quot;iou_thres&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;iou&quot;</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;iou&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.7</span><span class="p">,</span>
-        <span class="s2">&quot;classes&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;classes&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-        <span class="s2">&quot;agnostic&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;agnostic_nms&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;agnostic_nms&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s2">&quot;max_det&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max_det&quot;</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="mi">300</span><span class="p">,</span>
-        <span class="s2">&quot;nc&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="s2">&quot;return_idxs&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s2">&quot;max_time_img&quot;</span><span class="p">:</span> <span class="mi">1</span>
-    <span class="p">}</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">s_cls_sigmoid</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">s_cls_sigmoid</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;s_cls_sigmoid should be sigmoid, not logits&quot;</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">teacher_preds</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">teacher_preds</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;teacher_preds should be sigmoid, not logits&quot;</span>
 
-    <span class="n">_</span><span class="p">,</span> <span class="n">teacher_preds_final_idxs</span> <span class="o">=</span> <span class="n">non_max_suppression</span><span class="p">(</span>
-        <span class="n">prediction</span><span class="o">=</span><span class="n">teacher_preds_full</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">common_nms_args</span><span class="p">,</span>
-    <span class="p">)</span>
-    
-    <span class="n">selected_student_raw_predictions_list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">selected_teacher_raw_predictions_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">t_bbox</span><span class="p">,</span> <span class="n">t_cls</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">teacher_preds</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">teacher_conf</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">t_cls</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># (b, 8400)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">topk_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">teacher_conf</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># (b, k)</span>
 
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
-        <span class="n">student_preds_for_image_i</span> <span class="o">=</span> <span class="n">student_preds_full</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">teacher_preds_for_image_i</span> <span class="o">=</span> <span class="n">teacher_preds_full</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">indices_to_select</span> <span class="o">=</span> <span class="n">teacher_preds_final_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        
-        <span class="k">if</span> <span class="n">indices_to_select</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">selected_student_preds</span> <span class="o">=</span> <span class="n">student_preds_for_image_i</span><span class="p">[</span><span class="n">indices_to_select</span><span class="p">]</span>
-            <span class="n">selected_teacher_preds</span> <span class="o">=</span> <span class="n">teacher_preds_for_image_i</span><span class="p">[</span><span class="n">indices_to_select</span><span class="p">]</span>
-            
-            <span class="n">selected_student_raw_predictions_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">selected_student_preds</span><span class="p">)</span>
-            <span class="n">selected_teacher_raw_predictions_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">selected_teacher_preds</span><span class="p">)</span>
-
-    <span class="c1"># get the actual batch size (batches with results)</span>
-    <span class="n">actual_batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_student_raw_predictions_list</span><span class="p">)</span>
-    <span class="n">batch_box_regression_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">actual_batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">batch_cls_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">actual_batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">indices_to_gather</span> <span class="o">=</span> <span class="n">topk_indices</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">nc</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># (batch_size, 4 + nc, k)</span>
+    <span class="n">s_preds_topk</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">student_preds_full</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">indices_to_gather</span><span class="p">)</span> <span class="c1"># (batch_size, 4 + nc, k)</span>
+    <span class="n">t_preds_topk</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">teacher_preds</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">indices_to_gather</span><span class="p">)</span> <span class="c1"># (batch_size, 4 + nc, k</span>
     
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">actual_batch_size</span><span class="p">):</span>
-            
-        <span class="n">tp</span><span class="p">,</span> <span class="n">sp</span> <span class="o">=</span> <span class="n">selected_teacher_raw_predictions_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">selected_student_raw_predictions_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">s_bboxes</span><span class="p">,</span> <span class="n">s_cls_sigmoid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">t_bboxes</span><span class="p">,</span> <span class="n">t_cls_sigmoid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">s_preds</span> <span class="o">=</span> <span class="n">s_preds_topk</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="c1"># (batch_size, k, 4 + nc)</span>
+    <span class="n">t_preds</span> <span class="o">=</span> <span class="n">t_preds_topk</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="c1"># (batch_size, k, 4 + nc)</span>
 
-        <span class="n">ciou_loss</span> <span class="o">=</span> <span class="n">complete_box_iou_loss</span><span class="p">(</span><span class="n">s_bboxes</span><span class="p">,</span> <span class="n">t_bboxes</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
-        
-        <span class="n">s_cls_logit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logit</span><span class="p">(</span><span class="n">s_cls_sigmoid</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
-        <span class="n">s_cls_log_softmax</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">s_cls_logit</span> <span class="o">/</span> <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">t_cls_logit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logit</span><span class="p">(</span><span class="n">t_cls_sigmoid</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
-        <span class="n">t_cls_log_softmax</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">t_cls_logit</span> <span class="o">/</span> <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">kl_div_loss</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">kldivloss</span><span class="p">(</span><span class="n">s_cls_log_softmax</span><span class="p">,</span> <span class="n">t_cls_log_softmax</span><span class="p">)</span> <span class="o">*</span> 
-            <span class="p">(</span><span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-        <span class="p">)</span>
-        
-        <span class="n">batch_box_regression_loss</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ciou_loss</span>
-        <span class="n">batch_cls_loss</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">kl_div_loss</span>
+    <span class="n">s_bbox</span><span class="p">,</span> <span class="n">s_cls</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">s_preds</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># (batch_size, k, 4), (batch_size, k, nc)</span>
+    <span class="n">t_bbox</span><span class="p">,</span> <span class="n">t_cls</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">t_preds</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># (batch_size, k, 4), (batch_size, k, nc)</span>
+
+    <span class="c1"># ensure the bounding boxes are valid</span>
+    <span class="n">s_bbox</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+    <span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">t_bbox</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+    <span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="s2">&quot;x1 coordinate should be less than x2 coordinate&quot;</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="s2">&quot;x1 coordinate should be less than x2 coordinate&quot;</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">s_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="s2">&quot;y1 coordinate should be less than y2 coordinate&quot;</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">t_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="s2">&quot;y1 coordinate should be less than y2 coordinate&quot;</span>
+
     <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;batchmean&quot;</span><span class="p">:</span>
-        <span class="n">total_loss</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;lambda_dist_ciou&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">batch_box_regression_loss</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">+</span> 
-            <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">batch_cls_loss</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="n">loss_ciou</span> <span class="o">=</span> <span class="n">complete_box_iou_loss</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">,</span> <span class="n">t_bbox</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">total_loss</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;lambda_dist_ciou&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">batch_box_regression_loss</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> 
-            <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">batch_cls_loss</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="n">loss_ciou</span> <span class="o">=</span> <span class="n">complete_box_iou_loss</span><span class="p">(</span><span class="n">s_bbox</span><span class="p">,</span> <span class="n">t_bbox</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
+        
+    <span class="n">s_cls_logit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logit</span><span class="p">(</span><span class="n">s_cls</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">t_cls_logit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logit</span><span class="p">(</span><span class="n">t_cls</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">s_log_softmax</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">s_cls_logit</span> <span class="o">/</span> <span class="n">temp</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">t_log_softmax</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">t_cls_logit</span> <span class="o">/</span> <span class="n">temp</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">total_loss</span></div>
+    <span class="n">kldiv_loss_fn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">KLDivLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span> <span class="n">log_target</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">loss_kldiv</span> <span class="o">=</span> <span class="n">kldiv_loss_fn</span><span class="p">(</span><span class="n">s_log_softmax</span><span class="p">,</span> <span class="n">t_log_softmax</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">temp</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;batchmean&quot;</span><span class="p">:</span>
+        <span class="n">ciou_term</span> <span class="o">=</span> <span class="n">loss_ciou</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">kl_term</span> <span class="o">=</span> <span class="n">loss_kldiv</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+        <span class="n">ciou_term</span> <span class="o">=</span> <span class="n">loss_ciou</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">kl_term</span> <span class="o">=</span> <span class="n">loss_kldiv</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid reduction type: </span><span class="si">{</span><span class="n">reduction</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">total_loss</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;lambda_dist_ciou&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">ciou_term</span> <span class="o">+</span>
+        <span class="n">hyperparams</span><span class="p">[</span><span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">kl_term</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">total_loss</span>
 
 
 <div class="viewcode-block" id="calculate_gradient_norm">
@@ -527,6 +628,7 @@
             <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
                 <span class="n">teacher_inputs</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;img&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
                 <span class="n">teacher_preds</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">teacher_model</span><span class="p">(</span><span class="n">teacher_inputs</span><span class="p">)</span>
+                <span class="n">teacher_preds</span> <span class="o">=</span> <span class="n">teacher_preds</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
             
             <span class="n">student_preds</span> <span class="o">=</span> <span class="n">head_features_decoder</span><span class="p">(</span>
                 <span class="n">head_feats</span><span class="o">=</span><span class="n">student_head_feats</span><span class="p">,</span> 
@@ -581,17 +683,19 @@
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;NaN detected in total loss at batch </span><span class="si">{</span><span class="n">batch_idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Component losses: bbox=</span><span class="si">{</span><span class="n">bbox_loss</span><span class="si">}</span><span class="s2">, cls=</span><span class="si">{</span><span class="n">cls_loss</span><span class="si">}</span><span class="s2">, dfl=</span><span class="si">{</span><span class="n">dfl_loss</span><span class="si">}</span><span class="s2">, dist=</span><span class="si">{</span><span class="n">distillation_loss</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">continue</span>
-                
+            
             <span class="n">total_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
             
             <span class="c1"># Calculate gradient norm before clipping</span>
-            <span class="n">grad_norm_before</span> <span class="o">=</span> <span class="n">calculate_gradient_norm</span><span class="p">(</span><span class="n">student_model</span><span class="p">)</span>
-            
+            <span class="n">grad_norm_before</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># grad_norm_before = calculate_gradient_norm(student_model)</span>
+                    
             <span class="c1"># Clip gradients to prevent exploding gradients</span>
             <span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">student_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">max_norm</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
             
             <span class="c1"># Calculate gradient norm after clipping</span>
-            <span class="n">grad_norm_after</span> <span class="o">=</span> <span class="n">calculate_gradient_norm</span><span class="p">(</span><span class="n">student_model</span><span class="p">)</span>
+            <span class="n">grad_norm_after</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># grad_norm_after = calculate_gradient_norm(student_model)</span>
             
             <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
             
@@ -604,8 +708,10 @@
                 <span class="n">distillation_loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
             <span class="p">)</span>
             <span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;total_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;total_loss&quot;</span><span class="p">],</span> <span class="n">total_loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
-            <span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_before&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_before&quot;</span><span class="p">],</span> <span class="n">grad_norm_before</span><span class="p">)</span>
-            <span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_after&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_after&quot;</span><span class="p">],</span> <span class="n">grad_norm_after</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">grad_norm_before</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_before&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_before&quot;</span><span class="p">],</span> <span class="n">grad_norm_before</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">grad_norm_after</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_after&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;grad_norm_after&quot;</span><span class="p">],</span> <span class="n">grad_norm_after</span><span class="p">)</span>
             
             <span class="c1"># Log metrics if log_file is provided and log_level is batch</span>
             <span class="k">if</span> <span class="n">log_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">log_level</span> <span class="o">==</span> <span class="s2">&quot;batch&quot;</span><span class="p">:</span>
@@ -626,7 +732,7 @@
                     <span class="n">is_new_file</span><span class="o">=</span><span class="p">(</span><span class="n">epoch</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">batch_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
                     <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span>
                 <span class="p">)</span>
-            
+                
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error processing batch </span><span class="si">{</span><span class="n">batch_idx</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">continue</span>
@@ -755,7 +861,9 @@
     <span class="n">teacher_model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">train_dataloader</span><span class="p">:</span> <span class="n">DataLoader</span><span class="p">,</span>
     <span class="n">detection_trainer</span><span class="p">:</span> <span class="n">DetectionTrainer</span><span class="p">,</span>
+    <span class="n">detection_validator</span><span class="p">:</span> <span class="n">DetectionValidator</span><span class="p">,</span>
     <span class="n">optimizer</span><span class="p">:</span> <span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+    <span class="n">stopper</span><span class="p">:</span> <span class="n">EarlyStopping</span><span class="p">,</span>
     <span class="n">learning_rate_scheduler</span><span class="p">:</span> <span class="n">LambdaLR</span><span class="p">,</span>
     <span class="n">detection_criterion</span><span class="p">:</span> <span class="n">v8DetectionLoss</span><span class="p">,</span>
     <span class="n">config_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -771,7 +879,7 @@
     <span class="n">start_epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">log_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
-    <span class="n">final_model_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled/latest&quot;</span><span class="p">),</span>
+    <span class="n">final_model_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/model_registry/distilled/latest&quot;</span><span class="p">),</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -809,68 +917,93 @@
         <span class="s1">&#39;dist_loss&#39;</span><span class="p">:</span> <span class="p">[]</span>
     <span class="p">}</span>
     
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Epochs&quot;</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-            <span class="c1"># Train one epoch</span>
-            <span class="n">batch_loss_dict</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
-                <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
-                <span class="n">teacher_model</span><span class="o">=</span><span class="n">teacher_model</span><span class="p">,</span>
-                <span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span>
-                <span class="n">detection_trainer</span><span class="o">=</span><span class="n">detection_trainer</span><span class="p">,</span>
-                <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
-                <span class="n">detection_criterion</span><span class="o">=</span><span class="n">detection_criterion</span><span class="p">,</span>
-                <span class="n">config_dict</span><span class="o">=</span><span class="n">config_dict</span><span class="p">,</span>
-                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-                <span class="n">hyperparams</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">,</span>
-                <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
-                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
-                <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
-                <span class="n">debug</span><span class="o">=</span><span class="n">debug</span>
-            <span class="p">)</span>
-            
-            <span class="n">learning_rate_scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-            
-            <span class="c1"># Calculate average losses</span>
-            <span class="n">batch_loss_bbox</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;bbox_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-            <span class="n">batch_loss_cls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;cls_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-            <span class="n">batch_loss_dfl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;dfl_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-            <span class="n">batch_loss_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;distillation_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-            <span class="n">batch_loss_total</span> <span class="o">=</span> <span class="n">batch_loss_bbox</span> <span class="o">+</span> <span class="n">batch_loss_cls</span> <span class="o">+</span> <span class="n">batch_loss_dfl</span> <span class="o">+</span> <span class="n">batch_loss_dist</span>
-            
-            <span class="c1"># Store losses</span>
-            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;total_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_total</span><span class="p">)</span>
-            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;bbox_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_bbox</span><span class="p">)</span>
-            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;cls_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_cls</span><span class="p">)</span>
-            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;dfl_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dfl</span><span class="p">)</span>
-            <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;dist_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dist</span><span class="p">)</span>
-            
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: (Overall: </span><span class="si">{</span><span class="n">batch_loss_total</span><span class="si">}</span><span class="s2">, bbox_loss: </span><span class="si">{</span><span class="n">batch_loss_bbox</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;cls_loss: </span><span class="si">{</span><span class="n">batch_loss_cls</span><span class="si">}</span><span class="s2">, dfl_loss: </span><span class="si">{</span><span class="n">batch_loss_dfl</span><span class="si">}</span><span class="s2">, dist_loss: </span><span class="si">{</span><span class="n">batch_loss_dist</span><span class="si">}</span><span class="s2">)&quot;</span>
-            <span class="p">)</span>
-            
-            <span class="c1"># Save checkpoint</span>
-            <span class="k">if</span> <span class="n">save_checkpoint_every</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">epoch</span> <span class="o">%</span> <span class="n">save_checkpoint_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">save_checkpoint</span><span class="p">(</span>
-                    <span class="n">checkpoint_dir</span><span class="o">=</span><span class="n">checkpoint_dir</span><span class="p">,</span>
-                    <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
-                    <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
-                    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
-                    <span class="n">learning_rate_scheduler</span><span class="o">=</span><span class="n">learning_rate_scheduler</span><span class="p">,</span>
-                    <span class="n">losses</span><span class="o">=</span><span class="p">{</span>
-                        <span class="s1">&#39;total_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_total</span><span class="p">,</span>
-                        <span class="s1">&#39;bbox_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_bbox</span><span class="p">,</span>
-                        <span class="s1">&#39;cls_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_cls</span><span class="p">,</span>
-                        <span class="s1">&#39;dfl_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_dfl</span>
-                    <span class="p">}</span>
-                <span class="p">)</span>
+    <span class="c1"># Track best model state and fitness</span>
+    <span class="n">best_fitness</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
+    <span class="n">best_model_state</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">student_model_copy</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    
+    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Epochs&quot;</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="c1"># Train one epoch</span>
+        <span class="n">batch_loss_dict</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
+            <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
+            <span class="n">teacher_model</span><span class="o">=</span><span class="n">teacher_model</span><span class="p">,</span>
+            <span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span>
+            <span class="n">detection_trainer</span><span class="o">=</span><span class="n">detection_trainer</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">detection_criterion</span><span class="o">=</span><span class="n">detection_criterion</span><span class="p">,</span>
+            <span class="n">config_dict</span><span class="o">=</span><span class="n">config_dict</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">hyperparams</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">,</span>
+            <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
+            <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
+            <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
+            <span class="n">debug</span><span class="o">=</span><span class="n">debug</span>
+        <span class="p">)</span>
         
-        <span class="c1"># Save final model after training completes</span>
-        <span class="n">save_final_model</span><span class="p">(</span><span class="n">student_yolo</span><span class="p">,</span> <span class="n">final_model_dir</span><span class="p">)</span>
-            
-    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exit training, please check the training process again...&quot;</span><span class="p">)</span>
+        <span class="n">learning_rate_scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        
+        <span class="c1"># Calculate average losses</span>
+        <span class="n">batch_loss_bbox</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;bbox_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">batch_loss_cls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;cls_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">batch_loss_dfl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;dfl_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">batch_loss_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch_loss_dict</span><span class="p">[</span><span class="s2">&quot;distillation_loss&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">batch_loss_total</span> <span class="o">=</span> <span class="n">batch_loss_bbox</span> <span class="o">+</span> <span class="n">batch_loss_cls</span> <span class="o">+</span> <span class="n">batch_loss_dfl</span> <span class="o">+</span> <span class="n">batch_loss_dist</span>
+        
+        <span class="c1"># Store losses</span>
+        <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;total_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_total</span><span class="p">)</span>
+        <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;bbox_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_bbox</span><span class="p">)</span>
+        <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;cls_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_cls</span><span class="p">)</span>
+        <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;dfl_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dfl</span><span class="p">)</span>
+        <span class="n">epoch_losses</span><span class="p">[</span><span class="s1">&#39;dist_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss_dist</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: (Overall: </span><span class="si">{</span><span class="n">batch_loss_total</span><span class="si">}</span><span class="s2">, bbox_loss: </span><span class="si">{</span><span class="n">batch_loss_bbox</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;cls_loss: </span><span class="si">{</span><span class="n">batch_loss_cls</span><span class="si">}</span><span class="s2">, dfl_loss: </span><span class="si">{</span><span class="n">batch_loss_dfl</span><span class="si">}</span><span class="s2">, dist_loss: </span><span class="si">{</span><span class="n">batch_loss_dist</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Save checkpoint</span>
+        <span class="k">if</span> <span class="n">save_checkpoint_every</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">epoch</span> <span class="o">%</span> <span class="n">save_checkpoint_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">save_checkpoint</span><span class="p">(</span>
+                <span class="n">checkpoint_dir</span><span class="o">=</span><span class="n">checkpoint_dir</span><span class="p">,</span>
+                <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
+                <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
+                <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+                <span class="n">learning_rate_scheduler</span><span class="o">=</span><span class="n">learning_rate_scheduler</span><span class="p">,</span>
+                <span class="n">losses</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;total_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_total</span><span class="p">,</span>
+                    <span class="s1">&#39;bbox_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_bbox</span><span class="p">,</span>
+                    <span class="s1">&#39;cls_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_cls</span><span class="p">,</span>
+                    <span class="s1">&#39;dfl_loss&#39;</span><span class="p">:</span> <span class="n">batch_loss_dfl</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="c1"># This is a hack to get around the fact that the student model is in eval mode</span>
+        <span class="c1"># after the validation step, and it will not be able to train again in the next epoch</span>
+        <span class="c1"># so we create a deep copy of the student model for validation</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">student_model_copy</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">student_model</span><span class="p">)</span>
+            <span class="n">validation_results</span> <span class="o">=</span> <span class="n">detection_validator</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">student_model_copy</span><span class="p">)</span>
+            <span class="n">current_fitness</span> <span class="o">=</span> <span class="n">validation_results</span><span class="p">[</span><span class="s2">&quot;fitness&quot;</span><span class="p">]</span>
+        
+        <span class="c1"># Update best model if current fitness is better</span>
+        <span class="k">if</span> <span class="n">current_fitness</span> <span class="o">&gt;</span> <span class="n">best_fitness</span><span class="p">:</span>
+            <span class="n">best_fitness</span> <span class="o">=</span> <span class="n">current_fitness</span>
+            <span class="n">best_model_state</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">student_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;New best model found with fitness: </span><span class="si">{</span><span class="n">best_fitness</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">stop</span> <span class="o">=</span> <span class="n">stopper</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span> <span class="n">fitness</span><span class="o">=</span><span class="n">current_fitness</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stop</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Early stopping triggered at epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Restoring best model with fitness: </span><span class="si">{</span><span class="n">best_fitness</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Restore best model state</span>
+            <span class="n">student_model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">best_model_state</span><span class="p">)</span>
+            <span class="c1"># Save the best model</span>
+            <span class="n">save_final_model</span><span class="p">(</span><span class="n">student_yolo</span><span class="p">,</span> <span class="n">final_model_dir</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">epoch_losses</span>
+    
+    <span class="c1"># If training completes without early stopping, save final model</span>
+    <span class="n">save_final_model</span><span class="p">(</span><span class="n">student_yolo</span><span class="p">,</span> <span class="n">final_model_dir</span><span class="p">)</span>
     
     <span class="k">return</span> <span class="n">epoch_losses</span></div>
 
@@ -924,7 +1057,8 @@
     <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">student_model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">optimizer</span><span class="p">:</span> <span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
-    <span class="n">learning_rate_scheduler</span><span class="p">:</span> <span class="n">LambdaLR</span>
+    <span class="n">learning_rate_scheduler</span><span class="p">:</span> <span class="n">LambdaLR</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load a checkpoint and restore model and optimizer state.</span>
@@ -973,7 +1107,7 @@
     <span class="p">},</span>
     <span class="n">resume_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;distillation_out&quot;</span><span class="p">),</span>
-    <span class="n">final_model_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled/latest&quot;</span><span class="p">),</span>
+    <span class="n">final_model_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/model_registry/distilled/latest&quot;</span><span class="p">),</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;batch&quot;</span><span class="p">,</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">distillation_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1056,12 +1190,31 @@
         <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;train&quot;</span>
     <span class="p">)</span>
     
+    <span class="n">valid_dataset</span><span class="p">,</span> <span class="n">valid_dataloader</span> <span class="o">=</span> <span class="n">prepare_dataset</span><span class="p">(</span>
+        <span class="n">img_path</span><span class="o">=</span><span class="n">img_dir</span> <span class="o">/</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> 
+        <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span> 
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">,</span> 
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;val&quot;</span>
+    <span class="p">)</span>
+    
     <span class="c1"># Setup training</span>
     <span class="n">detection_trainer</span> <span class="o">=</span> <span class="n">DetectionTrainer</span><span class="p">(</span>
         <span class="n">cfg</span><span class="o">=</span><span class="n">model_args</span><span class="p">,</span> 
         <span class="n">overrides</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">Path</span><span class="p">(</span><span class="n">distillation_config</span><span class="p">[</span><span class="s2">&quot;distillation_dataset&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="s2">&quot;distillation_data.yaml&quot;</span><span class="p">}</span>
     <span class="p">)</span>
     
+    <span class="n">distillation_config_copy</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">distillation_config</span><span class="p">)</span>
+    <span class="c1"># Remove keys that are not needed for validation (they will throw errors since YOLO validate these keys)</span>
+    <span class="k">del</span> <span class="n">distillation_config_copy</span><span class="p">[</span><span class="s2">&quot;teacher_model&quot;</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">distillation_config_copy</span><span class="p">[</span><span class="s2">&quot;distillation_dataset&quot;</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">distillation_config_copy</span><span class="p">[</span><span class="s2">&quot;distillation_hyperparams&quot;</span><span class="p">]</span>
+    <span class="n">distillation_config_copy</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;val&quot;</span>
+    <span class="n">distillation_config_copy</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">distillation_config</span><span class="p">[</span><span class="s2">&quot;distillation_dataset&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="s2">&quot;distillation_data.yaml&quot;</span>
+    <span class="n">model_args_validator</span> <span class="o">=</span> <span class="n">get_cfg</span><span class="p">(</span><span class="n">distillation_config_copy</span><span class="p">)</span>
+    <span class="n">detection_validator</span> <span class="o">=</span> <span class="n">DetectionValidator</span><span class="p">(</span><span class="n">dataloader</span><span class="o">=</span><span class="n">valid_dataloader</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">model_args_validator</span><span class="p">)</span>
+    
+    <span class="n">stopper</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">patience</span><span class="o">=</span><span class="n">model_args_validator</span><span class="o">.</span><span class="n">patience</span><span class="p">)</span>
+
     <span class="n">optimizer</span><span class="p">,</span> <span class="n">learning_rate_scheduler</span> <span class="o">=</span> <span class="n">build_optimizer_and_scheduler</span><span class="p">(</span>
         <span class="n">model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
         <span class="n">detection_trainer</span><span class="o">=</span><span class="n">detection_trainer</span><span class="p">,</span>
@@ -1078,7 +1231,8 @@
             <span class="n">checkpoint_path</span><span class="o">=</span><span class="n">resume_checkpoint</span><span class="p">,</span>
             <span class="n">student_model</span><span class="o">=</span><span class="n">student_model</span><span class="p">,</span>
             <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
-            <span class="n">learning_rate_scheduler</span><span class="o">=</span><span class="n">learning_rate_scheduler</span>
+            <span class="n">learning_rate_scheduler</span><span class="o">=</span><span class="n">learning_rate_scheduler</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span>
         <span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># Start from next epoch</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resuming training and distillation from epoch </span><span class="si">{</span><span class="n">start_epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1092,7 +1246,9 @@
         <span class="n">teacher_model</span><span class="o">=</span><span class="n">teacher_model</span><span class="p">,</span>
         <span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span>
         <span class="n">detection_trainer</span><span class="o">=</span><span class="n">detection_trainer</span><span class="p">,</span>
+        <span class="n">detection_validator</span><span class="o">=</span><span class="n">detection_validator</span><span class="p">,</span>
         <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+        <span class="n">stopper</span><span class="o">=</span><span class="n">stopper</span><span class="p">,</span>
         <span class="n">learning_rate_scheduler</span><span class="o">=</span><span class="n">learning_rate_scheduler</span><span class="p">,</span>
         <span class="n">detection_criterion</span><span class="o">=</span><span class="n">detection_criterion</span><span class="p">,</span>
         <span class="n">config_dict</span><span class="o">=</span><span class="n">model_args</span><span class="p">,</span>
@@ -1115,24 +1271,24 @@
     <span class="n">distillation_config</span> <span class="o">=</span> <span class="n">YAML</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">base_dir</span> <span class="o">/</span> <span class="s2">&quot;distillation_config.yaml&quot;</span><span class="p">)</span>
     
     <span class="n">hyperparams</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;lambda_distillation&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
-        <span class="s2">&quot;lambda_detection&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s2">&quot;lambda_distillation&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s2">&quot;lambda_detection&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
         <span class="s2">&quot;lambda_dist_ciou&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
-        <span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="s2">&quot;temperature&quot;</span><span class="p">:</span> <span class="mf">2.0</span>
     <span class="p">}</span>
     
     <span class="n">start_distillation</span><span class="p">(</span>
         <span class="n">device</span><span class="o">=</span><span class="n">detect_device</span><span class="p">(),</span>
         <span class="n">base_dir</span><span class="o">=</span><span class="n">base_dir</span><span class="p">,</span>
-        <span class="n">img_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/distillation&quot;</span><span class="p">),</span>
+        <span class="n">img_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/distillation&quot;</span><span class="p">),</span>
         <span class="n">frozen_layers</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
         <span class="n">save_checkpoint_every</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
         <span class="n">hyperparams</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">,</span>
         <span class="n">resume_checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled&quot;</span><span class="p">),</span>
-        <span class="n">final_model_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/model_registry/distilled/latest&quot;</span><span class="p">),</span>
-        <span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/model_registry/distilled&quot;</span><span class="p">),</span>
+        <span class="n">final_model_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/model_registry/distilled/latest&quot;</span><span class="p">),</span>
+        <span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
         <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">distillation_config</span><span class="o">=</span><span class="n">distillation_config</span>
     <span class="p">)</span>

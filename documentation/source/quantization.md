@@ -66,7 +66,15 @@ def imx_quantization(model, output_path, quantize_yaml)
 
 ## Configuration
 
-The quantization process uses a configuration file (`src/quantize_config.json`) which must include the following:
+Configure quantization in `automl_workspace/config/pipeline_config.json`:
+
+```json
+"process_options": {
+  "skip_quantization": false  // Set to true to skip quantization
+}
+```
+
+The quantization process uses a configuration file (`automl_workspace/config/quantize_config.json`) which must include the following:
 
 - **`quantization_method`**: One of `"ONNX"`, `"FP16"`, or `"IMX"`
 - **`output_dir`**: Path to save the quantized model
@@ -78,18 +86,36 @@ The quantization process uses a configuration file (`src/quantize_config.json`) 
 
 ---
 
-### Example Usage
+## Example Usage
+
+**Pipeline Integration (Recommended):**
+
+```json
+// Configure in pipeline_config.json
+"process_options": {
+  "skip_quantization": false
+}
+```
+
+```bash
+# Run main pipeline
+python src/main.py
+```
+
+**Standalone Usage:**
 
 ```python
-quantize_model(
-    model_path="mock_io/model_registry/model/nano_trained_model.pt",
-    quantize_config_path="src/quantize_config.json"
+from pipeline.quantization import quantize_model
+
+quantized_path = quantize_model(
+    model_path="automl_workspace/model_registry/model/nano_trained_model.pt",
+    quantize_config_path="automl_workspace/config/quantize_config.json"
 )
 ```
 
 ---
 
-### Notes
+## Notes
 
 - ONNX quantization is portable and works across platforms.
 - FP16 is fast and requires minimal changes.
@@ -97,7 +123,7 @@ quantize_model(
 
 ---
 
-### Errors to Watch For
+## Errors to Watch For
 
 - Missing `quantize_yaml_path`
 - Running IMX quantization on a non-Linux system
