@@ -1,20 +1,32 @@
 ### Problem Recap
 
-- Bayes Studio needed a continuous pipeline to keep ML models accurate and up to date
-- Manual labeling, training, and deployment slowed down real-time wildfire detection and response
+Our partner, Bayes Studio Inc., needed a continuous pipeline to keep their machine learning models accurate and up to date as new image data comes in. Their existing process relied heavily on manual labeling, training, and deployment, which slowed down model updates and made it difficult to scale. A more automated and flexible solution was required to support timely updates and edge deployment.
 
 ### What We Delivered
 
-- An **automated**, **continuous**, **dynamic**, and **efficient** pipeline that streamlines pre-labeling, human-in-the-loop review, model training, optimization, and deployment:
-  - **Automated**: From labeling to training and compression, everything flows with minimal manual effort
-  - **Continuous**: Updated models help label data in future runs, improving over time
-  - **Dynamic**: Easy to plug in new models or modules as requirements change
-  - **Efficient**: Greatly reduces model update time - from weeks to just hours
+To address our partner's need, we developed an **automated**, **continuous**, **dynamic**, and **efficient** pipeline that streamlines labeling, human-in-the-loop review, model training, optimization, and deployment.
+
+- **Automated**: From labeling to training and compression, everything flows with minimal manual effort.
+- **Continuous**: Updated models help label data in future runs, improving over time.
+- **Dynamic**: Easy to plug in new models or modules as requirements change.
+- **Efficient**: Greatly reduces time across key stages including labeling, fine-tuning, and compression, resulting in faster end-to-end model iteration cycles.
 
 ### Limitations & Recommendations
 
-| Limitation                        | Recommendation                                                                     |
+While our pipeline meets the core requirements, there are some limitations that restrict the scalability of the pipeline:
+
+- **Local-first design**: Running the pipeline locally limits deployment flexibility.
+- **Scattered data and model files**: Data and model files are saved in local folders, which makes tracking progress and maintaining consistency more difficult.
+- **No monitoring interface**: Without a monitoring interface, it's hard to observe pipeline behavior in real time.
+
+Hence, we propose the following three recommendations for future development:
+
+- **Add cloud support**: Integrating cloud storage and remote triggering to allow the pipeline to run in more flexible environments.
+- **Integrate a lightweight database**: Using a small database (e.g., SQLite) to store metadata for images, labels, and model versions would improve organization, enable easier tracking, and support more complex queries and analysis. As an additional task, we have designed a simplified and scalable database schema to support the core components of our wildfire detection pipeline. The structure is designed to be future-proof and manageable by the partner team.
+- **Develop a simple monitoring dashboard**: A lightweight dashboard would help users monitor pipeline runs, track model status, and show performance in real time.
+
+| **Limitation**                    | **Recommendation**                                                                 |
 |-----------------------------------|------------------------------------------------------------------------------------|
-| Local-only pipeline               | Add cloud storage and remote triggering for better scalability                     |
+| Local-first design                | Add cloud storage and remote triggering for better scalability                     |
 | Scattered data and model files    | Integrate a lightweight database to centralize images, labels, and model metadata  |
 | No monitoring interface           | Build a simple dashboard to track pipeline runs and model performance in real time |
