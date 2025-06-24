@@ -12,4 +12,5 @@ These pages document the core Python modules that power the AutoML wildfire pipe
    training
    distillation
    quantization
+   clean_pipeline
    utils

@@ -62,16 +62,31 @@
 <li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Augmentation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Augmentation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixtures">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sample-config"><code class="docutils literal notranslate"><span class="pre">sample_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#temp-image-and-json"><code class="docutils literal notranslate"><span class="pre">temp_image_and_json</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#function-tests">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#build-augmentation-transform"><code class="docutils literal notranslate"><span class="pre">build_augmentation_transform</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#augment-images"><code class="docutils literal notranslate"><span class="pre">augment_images</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#augment-dataset"><code class="docutils literal notranslate"><span class="pre">augment_dataset</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +117,89 @@
              
   <section id="augmentation">
 <h1>Augmentation<a class="headerlink" href="#augmentation" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">augmentation.py</span></code> module, which applies configurable image augmentations to labeled datasets using Albumentations. It ensures the generation of augmented images and updated label JSONs while preserving bounding box structure.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>This suite tests the following components:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">build_augmentation_transform</span></code>: Builds the augmentation pipeline from a configuration dictionary.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">augment_images</span></code>: Applies augmentations to matched image-label pairs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">augment_dataset</span></code>: Full pipeline integration test using a real image and JSON file.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fixtures">
+<h2>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h2>
+<section id="sample-config">
+<h3><code class="docutils literal notranslate"><span class="pre">sample_config</span></code><a class="headerlink" href="#sample-config" title="Link to this heading"></a></h3>
+<p>Provides a valid augmentation configuration dictionary with all probabilities set to 1.0 to force all transforms to apply. Includes:</p>
+<ul class="simple">
+<li><p>Horizontal flip</p></li>
+<li><p>Brightness/contrast</p></li>
+<li><p>Hue/saturation</p></li>
+<li><p>Gaussian blur and noise</p></li>
+<li><p>Grayscale</p></li>
+<li><p>Rotation</p></li>
+</ul>
+</section>
+<section id="temp-image-and-json">
+<h3><code class="docutils literal notranslate"><span class="pre">temp_image_and_json</span></code><a class="headerlink" href="#temp-image-and-json" title="Link to this heading"></a></h3>
+<p>Creates a temporary test image and its corresponding JSON label in a valid format:</p>
+<ul class="simple">
+<li><p>Bounding box: <code class="docutils literal notranslate"><span class="pre">[10,</span> <span class="pre">10,</span> <span class="pre">50,</span> <span class="pre">50]</span></code></p></li>
+<li><p>Class: <code class="docutils literal notranslate"><span class="pre">&quot;FireBSI&quot;</span></code></p></li>
+<li><p>Confidence: <code class="docutils literal notranslate"><span class="pre">0.9</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="function-tests">
+<h2>Function Tests<a class="headerlink" href="#function-tests" title="Link to this heading"></a></h2>
+<section id="build-augmentation-transform">
+<h3><code class="docutils literal notranslate"><span class="pre">build_augmentation_transform</span></code><a class="headerlink" href="#build-augmentation-transform" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_build_augmentation_transform</span></code>:<br />
+Validates that the transform pipeline builds successfully and is callable.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="augment-images">
+<h3><code class="docutils literal notranslate"><span class="pre">augment_images</span></code><a class="headerlink" href="#augment-images" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_augment_images_creates_augmented_files</span></code>:<br />
+Verifies that the correct number of augmented images and labels are created based on <code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code>.<br />
+Also checks that each output JSON contains a valid <code class="docutils literal notranslate"><span class="pre">predictions</span></code> list.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="augment-dataset">
+<h3><code class="docutils literal notranslate"><span class="pre">augment_dataset</span></code><a class="headerlink" href="#augment-dataset" title="Link to this heading"></a></h3>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_augment_dataset_integration</span></code>:<br />
+Integration test that simulates a full run of the <code class="docutils literal notranslate"><span class="pre">augment_dataset()</span></code> pipeline.</p>
+<p>It:</p>
+<ul class="simple">
+<li><p>Copies the image to an input directory</p></li>
+<li><p>Creates a valid labeled directory containing its JSON label</p></li>
+<li><p>Runs the pipeline</p></li>
+<li><p>Verifies that augmented images and labels are created in the output directory</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This page outlines a focused test suite ensuring:</p>
+<ul class="simple">
+<li><p>Augmentation configurations are valid and interpretable</p></li>
+<li><p>Image-label pairs are augmented correctly and written to disk</p></li>
+<li><p>End-to-end augmentation logic functions as expected in a simulated pipeline environment</p></li>
+</ul>
+<p>These tests confirm that the augmentation module integrates safely and predictably with the rest of the AutoML pipeline.</p>
+</section>
 </section>
 
 

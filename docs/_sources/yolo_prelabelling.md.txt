@@ -62,9 +62,9 @@ Main function to process a folder of raw images using the YOLO model.
 
 ```python
 generate_yolo_prelabelling(
-    raw_dir=Path("data/raw/images"),
-    output_dir=Path("data/predictions/yolo"),
-    model_path=Path("models/yolo.pt"),
+    raw_dir=Path("data_pipeline/input/"),
+    output_dir=Path("data_pipeline/prelabeled/yolo/"),
+    model_path=Path("model_registry/model/yolo.pt"),
     config={"torch_device": "auto"},
     verbose=True
 )

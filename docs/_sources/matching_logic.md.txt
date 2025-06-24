@@ -93,10 +93,10 @@ These thresholds guide whether a prediction is confidently accepted, flagged for
 
 ```python
 match_and_filter(
-    yolo_dir=Path("data/predictions/yolo"),
-    dino_dir=Path("data/predictions/dino"),
-    labeled_dir=Path("data/labeled"),
-    pending_dir=Path("data/mismatched/pending"),
+    yolo_dir=Path("data_pipeline/prelabeled/yolo/"),
+    dino_dir=Path("data_pipeline/prelabeled/gdino/"),
+    labeled_dir=Path("data_pipeline/labeled/"),
+    pending_dir=Path("data_pipeline/mismatched/pending/"),
     config=config
 )
 ```

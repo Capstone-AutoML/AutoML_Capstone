@@ -66,12 +66,24 @@
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">File Cleaning and Archiving</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">File Cleaning and Archiving</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixtures">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#setup-clean-test-dirs"><code class="docutils literal notranslate"><span class="pre">setup_clean_test_dirs</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#function-tests">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#test-clean-pipeline-creates-archive-and-cleans"><code class="docutils literal notranslate"><span class="pre">test_clean_pipeline_creates_archive_and_cleans</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +114,61 @@
              
   <section id="file-cleaning-and-archiving">
 <h1>File Cleaning and Archiving<a class="headerlink" href="#file-cleaning-and-archiving" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">clean_pipeline.py</span></code> module, which handles archiving labeled data and cleaning up the data pipeline workspace.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>The tests confirm that the cleaning process:</p>
+<ul class="simple">
+<li><p>Archives labeled JSON and associated image files into timestamped folders under the master dataset directory</p></li>
+<li><p>Cleans all pipeline folders except for <code class="docutils literal notranslate"><span class="pre">label_studio</span></code></p></li>
+<li><p>Preserves the folder structure by keeping directories but removing their contents</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fixtures">
+<h2>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h2>
+<section id="setup-clean-test-dirs">
+<h3><code class="docutils literal notranslate"><span class="pre">setup_clean_test_dirs</span></code><a class="headerlink" href="#setup-clean-test-dirs" title="Link to this heading"></a></h3>
+<p>Creates a temporary mock workspace with:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">data_pipeline/</span></code> structure containing:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">labeled/</span></code>: with a sample JSON label</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input/</span></code>: with a matching image</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">label_studio/</span></code>: preserved during cleanup</p></li>
+</ul>
+</li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">master_dataset/</span></code> directory to hold archived results</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="function-tests">
+<h2>Function Tests<a class="headerlink" href="#function-tests" title="Link to this heading"></a></h2>
+<section id="test-clean-pipeline-creates-archive-and-cleans">
+<h3><code class="docutils literal notranslate"><span class="pre">test_clean_pipeline_creates_archive_and_cleans</span></code><a class="headerlink" href="#test-clean-pipeline-creates-archive-and-cleans" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Verifies the creation of a timestamped archive folder containing:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">labels/</span></code>: where the original <code class="docutils literal notranslate"><span class="pre">.json</span></code> file is stored</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">images/</span></code>: where the associated image file is copied</p></li>
+</ul>
+</li>
+<li><p>Confirms that:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">label_studio/</span></code> folder and its contents remain untouched</p></li>
+<li><p>All other folders (<code class="docutils literal notranslate"><span class="pre">labeled/</span></code>, <code class="docutils literal notranslate"><span class="pre">input/</span></code>, etc.) are retained but emptied</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This test ensures that the pipeline cleanup process effectively resets the workspace while preserving key folder structures and backing up labeled content to the <code class="docutils literal notranslate"><span class="pre">master_dataset/</span></code> archive.</p>
+</section>
 </section>
 
 

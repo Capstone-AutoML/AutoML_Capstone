@@ -1,0 +1,192 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File Cleaning and Archiving &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a49bda7b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AutoML CI/CD/CT: Continuous Training and Deployment Pipeline
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup_guide.html">Setup Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AutoML CI/CD/CT: Continuous Training and Deployment Pipeline</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">File Cleaning and Archiving</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/clean_pipeline.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="file-cleaning-and-archiving">
+<h1>File Cleaning and Archiving<a class="headerlink" href="#file-cleaning-and-archiving" title="Link to this heading"></a></h1>
+<p>This module provides a utility for archiving labeled data and cleaning the workspace after each labeling cycle. It ensures that the project directory remains organized while preserving important folders such as <code class="docutils literal notranslate"><span class="pre">label_studio</span></code>.</p>
+<hr class="docutils" />
+<section id="function-clean-pipeline-workspace">
+<h2>Function: <code class="docutils literal notranslate"><span class="pre">clean_pipeline_workspace</span></code><a class="headerlink" href="#function-clean-pipeline-workspace" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">clean_pipeline_workspace</span><span class="p">(</span><span class="n">data_pipeline_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">master_dataset_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="description">
+<h3>Description<a class="headerlink" href="#description" title="Link to this heading"></a></h3>
+<p>Archives labeled results and cleans the data pipeline workspace.</p>
+<ul class="simple">
+<li><p>Copies <code class="docutils literal notranslate"><span class="pre">.json</span></code> label files from <code class="docutils literal notranslate"><span class="pre">data_pipeline/labeled/</span></code> to a timestamped archive under <code class="docutils literal notranslate"><span class="pre">master_dataset/</span></code>.</p></li>
+<li><p>Copies matching image files from <code class="docutils literal notranslate"><span class="pre">data_pipeline/input/</span></code> into the same archive (based on file stem).</p></li>
+<li><p>Clears all folders in <code class="docutils literal notranslate"><span class="pre">data_pipeline/</span></code> except <code class="docutils literal notranslate"><span class="pre">label_studio</span></code>.</p></li>
+</ul>
+</section>
+<section id="arguments">
+<h3>Arguments<a class="headerlink" href="#arguments" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">data_pipeline_dir</span></code></p></td>
+<td><p>Path</p></td>
+<td><p>Path to the root of the <code class="docutils literal notranslate"><span class="pre">data_pipeline/</span></code> directory</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">master_dataset_dir</span></code></p></td>
+<td><p>Path</p></td>
+<td><p>Path to the <code class="docutils literal notranslate"><span class="pre">master_dataset/</span></code> directory for saving archives</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<hr class="docutils" />
+<section id="folder-structure-after-cleaning">
+<h2>Folder Structure After Cleaning<a class="headerlink" href="#folder-structure-after-cleaning" title="Link to this heading"></a></h2>
+<p>Only the following directory is preserved:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>data_pipeline/
+├── input/           # Emptied
+├── labeled/         # Emptied
+├── label_studio/    # Preserved with all contents
+└── ...              # All other folders are emptied
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="archive-output-example">
+<h2>Archive Output Example<a class="headerlink" href="#archive-output-example" title="Link to this heading"></a></h2>
+<p>A successful run creates an archive folder like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>master_dataset/
+└── labeled_20250624_140501/
+    ├── labels/
+    │   ├── image1.json
+    │   ├── image2.json
+    └── images/
+        ├── image1.png
+        ├── image2.jpg
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Matching images are copied based on the label file’s stem (e.g., <code class="docutils literal notranslate"><span class="pre">image1.json</span></code> matches <code class="docutils literal notranslate"><span class="pre">image1.png</span></code>, <code class="docutils literal notranslate"><span class="pre">image1.jpg</span></code>, etc.).</p></li>
+<li><p>If a matching image is not found, a warning is printed.</p></li>
+<li><p>Preserves folder structure for any future uploads to Label Studio or audit tracking.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Elshaday Yoseph, Nhan Tien Nguyen, Rongze Liu and Sepehr Heydarian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

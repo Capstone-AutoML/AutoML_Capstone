@@ -68,10 +68,10 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -104,19 +104,93 @@
 <p>This section provides documentation for the unit tests that verify the functionality and reliability of the core Python modules used in the AutoML wildfire detection pipeline.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="fetch_data.html">Data Fetching</a></li>
-<li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
-<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
-<li class="toctree-l1"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="utils.html">Utility Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fetch_data.html">Data Fetching</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fetch_data.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fetch_data.html#fixtures">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fetch_data.html#test-cases">Test Cases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fetch_data.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html#fixtures">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html#unit-test-descriptions">Unit Test Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html#constants-and-configs">Constants and Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html#functions-tested">Functions Tested</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html#key-edge-cases-tested">Key Edge Cases Tested</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html#example-test-assertions">Example Test Assertions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="matching_logic.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matching_logic.html#unit-test-descriptions">Unit Test Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matching_logic.html#configuration-parameters-used">Configuration Parameters Used</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matching_logic.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="human_in_loop.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="human_in_loop.html#fixtures">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="human_in_loop.html#key-function-tests">Key Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="human_in_loop.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="augmentation.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="augmentation.html#fixtures">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="augmentation.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="augmentation.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="training.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="training.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="training.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#fixtures">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#fixtures">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#id1">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#id2">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#id5">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#id10">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cleaning.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cleaning.html#fixtures">Fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cleaning.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cleaning.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="directory_setup.html">Directory Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utility Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#summary">Summary</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>

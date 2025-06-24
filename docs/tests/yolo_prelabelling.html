@@ -58,7 +58,25 @@
 <li class="toctree-l1"><a class="reference internal" href="../quantization.html">Quantization</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Unit Tests</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="fetch_data.html">Data Fetching</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">YOLO Prelabeling</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">YOLO Prelabeling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixtures">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#patch-yolo-model"><code class="docutils literal notranslate"><span class="pre">patch_yolo_model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tmp-dirs-with-images"><code class="docutils literal notranslate"><span class="pre">tmp_dirs_with_images</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mock-model-path"><code class="docutils literal notranslate"><span class="pre">mock_model_path</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#unit-test-descriptions">Unit Test Descriptions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#get-image-files"><code class="docutils literal notranslate"><span class="pre">_get_image_files</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#load-model"><code class="docutils literal notranslate"><span class="pre">_load_model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#process-prediction"><code class="docutils literal notranslate"><span class="pre">_process_prediction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#save-predictions"><code class="docutils literal notranslate"><span class="pre">_save_predictions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#generate-yolo-prelabelling"><code class="docutils literal notranslate"><span class="pre">generate_yolo_prelabelling</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
@@ -68,10 +86,10 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +120,114 @@
              
   <section id="yolo-prelabeling">
 <h1>YOLO Prelabeling<a class="headerlink" href="#yolo-prelabeling" title="Link to this heading"></a></h1>
+<p>This page outlines the test coverage for the <code class="docutils literal notranslate"><span class="pre">yolo_prelabelling.py</span></code> script, which automates object detection using a YOLO model. The tests validate individual components as well as end-to-end behavior under a variety of conditions, including edge cases and failure scenarios.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>This test suite includes checks for:</p>
+<ul class="simple">
+<li><p>Model loading and device handling</p></li>
+<li><p>Image discovery and validation</p></li>
+<li><p>Inference result parsing</p></li>
+<li><p>JSON output generation</p></li>
+<li><p>Pipeline behavior with:</p>
+<ul>
+<li><p>Empty inputs</p></li>
+<li><p>Corrupted images</p></li>
+<li><p>Missing models</p></li>
+<li><p>Invalid paths</p></li>
+<li><p>Verbose logging</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fixtures">
+<h2>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h2>
+<section id="patch-yolo-model">
+<h3><code class="docutils literal notranslate"><span class="pre">patch_yolo_model</span></code><a class="headerlink" href="#patch-yolo-model" title="Link to this heading"></a></h3>
+<p>Mocks the <code class="docutils literal notranslate"><span class="pre">YOLO</span></code> constructor and inference behavior with a dummy model returning fixed predictions.</p>
+</section>
+<section id="tmp-dirs-with-images">
+<h3><code class="docutils literal notranslate"><span class="pre">tmp_dirs_with_images</span></code><a class="headerlink" href="#tmp-dirs-with-images" title="Link to this heading"></a></h3>
+<p>Creates a temporary raw folder with:</p>
+<ul class="simple">
+<li><p>Two valid image files</p></li>
+<li><p>One corrupted image file</p></li>
+<li><p>One non-image file<br />
+Also creates an empty output directory.</p></li>
+</ul>
+</section>
+<section id="mock-model-path">
+<h3><code class="docutils literal notranslate"><span class="pre">mock_model_path</span></code><a class="headerlink" href="#mock-model-path" title="Link to this heading"></a></h3>
+<p>Creates a temporary dummy model file (<code class="docutils literal notranslate"><span class="pre">model.pt</span></code>) to simulate a valid model checkpoint.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="unit-test-descriptions">
+<h2>Unit Test Descriptions<a class="headerlink" href="#unit-test-descriptions" title="Link to this heading"></a></h2>
+<section id="get-image-files">
+<h3><code class="docutils literal notranslate"><span class="pre">_get_image_files</span></code><a class="headerlink" href="#get-image-files" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_get_image_files_valid</span></code></strong>: Returns only image files, including corrupted ones (based on extension).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_get_image_files_empty_directory</span></code></strong>: Returns an empty list when no files exist.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="load-model">
+<h3><code class="docutils literal notranslate"><span class="pre">_load_model</span></code><a class="headerlink" href="#load-model" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_load_model_success</span></code></strong>: Verifies successful model loading and <code class="docutils literal notranslate"><span class="pre">.to(device)</span></code> usage.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_load_model_file_not_found</span></code></strong>: Raises <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> when the model file is missing.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="process-prediction">
+<h3><code class="docutils literal notranslate"><span class="pre">_process_prediction</span></code><a class="headerlink" href="#process-prediction" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_process_prediction</span></code></strong>: Parses a mock YOLO result into properly structured predictions.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_process_prediction_empty</span></code></strong>: Returns an empty list when no boxes are present.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="save-predictions">
+<h3><code class="docutils literal notranslate"><span class="pre">_save_predictions</span></code><a class="headerlink" href="#save-predictions" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_save_predictions</span></code></strong>: Writes predictions to a JSON file and verifies file structure.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="generate-yolo-prelabelling">
+<h3><code class="docutils literal notranslate"><span class="pre">generate_yolo_prelabelling</span></code><a class="headerlink" href="#generate-yolo-prelabelling" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_success</span></code></strong>: Processes valid and corrupted images using the mock model and checks for correct output.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_device_auto</span></code></strong>: Ensures fallback device detection works when <code class="docutils literal notranslate"><span class="pre">torch_device</span> <span class="pre">=</span> <span class="pre">&quot;auto&quot;</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_handles_corrupted_images</span></code></strong>: Ensures pipeline robustness against unreadable images.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_model_error</span></code></strong>: Raises <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> when model path is invalid.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_empty_directory</span></code></strong>: Gracefully handles empty input folders.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_verbose_mode</span></code></strong>: Captures and checks verbose log output.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_creates_output_directory</span></code></strong>: Automatically creates output folder if it does not exist.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">test_generate_yolo_prelabelling_pytorch_mps_fallback</span></code></strong>: Verifies MPS fallback is enabled via the environment variable on Apple Silicon.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This test suite ensures that <code class="docutils literal notranslate"><span class="pre">yolo_prelabelling.py</span></code> behaves correctly in:</p>
+<ul class="simple">
+<li><p>Normal workflows (valid images + model)</p></li>
+<li><p>OS-level and file-level failures</p></li>
+<li><p>Edge scenarios like:</p>
+<ul>
+<li><p>Empty or missing folders</p></li>
+<li><p>Corrupted or unsupported files</p></li>
+<li><p>Unavailable device or model resources</p></li>
+</ul>
+</li>
+</ul>
+<p>The use of mocks ensures isolation from external dependencies while maintaining high test coverage and robustness.</p>
+</section>
 </section>
 
 

@@ -55,7 +55,9 @@
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clean_pipeline.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -166,20 +168,33 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#errors-to-watch-for">Errors to Watch For</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="clean_pipeline.html">File Cleaning and Archiving</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="clean_pipeline.html#function-clean-pipeline-workspace">Function: <code class="docutils literal notranslate"><span class="pre">clean_pipeline_workspace</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="clean_pipeline.html#folder-structure-after-cleaning">Folder Structure After Cleaning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="clean_pipeline.html#archive-output-example">Archive Output Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="clean_pipeline.html#notes">Notes</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tests/fetch_data.html">Data Fetching Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/yolo_prelabelling.html">YOLO Prelabeling Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/dino_prelabelling.html">Grounding DINO Prelabeling Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/matching_logic.html">Matching Logic Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/human_in_loop.html">Human-in-the-Loop Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/augmentation.html">Augmentation Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/training.html">Training Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/distillation.html">Distillation Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/quantization.html">Quantization Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/cleaning.html">File Cleaning and Archiving Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/directory_setup.html">Directory Setup Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/configuration.html">Configuration Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/utils.html">Utility Functions Unit Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/fetch_data.html">Data Fetching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/yolo_prelabelling.html">YOLO Prelabeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/matching_logic.html">Matching Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/augmentation.html">Augmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/training.html">Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/distillation.html">Distillation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/quantization.html">Quantization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/cleaning.html">File Cleaning and Archiving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/directory_setup.html">Directory Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tests/utils.html">Utility Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="database.html#images-table"><code class="docutils literal notranslate"><span class="pre">images</span></code> Table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="database.html#models-table"><code class="docutils literal notranslate"><span class="pre">models</span></code> Table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="database.html#experiments-table"><code class="docutils literal notranslate"><span class="pre">experiments</span></code> Table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="database.html#env-configuration"><code class="docutils literal notranslate"><span class="pre">.env</span></code> Configuration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a><ul>
@@ -189,6 +204,7 @@
 <li class="toctree-l2"><a class="reference internal" href="api_reference/training.html">Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/quantization.html">Quantization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference/clean_pipeline.html">File Cleaning &amp; Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/utils.html">Utility Scripts</a></li>
 </ul>
 </li>

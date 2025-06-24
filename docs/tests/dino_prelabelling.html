@@ -59,7 +59,19 @@
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Unit Tests</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="fetch_data.html">Data Fetching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Grounding DINO Prelabeling</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Grounding DINO Prelabeling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#constants-and-configs">Constants and Configs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#functions-tested">Functions Tested</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#get-image-files-directory"><code class="docutils literal notranslate"><span class="pre">_get_image_files(directory)</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#generate-gd-prelabelling"><code class="docutils literal notranslate"><span class="pre">generate_gd_prelabelling(...)</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#key-edge-cases-tested">Key Edge Cases Tested</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-test-assertions">Example Test Assertions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
@@ -68,10 +80,10 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +114,101 @@
              
   <section id="grounding-dino-prelabeling">
 <h1>Grounding DINO Prelabeling<a class="headerlink" href="#grounding-dino-prelabeling" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">gdino_prelabelling.py</span></code> script. The module runs object detection on a directory of images using the Grounding DINO model and saves prediction results in JSON format.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>This test suite includes validation for:</p>
+<ul class="simple">
+<li><p>File scanning via <code class="docutils literal notranslate"><span class="pre">_get_image_files</span></code></p></li>
+<li><p>End-to-end behavior of <code class="docutils literal notranslate"><span class="pre">generate_gd_prelabelling</span></code></p></li>
+<li><p>Device detection and fallback logic</p></li>
+<li><p>Handling of corrupted or invalid image files</p></li>
+<li><p>Handling of empty or missing directories</p></li>
+<li><p>JSON output structure and formatting</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="constants-and-configs">
+<h2>Constants and Configs<a class="headerlink" href="#constants-and-configs" title="Link to this heading"></a></h2>
+<p>The following are tested either directly or via mock configuration injection:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TEXT_PROMPTS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BOX_THRESHOLD</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TEXT_THRESHOLD</span></code></p></li>
+<li><p>Device resolution: <code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code></p></li>
+<li><p>Paths to model weights and config files</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="functions-tested">
+<h2>Functions Tested<a class="headerlink" href="#functions-tested" title="Link to this heading"></a></h2>
+<section id="get-image-files-directory">
+<h3><code class="docutils literal notranslate"><span class="pre">_get_image_files(directory)</span></code><a class="headerlink" href="#get-image-files-directory" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Returns</strong>: Valid image paths (<code class="docutils literal notranslate"><span class="pre">.jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">.jpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">.png</span></code>)</p></li>
+<li><p><strong>Tests</strong>:</p>
+<ul>
+<li><p>Valid image files</p></li>
+<li><p>Mixed content (image + non-image)</p></li>
+<li><p>Empty directories</p></li>
+<li><p>Nonexistent directory (expected to raise error upstream)</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="generate-gd-prelabelling">
+<h3><code class="docutils literal notranslate"><span class="pre">generate_gd_prelabelling(...)</span></code><a class="headerlink" href="#generate-gd-prelabelling" title="Link to this heading"></a></h3>
+<p><strong>Core test focus:</strong></p>
+<ul class="simple">
+<li><p>Successful predictions written to JSON</p></li>
+<li><p>Skipped or unreadable files are logged</p></li>
+<li><p>Predictions include class, confidence, bounding box</p></li>
+<li><p>All output files use expected format</p></li>
+<li><p>Handles model loading errors</p></li>
+<li><p>Applies config thresholds correctly</p></li>
+<li><p>Automatically creates output directories if missing</p></li>
+<li><p>Uses fallback device detection logic when set to <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="key-edge-cases-tested">
+<h2>Key Edge Cases Tested<a class="headerlink" href="#key-edge-cases-tested" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Empty folder</strong>: Returns no predictions and exits gracefully</p></li>
+<li><p><strong>Non-image files</strong>: Skipped without error</p></li>
+<li><p><strong>Corrupted images</strong>: Skipped and logged</p></li>
+<li><p><strong>Missing model file</strong>: Raises <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code></p></li>
+<li><p><strong>Output folder does not exist</strong>: Auto-created</p></li>
+<li><p><strong>Multiple valid predictions per image</strong>: Verified in output structure</p></li>
+<li><p><strong>Verbose mode</strong>: Confirms detailed logs are printed to stdout</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="example-test-assertions">
+<h2>Example Test Assertions<a class="headerlink" href="#example-test-assertions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Count of processed images matches input count</p></li>
+<li><p>Prediction JSON contains required keys: <code class="docutils literal notranslate"><span class="pre">bbox</span></code>, <code class="docutils literal notranslate"><span class="pre">confidence</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">source</span></code></p></li>
+<li><p>Output filenames correspond to input image names</p></li>
+<li><p>Invalid images do not result in written JSON</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">torch_device</span></code> settings are passed to model correctly</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This test suite ensures that <code class="docutils literal notranslate"><span class="pre">gdino_prelabelling.py</span></code>:</p>
+<ul class="simple">
+<li><p>Works as expected across different environments (CPU, GPU, MPS)</p></li>
+<li><p>Produces consistently formatted output</p></li>
+<li><p>Handles missing, corrupted, or unexpected files gracefully</p></li>
+<li><p>Is configurable via the pipeline-level <code class="docutils literal notranslate"><span class="pre">config</span></code> and can be extended</p></li>
+</ul>
+<p>The use of mocks and temporary directories isolates test behavior from model internals, ensuring that unit-level functionality is verified in a reproducible way.</p>
+</section>
 </section>
 
 

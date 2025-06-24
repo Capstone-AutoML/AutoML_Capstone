@@ -18,6 +18,8 @@ This is the full documentation of our AutoML CI/CD/CT pipeline for wildfire dete
    training
    distillation
    quantization
+   clean_pipeline
    tests/index
+   database
    api_reference/index
 

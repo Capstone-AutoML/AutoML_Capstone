@@ -17,6 +17,5 @@ This section provides documentation for the unit tests that verify the functiona
    quantization
    cleaning
    directory_setup
-   configuration
    utils
     

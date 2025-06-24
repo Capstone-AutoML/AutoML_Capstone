@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Configuration &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+  <title>File Cleaning &amp; Archiving &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a49bda7b" />
@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Utility Functions" href="utils.html" />
-    <link rel="prev" title="Directory Setup" href="directory_setup.html" /> 
+    <link rel="next" title="Utility Scripts" href="utils.html" />
+    <link rel="prev" title="Quantization" href="quantization.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -56,23 +56,22 @@
 <li class="toctree-l1"><a class="reference internal" href="../training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quantization.html">Quantization</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="index.html">Unit Tests</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="fetch_data.html">Data Fetching</a></li>
-<li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
-<li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tests/index.html">Unit Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Code Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prelabeling.html">Prelabeling Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
-<li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">File Cleaning &amp; Archiving</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.pipeline.clean_pipeline.clean_pipeline_workspace"><code class="docutils literal notranslate"><span class="pre">clean_pipeline_workspace()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Scripts</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -89,10 +88,10 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="index.html">Unit Tests</a></li>
-      <li class="breadcrumb-item active">Configuration</li>
+          <li class="breadcrumb-item"><a href="index.html">Code Reference</a></li>
+      <li class="breadcrumb-item active">File Cleaning &amp; Archiving</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/tests/configuration.md.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/api_reference/clean_pipeline.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -100,16 +99,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="configuration">
-<h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h1>
+  <section id="module-src.pipeline.clean_pipeline">
+<span id="file-cleaning-archiving"></span><h1>File Cleaning &amp; Archiving<a class="headerlink" href="#module-src.pipeline.clean_pipeline" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.pipeline.clean_pipeline.clean_pipeline_workspace">
+<span class="sig-prename descclassname"><span class="pre">src.pipeline.clean_pipeline.</span></span><span class="sig-name descname"><span class="pre">clean_pipeline_workspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_pipeline_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">master_dataset_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/pipeline/clean_pipeline.html#clean_pipeline_workspace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.clean_pipeline.clean_pipeline_workspace" title="Link to this definition"></a></dt>
+<dd><p>Archives labeled results and cleans the workspace except for label_studio.</p>
+<ul class="simple">
+<li><p>Copies JSON label files from data_pipeline/labeled to a timestamped folder in master_dataset.</p></li>
+<li><p>Copies matching images from data_pipeline/input (regardless of extension).</p></li>
+<li><p>Cleans all folders in data_pipeline except ‘label_studio’.</p></li>
+</ul>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="directory_setup.html" class="btn btn-neutral float-left" title="Directory Setup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="utils.html" class="btn btn-neutral float-right" title="Utility Functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quantization.html" class="btn btn-neutral float-left" title="Quantization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utility Scripts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
