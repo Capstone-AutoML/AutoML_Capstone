@@ -130,7 +130,7 @@ def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
     ]   
 
     transform = build_augmentation_transform(config)
-    augment_images(matched_pairs, transform, output_img_dir, output_json_dir, num_augmentations)
+    augment_images(matched_pairs, transform, output_img_dir, output_json_dir, num_augmentations, config)
 
     print(f"Found {len(json_files)} label files")
     print(f"Found {len(image_lookup)} image stems")
