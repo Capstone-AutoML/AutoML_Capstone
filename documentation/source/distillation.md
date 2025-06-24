@@ -189,6 +189,16 @@ The distillation loss computation follows these steps:
 
 This approach ensures that distillation focuses on the teacher's most confident predictions, providing cleaner learning signals to the student.
 
+### Early Stoppping criteria
+
+The Early Stopping criteria computed on the validation data is a weighted combination of the following metrics, called `fitness`:
+
+- `Precision (P)`: The accuracy of the detected objects, indicating how many detections were correct.
+- `Recall (R)`: The ability of the model to identify all instances of objects in the images.
+- `mAP50`: Mean average precision calculated at an intersection over union (IoU) threshold of 0.50. It's a measure of the model's accuracy considering only the "easy" detections.
+- `mAP50-95`: The average of the mean average precision calculated at varying IoU thresholds, ranging from 0.50 to 0.95. It gives a comprehensive view of the model's performance across different levels of detection difficulty.
+
+
 ## Model Architecture Considerations
 
 -**Student Model:** YOLOv8n (lightweight and fast)
@@ -209,3 +219,8 @@ This approach ensures that distillation focuses on the teacher's most confident 
 ## Final Remarks
 
 While this setup represents a well-reasoned and empirically grounded starting point for response-based distillation in YOLOv8, it's important to recognize that distillation is inherently iterative. The balance between detection and distillation losses, temperature scaling, gradient stability, and optimizer configuration often requires substantial trial and error, especially when adapting to different datasets or shifting between teacher and student architectures. Nevertheless, this configuration provides a strong initial baseline that captures key principles of effective knowledge transfer. As the system matures, it can be further refined through advanced techniques such as feature-based distillation, dynamic loss weighting, teacher ensemble methods, or self-training with pseudo-labeling, depending on the application domain and available resources.
+
+## Further readings
+
+- [YOLOv8 validation metrics](https://docs.ultralytics.com/guides/yolo-performance-metrics/#interpreting-the-output)
+- [YOLOv8 v8DetectionLoss](https://docs.ultralytics.com/reference/utils/loss/#ultralytics.utils.loss.v8DetectionLoss), used for the detection loss part of the total loss
