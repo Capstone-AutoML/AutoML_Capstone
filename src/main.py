@@ -83,6 +83,9 @@ def main():
     print(f"Quantization: {'Disabled' if skip_quantization else 'Enabled'}")
     print("-----------------------------------------------\n")
 
+    # Augmentation configuration
+    augmentation_config = load_config(pipeline_paths["augmentation_config_path"])
+
     # Training configuration
     train_config = load_config(pipeline_paths["train_config_path"])
 
@@ -173,7 +176,7 @@ def main():
     augment_dataset(
         image_dir=pipeline_paths["source_dir"],
         output_dir=pipeline_paths["augmented_dir"],
-        config=config.get('augmentation_config', {})
+        config=augmentation_config
     )
 
     print("-----------------------------------------------\n")
@@ -183,7 +186,7 @@ def main():
     if skip_training:
         print("[Info] Training is disabled, skipping...")
     else:
-        prepare_training_data(config)
+        prepare_training_data(train_config)
         trained_model_path = train_model(train_config)
         current_model_path = trained_model_path
 

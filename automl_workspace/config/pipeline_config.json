@@ -33,6 +33,7 @@
     "train_config_path": "automl_workspace/config/train_config.json",
     "distillation_config_path": "automl_workspace/config/distillation_config.yaml",
     "quantize_config_path": "automl_workspace/config/quantize_config.json",
+    "augmentation_config_path": "automl_workspace/config/augmentation_config.json",
 
     "grounding_dino_weights": "automl_workspace/model_registry/model/groundingdino_swinb_cogcoor.pth",
     "grounding_dino_config": "automl_workspace/model_registry/model/GroundingDINO_SwinB_cfg.py"
@@ -43,27 +44,5 @@
   "mid_conf_threshold": 0.6,
   "dino_box_threshold": 0.3,
   "dino_text_threshold": 0.25,
-  "dino_false_negative_threshold": 0.5,
-
-  "augmentation_config": {
-    "num_augmentations": 3,
-    "horizontal_flip_prob": 0.5,
-    "brightness_contrast_prob": 0.5,
-    "hue_saturation_prob": 0.5,
-    "blur_prob": 0.3,
-    "blur_limit": 3,
-    "gauss_noise_prob": 0.3,
-    "gauss_noise_var_min": 10.0,
-    "gauss_noise_var_max": 50.0,
-    "grayscale_prob": 0.2,
-    "rotate_prob": 0.4,
-    "rotate_limit": 15
-  },
-
-  "augmented_images_path": "automl_workspace/data_pipeline/augmented/images",
-  "augmented_labels_path": "automl_workspace/data_pipeline/augmented/labels",
-  "true_negative_images_path": "automl_workspace/data_pipeline/augmented/no_prediction_images",
-  "training_output_path": "automl_workspace/data_pipeline/training",
-  "train_val_split": [0.7, 0.2, 0.1],
-  "data_yaml_path": "automl_workspace/data_pipeline/training/data.yaml"
+  "dino_false_negative_threshold": 0.5
 }
