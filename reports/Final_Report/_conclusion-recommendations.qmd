@@ -9,7 +9,7 @@ To address our partner's need, we developed an **automated**, **continuous**, **
 - **Automated**: From labeling to training and compression, everything flows with minimal manual effort
 - **Continuous**: Updated models help label data in future runs, improving over time
 - **Dynamic**: Easy to plug in new models or modules as requirements change
-- **Efficient**: Greatly reduces model update time - from weeks to just hours
+- **Efficient**: Greatly reduces time across key stages including labeling, fine-tuning, and compression, resulting in faster end-to-end model iteration cycles
 
 ### Limitations & Recommendations
 
