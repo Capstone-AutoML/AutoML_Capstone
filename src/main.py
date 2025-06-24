@@ -7,7 +7,7 @@ import os
 import argparse
 from pathlib import Path
 import shutil
-
+from dotenv import load_dotenv
 from ultralytics.utils import YAML
 
 from pipeline import (
@@ -57,20 +57,18 @@ def main():
     # Create the directory structure
     create_automl_workspace(base_path=PROJECT_ROOT)
 
-    # Define all paths
-    workspace_dir = PROJECT_ROOT / "automl_workspace"
-    config_dir = workspace_dir / "config"
-    data_pipeline_dir = workspace_dir / "data_pipeline"
-    master_dataset_dir = workspace_dir / "master_dataset"
-    model_registry_dir = workspace_dir / "model_registry"
-
     # Load configurations
     if args.config:
         pipeline_config_path = Path(args.config)
     else:
-        pipeline_config_path = config_dir / "pipeline_config.json"
+        pipeline_config_path = PROJECT_ROOT / "automl_workspace" / "config" / "pipeline_config.json"
 
     config = load_config(pipeline_config_path)
+
+    # Convert relative paths from config to absolute paths
+    pipeline_paths = {}
+    for path_key, relative_path in config.get("pipeline_paths", {}).items():
+        pipeline_paths[path_key] = PROJECT_ROOT / relative_path
 
     # Get process options from config
     process_options = config.get("process_options", {})
@@ -86,49 +84,30 @@ def main():
     print(f"Quantization: {'Disabled' if skip_quantization else 'Enabled'}")
     print("-----------------------------------------------\n")
 
+    # Augmentation configuration
+    augmentation_config = load_config(pipeline_paths["augmentation_config_path"])
+
     # Training configuration
-    train_config_path = config_dir / "train_config.json"
-    train_config = load_config(train_config_path)
+    train_config = load_config(pipeline_paths["train_config_path"])
 
     # Distillation configuration
-    # distillation_config_path = SCRIPT_DIR / "distillation_config.json"
-    # distillation_config = load_config(distillation_config_path)
-    distillation_config_path = config_dir / "distillation_config.yaml"
-    distillation_config = YAML.load(distillation_config_path)
+    distillation_config = YAML.load(pipeline_paths["distillation_config_path"])
 
-    # Quantization configuration
-    quantize_config_path = config_dir / "quantize_config.json"
+    # Quantization configuration path
+    quantize_config_path = pipeline_paths["quantize_config_path"]
 
-    # Data paths
-    source_dir = data_pipeline_dir / "input"
-    prelabelled_dir = data_pipeline_dir / "prelabeled"
-    labeled_dir = data_pipeline_dir / "labeled"
-    augmented_dir = data_pipeline_dir / "augmented"
-    training_dir = data_pipeline_dir / "training"
-    distillation_dir = data_pipeline_dir / "distillation"
-    quantization_dir = data_pipeline_dir / "quantization"
-
-    # Model paths
-    base_model_path = model_registry_dir / "model" / "nano_trained_model.pt"
+    # Initialize model path variables
     trained_model_path = None
     distilled_model_path = None
     quantized_model_path = None
-    distilled_output_dir = model_registry_dir / "distilled"
-    quantized_output_dir = model_registry_dir / "quantized"
-
-    # Label Studio data paths
-    label_studio_dir = data_pipeline_dir / "label_studio"
-    pending_dir = label_studio_dir / "pending"
-    tasks_dir = label_studio_dir / "tasks"
-    results_dir = label_studio_dir / "results"
 
     # Track the current model in pipeline
-    current_model_path = base_model_path
+    current_model_path = pipeline_paths["base_model_path"]
 
     print(" --- Step 1: Validating images in input folder --- ")
     # 1. Validate images in input folder
     try:
-        validate_input_images(input_dir=source_dir)
+        validate_input_images(input_dir=pipeline_paths["source_dir"])
     except ValueError as e:
         print(f"[ERROR] {e}")
         return
@@ -138,9 +117,9 @@ def main():
 
     # 2. Generate predictions for raw images
     generate_yolo_prelabelling(
-        raw_dir=source_dir,
-        output_dir=prelabelled_dir / "yolo",
-        model_path=base_model_path,
+        raw_dir=pipeline_paths["source_dir"],
+        output_dir=pipeline_paths["prelabeled_dir"] / "yolo",
+        model_path=pipeline_paths["base_model_path"],
         config=config
     )
 
@@ -148,11 +127,11 @@ def main():
     print(" --- Step 3: Generating Grounding DINO prelabelling --- ")
 
     generate_gd_prelabelling(
-        raw_dir=source_dir,
-        output_dir=prelabelled_dir / "gdino",
+        raw_dir=pipeline_paths["source_dir"],
+        output_dir=pipeline_paths["prelabeled_dir"] / "gdino",
         config=config,
-        model_weights=model_registry_dir / "model" / "groundingdino_swinb_cogcoor.pth",
-        config_path=model_registry_dir / "model" / "GroundingDINO_SwinB_cfg.py",
+        model_weights=pipeline_paths["grounding_dino_weights"],
+        config_path=pipeline_paths["grounding_dino_config"],
         box_threshold=config.get("dino_box_threshold", 0.3),
         text_threshold=config.get("dino_text_threshold", 0.25)
     )
@@ -161,10 +140,10 @@ def main():
     print(" --- Step 4: Matching YOLO and GDINO predictions --- ")
 
     match_and_filter(
-        yolo_dir=prelabelled_dir / "yolo",
-        dino_dir=prelabelled_dir / "gdino",
-        labeled_dir=labeled_dir,
-        pending_dir=pending_dir,
+        yolo_dir=pipeline_paths["prelabeled_dir"] / "yolo",
+        dino_dir=pipeline_paths["prelabeled_dir"] / "gdino",
+        labeled_dir=pipeline_paths["labeled_dir"],
+        pending_dir=pipeline_paths["pending_dir"],
         config=config
     )
 
@@ -175,7 +154,6 @@ def main():
     if skip_human_review:
         print("[Info] Human review is disabled, skipping...")
     else:
-        from dotenv import load_dotenv
         load_dotenv()
         api_key = os.getenv("LABEL_STUDIO_API_KEY")
         if not api_key:
@@ -197,9 +175,9 @@ def main():
 
     # 6. Data augmentation
     augment_dataset(
-        image_dir=source_dir,
-        output_dir=augmented_dir,
-        config=config.get('augmentation_config', {})
+        image_dir=pipeline_paths["source_dir"],
+        output_dir=pipeline_paths["augmented_dir"],
+        config=augmentation_config
     )
 
     print("-----------------------------------------------\n")
@@ -209,7 +187,7 @@ def main():
     if skip_training:
         print("[Info] Training is disabled, skipping...")
     else:
-        prepare_training_data(config)
+        prepare_training_data(train_config)
         trained_model_path = train_model(train_config)
         current_model_path = trained_model_path
 
@@ -233,13 +211,13 @@ def main():
         start_distillation(
             device=config.get("torch_device", "cpu") if config.get("torch_device", "cpu") else detect_device(),
             base_dir=SCRIPT_DIR,
-            img_dir=distillation_dir / "distillation_dataset",
-            frozen_layers=10,  # Freeze backbone layers
+            img_dir=pipeline_paths["distillation_dir"] / "distillation_dataset",
+            frozen_layers=10,
             save_checkpoint_every=25,
             hyperparams=distillation_hyperparams,
-            resume_checkpoint=None,  # Can be set to resume from a checkpoint if needed
-            output_dir=distilled_output_dir,
-            final_model_dir=distilled_output_dir / "latest",
+            resume_checkpoint=None,
+            output_dir=pipeline_paths["distilled_output_dir"],
+            final_model_dir=pipeline_paths["distilled_output_dir"] / "latest",
             log_level="batch",
             debug=False,
             distillation_config=distillation_config,
@@ -247,7 +225,7 @@ def main():
         )
 
         # Get the path to the distilled model
-        distilled_model_path = distilled_output_dir / "latest" / "model.pt"
+        distilled_model_path = pipeline_paths["distilled_output_dir"] / "latest" / "model.pt"
         current_model_path = distilled_model_path
 
     print("-----------------------------------------------\n")
@@ -266,7 +244,7 @@ def main():
 
     # 10. Model registration
     print("[Info] Registering models:")
-    print(f"Base model: {base_model_path}")
+    print(f"Base model: {pipeline_paths['base_model_path']}")
     if trained_model_path:
         print(f"Trained model: {trained_model_path}")
     if distilled_model_path:
