@@ -260,8 +260,10 @@ def main():
 
     print("-----------------------------------------------\n")
     print(" --- Step 11: Final Cleanup and Archival --- ")
-    clean_pipeline_workspace(data_pipeline_dir, master_dataset_dir)
-
+    clean_pipeline_workspace(
+        data_pipeline_dir=pipeline_paths["data_pipeline_dir"],
+        master_dataset_dir=pipeline_paths["master_dataset_dir"]
+    )
 
 
 if __name__ == "__main__":
