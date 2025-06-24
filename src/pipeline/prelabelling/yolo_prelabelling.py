@@ -60,10 +60,10 @@ def _process_prediction(result) -> List[Dict[str, Union[float, str, List[float]]
         x1, y1, x2, y2 = box.xyxy[0].tolist()
         
         # Get confidence score
-        confidence = float(box.conf[0])
+        confidence = float(box.conf[0].item())
         
         # Get class name
-        class_id = int(box.cls[0])
+        class_id = int(box.cls[0].item())
         class_name = result.names[class_id]
         
         predictions.append({
