@@ -81,55 +81,62 @@ This method distills the final outputs of the teacher model—bounding boxes and
 
 ```python
 hyperparams = {
-    "lambda_distillation": 2.0,
-    "lambda_detection": 1.0,
+    "lambda_distillation": 1.0,
+    "lambda_detection": 2.0,
     "lambda_dist_ciou": 1.0,
-    "lambda_dist_kl": 2.0,
+    "lambda_dist_kl": 1.0,
     "temperature": 2.0
 }
 ```
 
 #### Explanation of Each Weight
 
-1. **`lambda_distillation = 2.0`**
+1. **`lambda_distillation = 1.0`**
 
-   -This global weight amplifies the entire distillation loss relative to the standard detection loss.
-   -Since the goal is to make the student mimic the teacher, this slightly higher weight promotes more attention on distillation without overpowering ground-truth learning.
+   - Controls the overall strength of distillation loss compared to detection loss
+   - Balanced weight ensures student learns from both teacher and ground truth
+   - Higher values risk overfitting to teacher's predictions
+   - Lower values may result in insufficient knowledge transfer
 
-2. **`lambda_detection = 1.0`**
+2. **`lambda_detection = 2.0`**
 
-   -This ensures the student still respects ground-truth labels.
-   -Helps avoid cases where the teacher may be confidently wrong (e.g., due to domain shift or noisy training).
+   - Prioritizes learning from ground truth labels over teacher predictions
+   - Higher weight helps maintain model accuracy on labeled data
+   - Critical for preventing propagation of teacher model errors
+   - Empirically determined optimal value for wildfire detection
 
 3. **`lambda_dist_ciou = 1.0`**
 
    -This balances the bounding box alignment with the classification component.
    -CIoU (Complete IoU) already provides strong geometric supervision; no need to overweight it unless box alignment is especially poor.
 
-4. **`lambda_dist_kl = 2.0`**
+4. **`lambda_dist_kl = 1.0`**
 
-   -A higher weight helps capture the teacher's soft class probabilities, which encode "dark knowledge" (i.e., relative confidence between classes).
-   -Especially important for class imbalance scenarios or rare classes.
+   - Controls the strength of class distillation
+   - Balance weight helps capture the teacher's soft class probabilities, which encode "dark knowledge" (i.e., relative confidence between classes)
+   - Especially important for class imbalance scenarios or rare classes
 
 5. **`temperature = 2.0`**
 
    -Controls the softness of class distributions during distillation.
    -A moderate temperature like 2.0 makes logits softer and gradients smoother—helping the student learn inter-class relationships more effectively.
 
-## Training Configuration
+## Distillation Configuration
 
-These training settings are defined in `student_model_cfg.yaml` and chosen to ensure stable, effective knowledge transfer:
+These training settings are defined in `distillation_config.yaml` and chosen to ensure stable, effective knowledge transfer. Only the important ones are listed here, the rest are default YOLOv8 settings:
 
 | Parameter      | Value          | Reason                                                                        |
 | -- | -- | -- |
 | `imgsz`        | 640            | Balanced choice for stability and memory usage                                |
-| `lr0`          | 0.005          | Lower than YOLO default to slow learning, to compensate for potentially more unstable gradient in distillation |
+| `lr0`          | 0.01          | Good default learning rate |
+| `lrf`          | 0.01          | Good default learning rate |
+| `momentum`     | 0.937          | Good default momentum |
+| `optimizer`    | auto | Good default optimizer |
 | `batch`        | 32             | Balanced choice for stability and memory usage                                |
 | `epochs`       | 200            | Allows enough time for full knowledge transfer                                |
-| Early Stopping | 100 epochs     | Prevents unnecessary overfitting if student plateaus                          |
-| Optimizer      | SGD + momentum | Well-tested in for default YOLOv8, works well for distillation settings                               |
-| LR Scheduler   | LambdaLR   | Helps avoid local minima and promotes smooth convergence                      |
-| Grad Clipping  | 10.0           | Prevents exploding gradients, improves training stability                     |
+| `patience`     | 100 epochs     | Prevents unnecessary overfitting if student plateaus                          |
+| `optimizer`    | SGD + momentum | Well-tested in for default YOLOv8, works well for distillation settings                               |
+| Other parameters | Default YOLOv8 settings | Default YOLOv8 settings |
 
 ## Distillation Deep Dive
 
