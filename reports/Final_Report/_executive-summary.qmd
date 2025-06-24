@@ -1,13 +1,7 @@
-Wildfires are becoming increasingly frequent and severe due to shifting climate patterns, making early detection a critical component of disaster response and mitigation. This project, conducted in partnership with Bayes Studio—a Vancouver-based startup specializing in environmental monitoring—addresses the need for a more scalable and automated approach to updating wildfire detection models deployed on edge devices.
+Bayes Studio, a Vancouver-based startup, develops AI-driven wildfire detection systems using edge-deployed camera devices. Their existing workflow—consisting of manual labeling, model training, and compression—limited their ability to update detection models quickly as new image data became available. This project addresses that bottleneck by developing an automated and modular pipeline for end-to-end model improvement.
 
-Bayes Studio's existing workflow for model development involves several manual steps, including labeling environmental imagery, fine-tuning a base object detection model, and compressing it for deployment. These steps are necessary but time-consuming, creating a bottleneck that limits the speed at which models can adapt to new data.
+The pipeline is designed to process incoming data through a semi-automated labeling system that combines predictions from two models (YOLOv8 and Grounding DINO) with human-in-the-loop validation for uncertain cases. Labeled images then undergo data augmentation to increase dataset diversity. The pipeline fine-tunes a YOLOv8 base model on this expanded dataset and applies knowledge distillation and quantization to produce smaller, deployable models for edge devices.
 
-To address this, we developed a modular machine learning pipeline that automates much of this process. The pipeline is designed around three main components:
+Key outputs include a labeled dataset, fine-tuned and compressed models, and versioned metadata to support traceability and reproducibility. While the system currently runs locally, it provides a foundation for scalable wildfire detection workflows. Limitations such as lack of cloud support, fragmented metadata storage, and missing monitoring tools are acknowledged, with recommendations proposed to address them.
 
-1. **Semi-automated labeling**: A dual-model strategy supported by human-in-the-loop review accelerates annotation while preserving label quality.
-2. **Model training**: A YOLOv8 model is fine-tuned on newly labeled and augmented image data, using a configurable training setup to allow flexibility.
-3. **Model compression**: Distillation and quantization techniques are applied to produce lightweight models suitable for deployment on edge devices.
-
-The pipeline is data-driven and designed to run continuously, incorporating approximately 500 new images per month. It supports versioning of models and configurations, helping Bayes Studio track performance over time and respond quickly to evolving detection needs.
-
-Overall, this project contributes a practical, scalable approach to maintaining and improving wildfire detection systems in real-world deployment settings.
+Overall, this solution helps the partner streamline model updates and prepare models suitable for real-time edge deployment in wildfire detection.
