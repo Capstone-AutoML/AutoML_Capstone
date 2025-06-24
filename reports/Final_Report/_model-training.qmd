@@ -10,7 +10,7 @@ The training stage uses the full set of labeled images, including both augmented
 
 Training hyperparameters including settings like the number of epochs, learning rate, and input image size—are defined in the `train_config.json` file. This configuration supports any training argument compatible with the YOLOv8 framework.
 
-3. **Workflow**
+3. **Workflow Steps**
 
 - **Step 1**: Load the training configuration and identify the most recent base model.
 - **Step 2**: Organize the data into training, validation, and test splits.
