@@ -18,6 +18,31 @@ The distillation process is a knowledge transfer technique that trains a smaller
 - **Training Data**: Images and their corresponding annotations for wildfire detection (5 classes: FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI)
 - **Configuration**: Training parameters defined in `student_model_cfg.yaml`
 
+#### Distillation Dataset
+
+The distillation dataset is a subset of labeled images, which is used to train the student model. It is a folder that contains the train images/labels and validation images/labels. The folder should have the following name & structure:
+
+```txt
+distillation_dataset/
+   train/
+     images/
+     labels/
+   val/
+     images/
+     labels/
+```
+
+It is currently assumed to be located in the `automl_workspace/data_pipeline/distillation` directory. When a new custom distillation dataset is provided, the user can overwrite the `distillation_dataset` attribute in `distillation_config.yaml` with the either relative or absolute path to the **directory** of the new custom distillation dataset.
+
+When the distillation step is run, it will automatically create the `distillation_data.yaml` file in the `distillation` directory (or the directory specified in `distillation_dataset` attribute in `distillation_config.yaml`). YOLOv8 internally uses this file to load the dataset from the correct path. If this file is not created, it can be manually created, with the following format:
+
+```yaml
+train: /path/to/distillation_dataset/train # highly recommended to use absolute path
+val: /path/to/distillation_dataset/valid # highly recommended to use absolute path
+nc: 5
+names: [FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI]
+```
+
 ### Processing
 
 The distillation process follows these main steps:
