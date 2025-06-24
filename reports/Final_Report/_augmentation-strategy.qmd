@@ -14,7 +14,7 @@ The augmentation process uses labeled images along with their corresponding YOLO
 These images are sourced from the matched outputs of the pre-labeling pipeline and are stored in the `labeled` directory. 
 Augmentation behavior is controlled via the `augmentation_config.json` file, which allows customization of parameters such as the number of augmentations per image, transformation probabilities, and limits for effects like blur intensity.
 
-3. **Workflow**
+3. **Workflow Steps**
 
 - **Step 1**: Load each image and its corresponding annotation.
 - **Step 2**: For each image, generate a fixed number of augmented versions (e.g., 3).
