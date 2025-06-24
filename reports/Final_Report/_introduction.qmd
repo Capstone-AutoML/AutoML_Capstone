@@ -1,4 +1,4 @@
-Wildfires represent a significant and growing environmental threat, with the potential to cause widespread ecological and economic damage.  Defence Research and Development Canada (@drdc2022) emphasizes the importance of early detection in mitigating the impact and spread of these events.
+Wildfires represent a significant and growing environmental threat, with the potential to cause widespread ecological and economic damage. @drdc2022 emphasizes the importance of early detection in mitigating the impact and spread of these events.
 
 Our Capstone partner, Bayes Studio, is a Vancouver-based startup developing advanced AI-driven tools for environmental monitoring and wildfire detection. 
 They deploy specialized camera systems equipped with lightweight models that operate as edge devices, allowing for real-time, on-site inference.
@@ -17,4 +17,3 @@ Over the course of the project, we refined the original problem statement into t
 3. **Model compression**: To meet the hardware constraints of Bayes Studio's edge devices, we applied model compression techniques, including knowledge distillation and quantization.
 
 These objectives were designed to address key operational challenges faced by Bayes Studio. By reducing manual effort in labeling, streamlining model fine-tuning, and supporting hardware-efficient deployment, the system enables faster iteration and improved version control over detection models. This provides the partner with a more scalable and maintainable workflow for real-time wildfire detection.
-
