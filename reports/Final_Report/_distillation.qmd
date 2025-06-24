@@ -21,8 +21,14 @@
      - Distillation loss (`lambda_distillation = 1.0`) facilitates knowledge transfer from the teacher model:
        * Bounding box distillation (`lambda_dist_ciou = 1.0`) ensures accurate localization
        * Classification distillation (`lambda_dist_kl = 1.0`) preserves class prediction capabilities
-   - **Step 4**: Implement regular checkpointing and model state preservation to enable training resumption if needed.
-   - **Step 5**: Save the final distilled model for use in downstream tasks and deployment.
+   - **Step 4**: Student model is train/distill in the training loop, with regular model saving/checkpointing and diagnostic logging. If the performance on the validation data does not improve after `patience` number of epochs have passed, `EarlyStopping` triggers and the training loop exits, preserving the best weights.
+   - **Step 5**: After training loop completes, save the final best weights of the distilled model for use in downstream tasks and deployment.
+
+   The validation criteria for Early Stopping is `fitness`, which is a weighted combination of these 4 metrics:
+   - `Precision (P)`: The accuracy of the detected objects, indicating how many detections were correct.
+   - `Recall (R)`: The ability of the model to identify all instances of objects in the images.
+   - `mAP50`: Mean average precision calculated at an intersection over union (IoU) threshold of 0.50. It's a measure of the model's accuracy considering only the "easy" detections.
+   - `mAP50-95`: The average of the mean average precision calculated at varying IoU thresholds, ranging from 0.50 to 0.95. It gives a comprehensive view of the model's performance across different levels of detection difficulty.
 
 4. **Output**
    - Distilled YOLOv8n model with reduced size and complexity
@@ -32,4 +38,4 @@
 
 5. **Impact**
 
-   Knowledge distillation delivers substantial benefits for wildfire detection deployment. The resulting model exhibits reduced size and computational requirements while maintaining detection accuracy through effective knowledge transfer from the teacher model. Faster inference times make the model suitable for real-time applications on edge devices, enabling efficient deployment on resource-constrained hardware such as drones and monitoring cameras. This optimization is crucial for meeting the real-time requirements of wildfire detection systems in operational environments.
+   Knowledge distillation provides a practical solution for deploying wildfire detection models by significantly reducing model size and computational load. While some performance drop is inevitable during the distillation process, effective knowledge transfer from the teacher model helps minimize this loss. The resulting model achieves faster inference, making it well-suited for real-time applications on edge devices such as drones and monitoring cameras.
