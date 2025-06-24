@@ -69,12 +69,10 @@
 <li class="toctree-l3"><a class="reference internal" href="#imx-quantization-linux-only">3. IMX Quantization (Linux only)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example Usage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#notes">Notes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#errors-to-watch-for">Errors to Watch For</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#notes">Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#errors-to-watch-for">Errors to Watch For</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
@@ -174,7 +172,13 @@
 <hr class="docutils" />
 <section id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
-<p>The quantization process uses a configuration file (<code class="docutils literal notranslate"><span class="pre">src/quantize_config.json</span></code>) which must include the following:</p>
+<p>Configure quantization in <code class="docutils literal notranslate"><span class="pre">automl_workspace/config/pipeline_config.json</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;process_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;skip_quantization&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  </span><span class="c1">// Set to true to skip quantization</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The quantization process uses a configuration file (<code class="docutils literal notranslate"><span class="pre">automl_workspace/config/quantize_config.json</span></code>) which must include the following:</p>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">quantization_method</span></code></strong>: One of <code class="docutils literal notranslate"><span class="pre">&quot;ONNX&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;FP16&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;IMX&quot;</span></code></p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></strong>: Path to save the quantized model</p></li>
@@ -184,19 +188,34 @@
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">calibration_samples</span></code></strong>: Number of samples for IMX calibration (recommended: 300+)</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">quantize_yaml_path</span></code></strong>: Path where YAML config will be created (required for IMX)</p></li>
 </ul>
+</section>
 <hr class="docutils" />
 <section id="example-usage">
-<h3>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">quantize_model</span><span class="p">(</span>
-    <span class="n">model_path</span><span class="o">=</span><span class="s2">&quot;mock_io/model_registry/model/nano_trained_model.pt&quot;</span><span class="p">,</span>
-    <span class="n">quantize_config_path</span><span class="o">=</span><span class="s2">&quot;src/quantize_config.json&quot;</span>
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
+<p><strong>Pipeline Integration (Recommended):</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="c1">// Configure in pipeline_config.json</span>
+<span class="nt">&quot;process_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;skip_quantization&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run main pipeline</span>
+python<span class="w"> </span>src/main.py
+</pre></div>
+</div>
+<p><strong>Standalone Usage:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pipeline.quantization</span><span class="w"> </span><span class="kn">import</span> <span class="n">quantize_model</span>
+
+<span class="n">quantized_path</span> <span class="o">=</span> <span class="n">quantize_model</span><span class="p">(</span>
+    <span class="n">model_path</span><span class="o">=</span><span class="s2">&quot;automl_workspace/model_registry/model/nano_trained_model.pt&quot;</span><span class="p">,</span>
+    <span class="n">quantize_config_path</span><span class="o">=</span><span class="s2">&quot;automl_workspace/config/quantize_config.json&quot;</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <hr class="docutils" />
 <section id="notes">
-<h3>Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h3>
+<h2>Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>ONNX quantization is portable and works across platforms.</p></li>
 <li><p>FP16 is fast and requires minimal changes.</p></li>
@@ -205,7 +224,7 @@
 </section>
 <hr class="docutils" />
 <section id="errors-to-watch-for">
-<h3>Errors to Watch For<a class="headerlink" href="#errors-to-watch-for" title="Link to this heading"></a></h3>
+<h2>Errors to Watch For<a class="headerlink" href="#errors-to-watch-for" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Missing <code class="docutils literal notranslate"><span class="pre">quantize_yaml_path</span></code></p></li>
 <li><p>Running IMX quantization on a non-Linux system</p></li>
@@ -213,7 +232,6 @@
 </ul>
 <hr class="docutils" />
 <p>This module is a crucial step in optimizing YOLO models for real-time deployment, especially in resource-constrained environments.</p>
-</section>
 </section>
 </section>
 

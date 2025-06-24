@@ -9,7 +9,17 @@ git clone https://github.com/Capstone-AutoML/AutoML_Capstone.git
 cd AutoML_Capstone
 ```
 
-## 2. Run the Pipeline
+## 2. Run the Pipeline with Docker
+
+**Important**: Docker cannot handle interactive Label Studio sessions for human review. Before running with Docker, you **must** disable human review in `automl_workspace/config/pipeline_config.json`:
+
+```json
+"process_options": {
+  "skip_human_review": true
+}
+```
+
+If you want to run human-in-the-loop validation using Label Studio, refer to the [Human Intervention](human_in_loop.md) documentation section.
 
 ### 💻 If You Have a GPU (CUDA Supported)
 
@@ -21,8 +31,8 @@ docker compose up
 
 This command will:
 
-* Download necessary datasets and models on first run (unless `mock_io/data/`, `mock_io/data/distillation/`, or `mock_io/model_registry/model/` are removed).
-* Automatically use your GPU **if** the following key is updated in **both** `train_config.json` and `pipeline_config.json`:
+- Download necessary datasets and models on first run (unless `automl_workspace/data_pipeline/`, `automl_workspace/data_pipeline/distillation/`, or `automl_workspace/model_registry/model/` are removed).
+- Automatically use your GPU **if** the following key is updated in **both** `automl_workspace/config/train_config.json` and `automl_workspace/config/pipeline_config.json`:
 
 ```json
 "torch_device": "cuda"
@@ -41,7 +51,7 @@ services:
   capstone:
     image: celt313/automl_capstone:v0.0.2
     container_name: automl_capstone
-    shm_size: "4gb"
+    ipc: host
     working_dir: /app
     entrypoint: bash
     command: -c "source activate capstone_env && ./fetch_dataset.sh && python src/main.py"
@@ -100,54 +110,69 @@ docker compose run generate_box
 ```
 
 ---
+
 This will:
 
-* Sample and draw 10 images each from YOLO, DINO, and mismatched directories.
+- Sample and draw 10 images each from YOLO, DINO, and mismatched directories.
 
-* Draw bounding boxes on all images from the labeled directory.
+- Draw bounding boxes on all images from the labeled directory.
 
-* Save the visualized outputs under `mock_io/boxed_images`
-
-## 5. Human Review with Label Studio
-
-For human-in-the-loop validation using Label Studio, refer to the [Human Intervention](human_in_loop.md) documentation section.
+- Save the visualized outputs under `automl_workspace/data_pipeline/boxed_images/`
 
 ---
 
-## 6. Configuration Files
+## 5. Configuration Files
 
-These two config files control pipeline behavior:
+These two onfig files control pipeline behavior:
 
-* `pipeline_config.json`: Pre-labeling, matching, augmentation, and distillation settings.
-* `train_config.json`: Training parameters, dataset paths, and device.
-* `quantize_config.json` : Model quantization settings (labeled images paths, quantization method, etc.)
+- `pipeline_config.json`: Process options, augmentation, and distillation settings.
+- `train_config.json`: Training parameters, dataset paths, and device.
+- `distillation_config.yaml`: Distillation settings (model paths, epochs, patience, etc.)
+- `quantize_config.json` : Model quantization settings (labeled images paths, quantization method, etc.)
 
-Defaults are generally sufficient, but GPU usage requires you to set:
+### Process Options
+
+Control which pipeline steps to run via `pipeline_config.json`:
+
+```json
+// Set to true to skip a step
+"process_options": {
+  "skip_human_review": false,
+  "skip_training": false,
+  "skip_distillation": false,
+  "skip_quantization": false
+}
+```
+
+### Device Configuration
+
+For GPU usage, set in **both** `pipeline_config.json` and `train_config.json`:
 
 ```json
 "torch_device": "cuda"
 ```
 
+Default is `"cpu"` for CPU-only execution.
+
 ---
 
-## 7. Add Your Own Dataset
+## 6. Add Your Own Dataset
 
-To start fresh with your own dataset, delete all folders inside `mock_io/` **except** for `mock_io/model_registry/model/`.
+To start fresh with your own dataset:
 
-Then, create a new dataset folder at:
+1. **Clear existing data**:
 
-```
-mock_io/data/sampled_dataset/
-```
+   ```bash
+   rm -rf automl_workspace/data_pipeline/*
+   ```
 
-and place your images inside it:
+2. **Add your images** to:
 
-```
-mock_io/data/sampled_dataset/
-├── your_image1.jpg
-├── your_image2.jpg
-├── ...
-```
+   ```text
+   automl_workspace/data_pipeline/input/
+   ├── image1.jpg
+   ├── image2.jpg
+   └── ...
+   ```
 
 Make sure the images are in `.jpg`, `.jpeg`, or `.png` format.
-

@@ -86,6 +86,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">albumentations</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">A</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;KMP_DUPLICATE_LIB_OK&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;True&quot;</span>
+
 
 <span class="c1"># Create augmentation pipeline</span>
 <div class="viewcode-block" id="build_augmentation_transform">
@@ -124,7 +127,8 @@
                    <span class="n">transform</span><span class="p">:</span> <span class="n">A</span><span class="o">.</span><span class="n">Compose</span><span class="p">,</span> 
                    <span class="n">output_img_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> 
                    <span class="n">output_json_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> 
-                   <span class="n">num_augmentations</span><span class="p">:</span> <span class="nb">int</span>
+                   <span class="n">num_augmentations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                   <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Applies augmentations to each image N times and saves results.</span>
 <span class="sd">    Also saves un-augmented images with no predictions into separate folders.</span>
@@ -135,6 +139,9 @@
     <span class="n">output_img_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">output_json_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">no_pred_img_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Get base seed from augmentation config file</span>
+    <span class="n">base_seed</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;seed&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">json_path</span><span class="p">,</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="n">matched_pairs</span><span class="p">:</span>
         <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
@@ -155,6 +162,11 @@
             <span class="k">continue</span>
 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_augmentations</span><span class="p">):</span>
+
+            <span class="c1"># If base seed is set, adjust for iteration</span>
+            <span class="k">if</span> <span class="n">base_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">transform</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">base_seed</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+
             <span class="n">augmented</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">bboxes</span><span class="o">=</span><span class="n">bboxes</span><span class="p">,</span> <span class="n">class_labels</span><span class="o">=</span><span class="n">class_labels</span><span class="p">)</span>
             <span class="n">aug_image</span> <span class="o">=</span> <span class="n">augmented</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
             <span class="n">aug_bboxes</span> <span class="o">=</span> <span class="n">augmented</span><span class="p">[</span><span class="s2">&quot;bboxes&quot;</span><span class="p">]</span>
@@ -194,7 +206,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">num_augmentations</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;num_augmentations&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
-    <span class="n">labeled_json_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/labeled&quot;</span><span class="p">)</span>
+    <span class="n">labeled_json_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/labeled&quot;</span><span class="p">)</span>
     <span class="n">output_img_dir</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span>
     <span class="n">output_json_dir</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;labels&quot;</span>
 
@@ -209,7 +221,7 @@
     <span class="p">]</span>   
 
     <span class="n">transform</span> <span class="o">=</span> <span class="n">build_augmentation_transform</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-    <span class="n">augment_images</span><span class="p">(</span><span class="n">matched_pairs</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">output_img_dir</span><span class="p">,</span> <span class="n">output_json_dir</span><span class="p">,</span> <span class="n">num_augmentations</span><span class="p">)</span>
+    <span class="n">augment_images</span><span class="p">(</span><span class="n">matched_pairs</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">output_img_dir</span><span class="p">,</span> <span class="n">output_json_dir</span><span class="p">,</span> <span class="n">num_augmentations</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">json_files</span><span class="p">)</span><span class="si">}</span><span class="s2"> label files&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">image_lookup</span><span class="p">)</span><span class="si">}</span><span class="s2"> image stems&quot;</span><span class="p">)</span>

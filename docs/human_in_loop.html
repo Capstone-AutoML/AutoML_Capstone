@@ -55,24 +55,27 @@
 <li class="toctree-l2"><a class="reference internal" href="#key-capabilities">Key Capabilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#setup-instructions">Setup Instructions</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#environment-setup">1. Environment Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#directory-setup">2. Directory Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pipeline-configuration">2. Pipeline Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#directory-setup">3. Directory Setup</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#workflow">Workflow</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#status-tracking-with-label-status">1. Status Tracking with <code class="docutils literal notranslate"><span class="pre">label_status</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#main-functions">2. Main Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#initialize-json-files"><code class="docutils literal notranslate"><span class="pre">_initialize_json_files()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#generate-ls-tasks"><code class="docutils literal notranslate"><span class="pre">_generate_ls_tasks()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#ensure-label-studio-running"><code class="docutils literal notranslate"><span class="pre">_ensure_label_studio_running()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#setup-label-studio"><code class="docutils literal notranslate"><span class="pre">setup_label_studio()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#import-tasks-to-project"><code class="docutils literal notranslate"><span class="pre">import_tasks_to_project()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#export-versioned-results"><code class="docutils literal notranslate"><span class="pre">export_versioned_results()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#transform-reviewed-results-to-labeled"><code class="docutils literal notranslate"><span class="pre">transform_reviewed_results_to_labeled()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#full-review-pipeline-usage">Full Review Pipeline Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#place-files-for-review">1. Place Files for Review</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#run-the-review-pipeline">2. Run the Review Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-the-review-process">2. Run the Review Process</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#review-in-label-studio">3. Review in Label Studio</a></li>
 </ul>
 </li>
@@ -149,18 +152,30 @@ conda<span class="w"> </span>activate<span class="w"> </span>human_review_env
 </ol>
 </section>
 <hr class="docutils" />
+<section id="pipeline-configuration">
+<h3>2. Pipeline Configuration<a class="headerlink" href="#pipeline-configuration" title="Link to this heading"></a></h3>
+<p>Configure human review in <code class="docutils literal notranslate"><span class="pre">automl_workspace/config/pipeline_config.json</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;process_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;skip_human_review&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="c1">// Set to true to skip human review</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
 <section id="directory-setup">
-<h3>2. Directory Setup<a class="headerlink" href="#directory-setup" title="Link to this heading"></a></h3>
+<h3>3. Directory Setup<a class="headerlink" href="#directory-setup" title="Link to this heading"></a></h3>
 <p>The following folders are initialized automatically if not present:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mock_io/
-├──<span class="w"> </span>data/
-│<span class="w">   </span>├──<span class="w"> </span>mismatched/
-│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>pending/<span class="w">           </span><span class="c1"># Place raw YOLO output JSONs here</span>
-│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>reviewed_results/<span class="w">  </span><span class="c1"># Human-reviewed output ends up here</span>
-│<span class="w">   </span>├──<span class="w"> </span>raw/
-│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>images/<span class="w">            </span><span class="c1"># All referenced images</span>
-│<span class="w">   </span>└──<span class="w"> </span>ls_tasks/<span class="w">              </span><span class="c1"># Temporary task JSONs for import</span>
-.env<span class="w">                           </span><span class="c1"># Put your API key here</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>AutoML_Capstone/
+├──<span class="w"> </span>.env<span class="w">                   </span><span class="c1"># Put your API key here</span>
+└──<span class="w"> </span>automl_workspace/data_pipeline/
+<span class="w">    </span>├──<span class="w"> </span>input/<span class="w">             </span><span class="c1"># All referenced images</span>
+<span class="w">    </span>├──<span class="w"> </span>label_studio/
+<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>pending/<span class="w">       </span><span class="c1"># Mismatches (raw YOLO output JSONs)</span>
+<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>tasks/<span class="w">         </span><span class="c1"># Temporary task JSONs for import</span>
+<span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>results/<span class="w">       </span><span class="c1"># Human-reviewed output ends up here</span>
+<span class="w">    </span>└──<span class="w"> </span>labeled/<span class="w">           </span><span class="c1"># Final labeled data</span>
 </pre></div>
 </div>
 </section>
@@ -199,6 +214,14 @@ conda<span class="w"> </span>activate<span class="w"> </span>human_review_env
 <hr class="docutils" />
 <section id="main-functions">
 <h3>2. Main Functions<a class="headerlink" href="#main-functions" title="Link to this heading"></a></h3>
+<section id="initialize-json-files">
+<h4><code class="docutils literal notranslate"><span class="pre">_initialize_json_files()</span></code><a class="headerlink" href="#initialize-json-files" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Scans pending directory for new JSON files</p></li>
+<li><p>Sets <code class="docutils literal notranslate"><span class="pre">label_status</span> <span class="pre">=</span> <span class="pre">0</span></code> for files without status field</p></li>
+<li><p>Prepares files for import to Label Studio</p></li>
+</ul>
+</section>
 <section id="generate-ls-tasks">
 <h4><code class="docutils literal notranslate"><span class="pre">_generate_ls_tasks()</span></code><a class="headerlink" href="#generate-ls-tasks" title="Link to this heading"></a></h4>
 <ul class="simple">
@@ -237,21 +260,40 @@ conda<span class="w"> </span>activate<span class="w"> </span>human_review_env
 <li><p>Updates <code class="docutils literal notranslate"><span class="pre">label_status</span></code> to <code class="docutils literal notranslate"><span class="pre">2</span></code> for completed tasks</p></li>
 </ul>
 </section>
+<section id="transform-reviewed-results-to-labeled">
+<h4><code class="docutils literal notranslate"><span class="pre">transform_reviewed_results_to_labeled()</span></code><a class="headerlink" href="#transform-reviewed-results-to-labeled" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Converts Label Studio export format back to original JSON structure</p></li>
+<li><p>Moves completed files from <code class="docutils literal notranslate"><span class="pre">pending/</span></code> to <code class="docutils literal notranslate"><span class="pre">labeled/</span></code> directory</p></li>
+<li><p>Enables automatic pipeline continuation to training step</p></li>
+</ul>
+</section>
 </section>
 </section>
 <hr class="docutils" />
-<section id="full-review-pipeline-usage">
-<h2>Full Review Pipeline Usage<a class="headerlink" href="#full-review-pipeline-usage" title="Link to this heading"></a></h2>
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
 <section id="place-files-for-review">
 <h3>1. Place Files for Review<a class="headerlink" href="#place-files-for-review" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>Put JSON files in <code class="docutils literal notranslate"><span class="pre">mock_io/data/mismatched/pending/</span></code></p></li>
-<li><p>Ensure referenced images exist in <code class="docutils literal notranslate"><span class="pre">mock_io/data/raw/images/</span></code></p></li>
+<li><p>Mismatched JSON files are automatically placed in <code class="docutils literal notranslate"><span class="pre">automl_workspace/data_pipeline/label_studio/pending/</span></code></p></li>
+<li><p>Ensure referenced images exist in <code class="docutils literal notranslate"><span class="pre">automl_workspace/data_pipeline/input/</span></code></p></li>
 </ul>
 </section>
-<section id="run-the-review-pipeline">
-<h3>2. Run the Review Pipeline<a class="headerlink" href="#run-the-review-pipeline" title="Link to this heading"></a></h3>
-<p>Run the full review pipeline via:</p>
+<section id="run-the-review-process">
+<h3>2. Run the Review Process<a class="headerlink" href="#run-the-review-process" title="Link to this heading"></a></h3>
+<p><strong>Option A</strong>: Run the full AutoML pipeline with human review enabled</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="c1">// Configure in pipeline_config.json</span>
+<span class="nt">&quot;process_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;skip_human_review&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run main pipeline</span>
+python<span class="w"> </span>src/main.py
+</pre></div>
+</div>
+<p><strong>Option B</strong>: Run human review independently</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run without export</span>
 python<span class="w"> </span>src/pipeline/human_intervention.py
 
@@ -289,9 +331,9 @@ python<span class="w"> </span>src/pipeline/human_intervention.py<span class="w">
 </pre></div>
 </div>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">image_path</span></code>: Must point to a valid file in <code class="docutils literal notranslate"><span class="pre">raw/images</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">bbox</span></code>: Format is <code class="docutils literal notranslate"><span class="pre">[x_min,</span> <span class="pre">y_min,</span> <span class="pre">x_max,</span> <span class="pre">y_max]</span></code> in pixels</p></li>
-<li><p>Final reviewed results will be saved under <code class="docutils literal notranslate"><span class="pre">mock_io/data/mismatched/reviewed_results</span></code></p></li>
+<li><p>Final reviewed results will be saved under <code class="docutils literal notranslate"><span class="pre">automl_workspace/data_pipeline/label_studio/results/</span></code></p></li>
+<li><p>Processed files automatically move to <code class="docutils literal notranslate"><span class="pre">automl_workspace/data_pipeline/labeled/</span></code> for training</p></li>
 </ul>
 </section>
 </section>

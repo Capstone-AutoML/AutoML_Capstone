@@ -64,7 +64,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#distillation-method-and-hyperparameter-justification">Distillation Method and Hyperparameter Justification</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#method-response-based-distillation">Method: Response-Based Distillation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#method-response-based-distillation-with-top-k-selection">Method: Response-Based Distillation with Top-K Selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#loss-weight-hyperparameters">Loss Weight Hyperparameters</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#explanation-of-each-weight">Explanation of Each Weight</a></li>
 </ul>
@@ -75,6 +75,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#distillation-deep-dive">Distillation Deep Dive</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#training-loop-summary">Training Loop Summary</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#loss-components">Loss Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#top-k-selection-process">Top-K Selection Process</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#model-architecture-considerations">Model Architecture Considerations</a></li>
@@ -129,7 +130,7 @@
 <ul class="simple">
 <li><p><strong>Teacher Model</strong>: A pre-trained YOLOv8 model that serves as the knowledge source</p></li>
 <li><p><strong>Student Model</strong>: A smaller YOLOv8 model (YOLOv8n) that will be trained to mimic the teacher</p></li>
-<li><p><strong>Training Data</strong>: Images and their corresponding annotations for wildfire detection</p></li>
+<li><p><strong>Training Data</strong>: Images and their corresponding annotations for wildfire detection (5 classes: FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI)</p></li>
 <li><p><strong>Configuration</strong>: Training parameters defined in <code class="docutils literal notranslate"><span class="pre">student_model_cfg.yaml</span></code></p></li>
 </ul>
 </section>
@@ -148,6 +149,7 @@
 <ul class="simple">
 <li><p>Sets up training and validation datasets</p></li>
 <li><p>Configures data loaders with appropriate batch sizes and augmentations</p></li>
+<li><p>Automatically creates dataset directories and YAML configuration files</p></li>
 </ul>
 </li>
 <li><p><strong>Training Loop</strong></p>
@@ -160,6 +162,7 @@
 </li>
 <li><p>Uses gradient clipping and learning rate scheduling</p></li>
 <li><p>Supports checkpointing for training resumption</p></li>
+<li><p>Includes validation during training with early stopping</p></li>
 </ul>
 </li>
 </ol>
@@ -179,6 +182,7 @@
 </li>
 <li><p><strong>Checkpoints</strong>: Model states saved at regular intervals</p></li>
 <li><p><strong>Validation Results</strong>: Performance metrics on the validation dataset</p></li>
+<li><p><strong>Best Model</strong>: Automatically saved model with highest validation fitness</p></li>
 </ul>
 </section>
 <section id="key-features">
@@ -187,19 +191,23 @@
 <li><p>Supports layer freezing for transfer learning</p></li>
 <li><p>Implements both detection and distillation losses</p></li>
 <li><p>Provides comprehensive logging and checkpointing</p></li>
-<li><p>Includes validation during training</p></li>
+<li><p>Includes validation during training with early stopping</p></li>
 <li><p>Supports training resumption from checkpoints</p></li>
+<li><p>Automatic best model tracking and restoration</p></li>
+<li><p>Debug mode for detailed loss component analysis</p></li>
+<li><p>NaN/Inf detection and handling for training stability</p></li>
+<li><p>Flexible logging at batch or epoch level</p></li>
 </ul>
 </section>
 </section>
 <section id="distillation-method-and-hyperparameter-justification">
 <h2>Distillation Method and Hyperparameter Justification<a class="headerlink" href="#distillation-method-and-hyperparameter-justification" title="Link to this heading"></a></h2>
-<section id="method-response-based-distillation">
-<h3>Method: Response-Based Distillation<a class="headerlink" href="#method-response-based-distillation" title="Link to this heading"></a></h3>
-<p>This method distills the final outputs of the teacher model—bounding boxes and class confidence scores—into the student model. The key idea is to encourage the student to mimic the teacher’s final decision-making process.</p>
-<p>-<strong>Why NMS-filtered predictions?</strong>
-Applying Non-Max Suppression (NMS) on the teacher’s outputs ensures we only transfer confident and relevant predictions, which stabilizes learning and avoids overfitting to noisy outputs.</p>
-<p>-<strong>Why response-based?</strong>
+<section id="method-response-based-distillation-with-top-k-selection">
+<h3>Method: Response-Based Distillation with Top-K Selection<a class="headerlink" href="#method-response-based-distillation-with-top-k-selection" title="Link to this heading"></a></h3>
+<p>This method distills the final outputs of the teacher model—bounding boxes and class confidence scores—into the student model. The key innovation is using <strong>Top-K selection</strong> instead of NMS filtering to identify the most confident teacher predictions for distillation.</p>
+<p><strong>Why Top-K selection instead of NMS?</strong>
+Top-K selection provides more stable and predictable distillation targets by selecting the K most confident predictions from the teacher, regardless of spatial overlap. This approach ensures consistent distillation signal and avoids the complexity of NMS parameter tuning.</p>
+<p><strong>Why response-based?</strong>
 This avoids needing to align intermediate representations, which is especially useful when teacher and student have different depths or backbones. Instead, we treat the teacher’s predictions as refined pseudo-labels. This is a good baseline for distillation setup.</p>
 </section>
 <section id="loss-weight-hyperparameters">
@@ -294,12 +302,14 @@ This avoids needing to align intermediate representations, which is especially u
 <ol class="arabic simple">
 <li><p>Forward pass of student on batch images.</p></li>
 <li><p>Forward pass of teacher (in <code class="docutils literal notranslate"><span class="pre">eval</span></code> mode) to get stable predictions.</p></li>
-<li><p>Application of NMS to teacher outputs to extract confident targets.</p></li>
-<li><p>Matching student and teacher predictions.</p></li>
+<li><p><strong>Top-K selection</strong> of teacher predictions based on confidence scores.</p></li>
+<li><p>Matching student and teacher predictions using the selected top-K indices.</p></li>
 <li><p>Computing the loss:
 -Detection loss using YOLOv8’s native <code class="docutils literal notranslate"><span class="pre">v8DetectionLoss</span></code>
 -Distillation loss with CIoU (for box) and KL divergence (for class), using softened logits.</p></li>
 <li><p>Combining both using weighted sum and backpropagating.</p></li>
+<li><p><strong>Validation step</strong> after each epoch with fitness calculation.</p></li>
+<li><p><strong>Best model tracking</strong> and early stopping based on validation fitness.</p></li>
 </ol>
 </section>
 <section id="loss-components">
@@ -309,7 +319,7 @@ This avoids needing to align intermediate representations, which is especially u
 -BCE for classification
 -Distribution Focal Loss (DFL) for box refinement</p>
 <p>-<strong>Distillation Loss</strong>
--<strong>Box:</strong> CIoU between student and teacher predictions
+-<strong>Box:</strong> CIoU between student and teacher predictions (top-K selected)
 -<strong>Class:</strong> KL divergence between softened logits (student vs. teacher)
 -Combined via <code class="docutils literal notranslate"><span class="pre">lambda_distillation</span> <span class="pre">*</span> <span class="pre">(λ_ciou</span> <span class="pre">*</span> <span class="pre">ciou_loss</span> <span class="pre">+</span> <span class="pre">λ_kl</span> <span class="pre">*</span> <span class="pre">kl_loss)</span></code></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">total_loss</span> <span class="o">=</span> <span class="p">(</span>
@@ -322,20 +332,35 @@ This avoids needing to align intermediate representations, which is especially u
 </pre></div>
 </div>
 </section>
+<section id="top-k-selection-process">
+<h3>Top-K Selection Process<a class="headerlink" href="#top-k-selection-process" title="Link to this heading"></a></h3>
+<p>The distillation loss computation follows these steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Extract teacher confidence scores</strong> from class predictions</p></li>
+<li><p><strong>Select top-K predictions</strong> per image based on confidence</p></li>
+<li><p><strong>Gather corresponding student predictions</strong> using the same indices</p></li>
+<li><p><strong>Compute losses</strong> on the matched prediction pairs</p></li>
+<li><p><strong>Apply temperature scaling</strong> for KL divergence computation</p></li>
+</ol>
+<p>This approach ensures that distillation focuses on the teacher’s most confident predictions, providing cleaner learning signals to the student.</p>
+</section>
 </section>
 <section id="model-architecture-considerations">
 <h2>Model Architecture Considerations<a class="headerlink" href="#model-architecture-considerations" title="Link to this heading"></a></h2>
 <p>-<strong>Student Model:</strong> YOLOv8n (lightweight and fast)
 -<strong>Teacher Model:</strong> Larger YOLOv8 variant (e.g., <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">l</span></code>, or <code class="docutils literal notranslate"><span class="pre">x</span></code>)
 -<strong>Freezing:</strong> You may freeze early layers of the student backbone to focus learning on the head. This is because the backbone is already pretrained features that are useful for the student to learn from.
--<strong>Anchor points, feature map resolution:</strong> Kept consistent between student and teacher for compatibility</p>
+-<strong>Anchor points, feature map resolution:</strong> Kept consistent between student and teacher for compatibility
+-<strong>Class count:</strong> Configured for 5 wildfire-specific classes instead of COCO’s 80 classes</p>
 </section>
 <section id="training-stability-features">
 <h2>Training Stability Features<a class="headerlink" href="#training-stability-features" title="Link to this heading"></a></h2>
 <p>-<strong>Gradient Clipping (10.0):</strong> Prevents instability from large gradients
 -<strong>Monitoring for NaNs/Infs:</strong> Training loop skips if numerical instability is detected
--<strong>Loss logging per batch:</strong> Helps isolate spikes or anomalies in distillation loss
--<strong>Temperature scaling:</strong> Avoids overly confident logits that could destabilize KL divergence</p>
+-<strong>Loss logging per batch/epoch:</strong> Helps isolate spikes or anomalies in distillation loss
+-<strong>Temperature scaling:</strong> Avoids overly confident logits that could destabilize KL divergence
+-<strong>Model copying for validation:</strong> Prevents training mode conflicts during validation
+-<strong>Best model state tracking:</strong> Maintains the best performing model throughout training</p>
 </section>
 <section id="final-remarks">
 <h2>Final Remarks<a class="headerlink" href="#final-remarks" title="Link to this heading"></a></h2>
