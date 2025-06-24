@@ -8,6 +8,7 @@ from .train import train_model
 from .distillation.distillation import start_distillation
 from .quantization import quantize_model
 from .save_model import register_models
+from .clean_pipeline import clean_pipeline_workspace
 
 __all__ = [
     'validate_input_images',
@@ -19,5 +20,6 @@ __all__ = [
     'train_model',
     'start_distillation',
     'quantize_model',
-    'register_models'
+    'register_models',
+    'clean_pipeline_workspace'
 ]
