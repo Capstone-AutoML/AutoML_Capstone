@@ -1,12 +1,43 @@
 {
+  "torch_device": "cpu",
   "process_options": {
     "skip_human_review": false,
     "skip_training": false,
     "skip_distillation": false,
     "skip_quantization": false
   },
+  "pipeline_paths": {
+    "workspace_dir": "automl_workspace",
+    "config_dir": "automl_workspace/config",
+    "data_pipeline_dir": "automl_workspace/data_pipeline",
+    "master_dataset_dir": "automl_workspace/master_dataset",
+    "model_registry_dir": "automl_workspace/model_registry",
+
+    "source_dir": "automl_workspace/data_pipeline/input",
+    "prelabeled_dir": "automl_workspace/data_pipeline/prelabeled",
+    "labeled_dir": "automl_workspace/data_pipeline/labeled",
+    "augmented_dir": "automl_workspace/data_pipeline/augmented",
+    "training_dir": "automl_workspace/data_pipeline/training",
+    "distillation_dir": "automl_workspace/data_pipeline/distillation",
+    "quantization_dir": "automl_workspace/data_pipeline/quantization",
+
+    "base_model_path": "automl_workspace/model_registry/model/nano_trained_model.pt",
+    "distilled_output_dir": "automl_workspace/model_registry/distilled",
+    "quantized_output_dir": "automl_workspace/model_registry/quantized",
+
+    "label_studio_dir": "automl_workspace/data_pipeline/label_studio",
+    "pending_dir": "automl_workspace/data_pipeline/label_studio/pending",
+    "tasks_dir": "automl_workspace/data_pipeline/label_studio/tasks",
+    "results_dir": "automl_workspace/data_pipeline/label_studio/results",
+
+    "train_config_path": "automl_workspace/config/train_config.json",
+    "distillation_config_path": "automl_workspace/config/distillation_config.yaml",
+    "quantize_config_path": "automl_workspace/config/quantize_config.json",
+
+    "grounding_dino_weights": "automl_workspace/model_registry/model/groundingdino_swinb_cogcoor.pth",
+    "grounding_dino_config": "automl_workspace/model_registry/model/GroundingDINO_SwinB_cfg.py"
+  },
   "distillation_image_prop": 0.2,
-  "torch_device": "cpu",
   "iou_threshold": 0.5,
   "low_conf_threshold": 0.3,
   "mid_conf_threshold": 0.6,
