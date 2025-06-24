@@ -17,10 +17,10 @@
    - **Step 1**: Load and prepare both the teacher and student models for the distillation process.
    - **Step 2**: Freeze the first 10 layers of the student model (backbone) to retain useful pretrained features.
    - **Step 3**: Train the student model using a carefully balanced combined loss function:
-     - Detection loss ($\lambda_\text{detection} = 1.0$) provides direct supervision from ground truth labels
-     - Distillation loss ($\lambda_\text{distillation} = 2.0$) facilitates knowledge transfer from the teacher model:
-       * Bounding box distillation ($\lambda_\text{dist_ciou} = 1.0$) ensures accurate localization
-       * Classification distillation ($\lambda_\text{dist_kl} = 2.0$) preserves class prediction capabilities
+     - Detection loss (`lambda_detection = 2.0`) provides direct supervision from ground truth labels
+     - Distillation loss (`lambda_distillation = 1.0`) facilitates knowledge transfer from the teacher model:
+       * Bounding box distillation (`lambda_dist_ciou = 1.0`) ensures accurate localization
+       * Classification distillation (`lambda_dist_kl = 1.0`) preserves class prediction capabilities
    - **Step 4**: Implement regular checkpointing and model state preservation to enable training resumption if needed.
    - **Step 5**: Save the final distilled model for use in downstream tasks and deployment.
 
@@ -28,7 +28,7 @@
    - Distilled YOLOv8n model with reduced size and complexity
    - Training logs and metrics for performance analysis
    - Checkpoint files for training resumption
-   - Final model saved in `mock_io/model_registry/distilled/latest/`
+   - Final model saved in `automl_workspace/model_registry/distilled/latest/`
 
 5. **Impact**
 
