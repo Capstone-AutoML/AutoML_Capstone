@@ -1,0 +1,27 @@
+Our AutoML pipeline is designed for wildfire object detection, with a focus on automation, accuracy, and efficiency. The system continuously processes new data and improves model performance through an iterative loop of labeling, training, distillation, and quantization. Below is a high-level summary of the core components:
+
+### End-to-End Pipeline Flow
+
+![Pipeline Overview Diagram](img/pipeline_overview.png){width="100%"}
+
+### Pipeline Stages
+
+1. **Automated Labeling and Matching**  
+   Automatically generates object labels using two models (YOLOv8 and Grounding DINO). If both models agree, the label is accepted. Disagreements are routed for human review.
+
+2. **Human-in-the-Loop**  
+   Mismatched cases are corrected through a Label Studio interface. This step ensures that there are no dropped mismatched images, thus enriching a high-quality training dataset.
+
+3. **Augmentation**  
+   Labeled data is augmented using transformations such as flipping, rotation, and brightness changes. This step increases dataset diversity and robustness.
+
+4. **Model Training**  
+   A YOLOv8 model is trained on the labeled and augmented dataset. Training is guided by configuration files that allow reproducible tuning and GPU/CPU flexibility.
+
+5. **Model Distillation**  
+   The trained model is distilled into a smaller version for faster inference, reducing model size while preserving performance.
+
+6. **Quantization**  
+   The distilled model is quantized to further reduce its size for edge device deployment.
+
+Each component is explained in more detail in the following sections.
