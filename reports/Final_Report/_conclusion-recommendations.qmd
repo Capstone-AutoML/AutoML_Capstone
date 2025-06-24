@@ -1,10 +1,10 @@
 ### Problem Recap
 
-Our partner, Bayes Studio Inc., needed a continuous pipeline to keep their machine learning models accurate and up to date as new image data comes in. Their existing process relied heavily on manual labeling, training, and deployment, which slowed down model updates and made it difficult to scale. A more automated and flexible solution was required to support timely updates and edge deployment.
+Our partner needed a continuous pipeline to keep their machine learning models accurate and up to date as new image data comes in. Their existing process relied heavily on manual labeling, training, and deployment, which slowed down model updates and made it difficult to scale. A more automated and flexible solution was required to support timely updates and edge deployment.
 
-### What We Delivered
+### Our Product
 
-To address our partner's need, we developed an **automated**, **continuous**, **dynamic**, and **efficient** pipeline that streamlines labeling, human-in-the-loop review, model training, optimization, and deployment.
+To address our partner's need, we developed an automated, continuous dynamic, and efficient pipeline that streamlines labeling, human-in-the-loop review, model training, optimization, and deployment.
 
 - **Automated**: From labeling to training and compression, everything flows with minimal manual effort.
 - **Continuous**: Updated models help label data in future runs, improving over time.
