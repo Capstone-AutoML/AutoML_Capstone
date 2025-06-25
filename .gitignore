@@ -19,3 +19,8 @@ notebooks/
 src/distillation/runs/
 src/distillation/checkpoints/
 src/distillation/logs/
+print_structure.py
+runs/
+src/pipeline/augment.ipynb
+structure.txt
+token.txt
