@@ -9,7 +9,32 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 # Create augmentation pipeline
 def build_augmentation_transform(config: dict) -> A.Compose:
-    """Build the augmentation transform pipeline from config."""
+    """
+    Build the augmentation transform pipeline from the given configuration.
+
+    This function constructs an Albumentations Compose object with a sequence of 
+    image augmentation transforms. Each transform is applied with a configurable 
+    probability and parameter set drawn from the `config` dictionary.
+
+    Supported transforms:
+    - HorizontalFlip
+    - RandomBrightnessContrast
+    - HueSaturationValue
+    - Blur
+    - GaussNoise
+    - ToGray
+    - Rotate
+
+    The transform also ensures bounding box alignment using 'pascal_voc' format.
+
+    Args:
+        config (dict): Dictionary containing probability values and parameters 
+                       for each augmentation transform.
+
+    Returns:
+        A.Compose: An Albumentations Compose object with the specified transformations 
+                   and bounding box handling.
+    """
     return A.Compose(
         [
         # Flips image horizontally, applied 50% of the time by default
@@ -42,8 +67,27 @@ def augment_images(matched_pairs: list,
                    num_augmentations: int,
                    config: dict
     ) -> None:
-    """Applies augmentations to each image N times and saves results.
-    Also saves un-augmented images with no predictions into separate folders.
+    """
+    Apply augmentations to each labeled image and save the results.
+
+    For each (image, label) pair, this function applies the given transformation 
+    pipeline `num_augmentations` times. It saves the augmented images and their 
+    updated prediction labels (in JSON format) to the specified output directories.
+
+    If an image has no predictions (empty bounding box list), the original image 
+    is saved separately in a dedicated 'no_prediction_images' folder.
+
+    Args:
+        matched_pairs (list): List of tuples, each containing a Path to a JSON file 
+                              and its corresponding image file.
+        transform (A.Compose): Albumentations transformation pipeline.
+        output_img_dir (Path): Directory to save augmented images.
+        output_json_dir (Path): Directory to save augmented label files.
+        num_augmentations (int): Number of times to apply augmentations per image.
+        config (dict): Configuration dictionary that may include a base random seed.
+
+    Returns:
+        None
     """
     # Separate folder for un-augmented no-prediction images and labels
     no_pred_img_dir = output_img_dir.parent / "no_prediction_images"
@@ -108,14 +152,32 @@ def augment_images(matched_pairs: list,
 
 def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
     """
-    Orchestrates augmentation pipeline.
-    image_dir: path to labeled images
-    output_dir: root output directory (will contain 'images' and 'labels')
-    config: dictionary of augmentation settings
+    Orchestrates the full augmentation pipeline for a labeled image dataset.
+
+    This function matches labeled JSON files with their corresponding images,
+    builds the augmentation pipeline from the provided config, and applies
+    augmentations using `augment_images`.
+
+    Args:
+        image_dir (Path): Directory containing the original labeled images.
+        output_dir (Path): Root directory where augmented 'images/' and 'labels/' will be saved.
+        config (dict): Dictionary containing augmentation settings, including
+                       number of augmentations and optional transform parameters.
+
+    Behavior:
+        - Loads label files from a hardcoded `labeled_json_dir`
+          ('automl_workspace/data_pipeline/labeled')
+        - Matches JSON labels to image files by filename stem
+        - Builds an Albumentations transform pipeline using `build_augmentation_transform`
+        - Applies the transform using `augment_images` with `num_augmentations` per image
+        - Logs counts of label files, image files, and successful matches
+
+    Returns:
+        None
     """
     num_augmentations = config.get("num_augmentations", 3)
 
-    labeled_json_dir = Path("automl_workspace/data_pipeline/labeled")
+    labeled_json_dir = Path(config.get("label_dir", "automl_workspace/data_pipeline/labeled"))
     output_img_dir = output_dir / "images"
     output_json_dir = output_dir / "labels"
 
