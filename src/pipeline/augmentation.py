@@ -67,7 +67,7 @@ def augment_images(matched_pairs: list,
                    num_augmentations: int,
                    config: dict
     ) -> None:
-     """
+    """
     Apply augmentations to each labeled image and save the results.
 
     For each (image, label) pair, this function applies the given transformation 
@@ -177,7 +177,7 @@ def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
     """
     num_augmentations = config.get("num_augmentations", 3)
 
-    labeled_json_dir = config.get("label_dir", "automl_workspace/data_pipeline/labeled")
+    labeled_json_dir = Path(config.get("label_dir", "automl_workspace/data_pipeline/labeled"))
     output_img_dir = output_dir / "images"
     output_json_dir = output_dir / "labels"
 
