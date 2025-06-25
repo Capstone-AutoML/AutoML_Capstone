@@ -35,7 +35,29 @@ git clone https://github.com/Capstone-AutoML/AutoML_Capstone.git
 cd AutoML_Capstone
 ```
 
-### 2. Run the Pipeline
+### 2. Configure Process Options
+
+Control which pipeline steps to run via `pipeline_config.json`:
+
+```text
+// Set to true to skip a step
+"process_options": {
+  "skip_human_review": false,
+  "skip_training": false,
+  "skip_distillation": false,
+  "skip_quantization": false
+}
+```
+
+### 3. Run the Pipeline with Docker
+
+**Important**: Docker cannot handle interactive Label Studio sessions for human review. Before running with Docker, you **must** disable human review in `automl_workspace/config/pipeline_config.json`:
+
+```json
+"process_options": {
+  "skip_human_review": true
+}
+```
 
 #### 💻 If You Have a GPU (CUDA Supported)
 
@@ -47,8 +69,8 @@ docker compose up
 
 This command will:
 
-* Download necessary datasets and models on first run (unless `mock_io/data/`, `mock_io/data/distillation/`, or `mock_io/model_registry/model/` are removed).
-* Automatically use your GPU **if** the following key is updated in **both** `train_config.json` and `pipeline_config.json`:
+- Download necessary datasets and models on first run (unless `automl_workspace/data_pipeline/`, `automl_workspace/data_pipeline/distillation/`, or `automl_workspace/model_registry/model/` are removed).
+- Automatically use your GPU **if** the following key is updated in **both** `automl_workspace/config/train_config.json` and `automl_workspace/config/pipeline_config.json`:
 
 ```json
 "torch_device": "cuda"
@@ -65,9 +87,10 @@ Before running, **replace** your `docker-compose.yaml` file with:
 ```yaml
 services:
   capstone:
-    image: celt313/automl_capstone:v0.0.2
+    image: celt313/automl_capstone:v0.0.3
+    platform: linux/x86_64
     container_name: automl_capstone
-    shm_size: "4gb"
+    ipc: host
     working_dir: /app
     entrypoint: bash
     command: -c "source activate capstone_env && ./fetch_dataset.sh && python src/main.py"
@@ -75,23 +98,17 @@ services:
       - .:/app
 
   generate_box:
-    image: celt313/automl_capstone:v0.0.2
+    image: celt313/automl_capstone:v0.0.3
+    platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/generate_boxed_images.py"
     volumes:
       - .:/app
 
-  human_intervention:
-    image: celt313/automl_capstone:v0.0.2
-    profiles: ["optional"]
-    entrypoint: bash
-    command: -c "source activate capstone_env && python src/pipeline/human_intervention.py"
-    volumes:
-      - .:/app
-
   test:
-    image: celt313/automl_capstone:v0.0.2
+    image: celt313/automl_capstone:v0.0.3
+    platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && pytest tests/"
@@ -107,7 +124,7 @@ docker compose up
 
 ---
 
-### 3. Run Tests (Optional)
+### 4. Run Tests (Optional)
 
 To verify the setup and run unit tests:
 
@@ -117,7 +134,7 @@ docker compose run test
 
 ---
 
-### 4. Generate Bounding Box Visualizations (Optional)
+### 5. Generate Bounding Box Visualizations (Optional)
 
 To run the script that overlays bounding boxes on sample and labeled images using predictions from YOLO, DINO, and mismatched sources:
 
@@ -132,9 +149,9 @@ This will:
 
 * Draw bounding boxes on all images from the labeled directory.
 
-* Save the visualized outputs under `mock_io/boxed_images`
+- Save the visualized outputs under `automl_workspace/data_pipeline/boxed_images/`
 
-### 5. Human Review with Label Studio
+### 6. Human Review with Label Studio
 
 For human-in-the-loop validation using Label Studio, refer to the [Human Intervention](https://capstone-automl.github.io/AutoML_Capstone/human_in_loop.html) documentation.
 
@@ -179,7 +196,7 @@ conda env create -f human_review_env.yml
 conda activate human_review_env
 ```
 
-> **Note**: Both environments may be needed depending on your workflow. The human review interface runs independently from the main pipeline.
+> **Note**: Both environments may be needed depending on your workflow. The human review is integrated in the main pipeline.
 
 **3. GPU Support (Optional):**
 
@@ -201,17 +218,33 @@ pip install torch==2.5.1+cu124 torchvision==0.20.1+cu124 --index-url https://dow
 
 #### Configuration
 
-Before running the pipeline, you can customize the behavior by modifying the configuration files in the `src/` directory:
+Before running the pipeline, you can customize the behavior by modifying the configuration files in the `automl_workspace/config/` directory:
 
 - **`pipeline_config.json`** - Main pipeline settings (thresholds, augmentation, distillation parameters)
+- **`augmentation_config.json`** - Data augmentation settings (seed, number of augmentations, etc.)
 - **`train_config.json`** - Model training configuration (epochs, batch size, learning rate, etc.)
+- **`distillation_config.yaml`** - Distillation settings (model paths, epochs, patience, etc.)
 - **`quantize_config.json`** - Model quantization settings (labeled images paths, quantization method, etc.)
 
-If you want to use GPU for the pipeline, set `"torch_device": "cuda"` in both `pipeline_config.json` and `train_config.json`:
+> ⚠️ **Compatibility Note:** Due to ongoing compatibility issues between required packages (such as `imx500-converter`, `uni-pytorch`, and `model-compression-toolkit`), we are currently unable to support IMX quantization in this pipeline. The default option in `quantize_config.json` is `FP16`. If you require IMX quantization, you may need to experiment with manual package pinning or use a separate, isolated environment. Refer to [Sony IMX500 Export for Ultralytics YOLO11](https://docs.ultralytics.com/integrations/sony-imx500/) and [Raspberry Pi AI Camera IMX500 Converter User Manual](https://developer.aitrios.sony-semicon.com/en/raspberrypi-ai-camera/documentation/imx500-converter?version=3.14.3&progLang=) for future development.
 
 #### Add Your Own Dataset
 
-If you want to use your own dataset, create a folder structured as `mock_io/data/sampled_dataset/` and place your images inside it.
+If you want to use your own dataset as input to the pipeline, create a folder structured as `automl_workspace/data_pipeline/input/` and place your images inside it.
+
+The distillation dataset is a subset of labeled images, which is used to train the student model. It is a folder that contains the train images/labels and validation images/labels. The folder should have the following name & structure:
+
+```txt
+distillation_dataset/
+   train/
+     images/
+     labels/
+   val/
+     images/
+     labels/
+```
+
+It is currently assumed to be located in the `automl_workspace/data_pipeline/distillation` directory. When a new custom distillation dataset is provided, the user can overwrite the `distillation_dataset` attribute in `distillation_config.yaml` with the either relative or absolute path to the **directory** of the new custom distillation dataset.
 
 #### Run the Full Pipeline in Conda Environment
 
