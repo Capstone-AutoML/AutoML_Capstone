@@ -132,8 +132,8 @@ hyperparams = {
 
 3. **`lambda_dist_ciou = 1.0`**
 
-   -This balances the bounding box alignment with the classification component.
-   -CIoU (Complete IoU) already provides strong geometric supervision; no need to overweight it unless box alignment is especially poor.
+   - This balances the bounding box alignment with the classification component.
+   - CIoU (Complete IoU) already provides strong geometric supervision; no need to overweight it unless box alignment is especially poor.
 
 4. **`lambda_dist_kl = 1.0`**
 
@@ -143,8 +143,8 @@ hyperparams = {
 
 5. **`temperature = 2.0`**
 
-   -Controls the softness of class distributions during distillation.
-   -A moderate temperature like 2.0 makes logits softer and gradients smoother—helping the student learn inter-class relationships more effectively.
+   - Controls the softness of class distributions during distillation.
+   - A moderate temperature like 2.0 makes logits softer and gradients smoother—helping the student learn inter-class relationships more effectively.
 
 ## Distillation Configuration
 
@@ -174,23 +174,23 @@ Each training step includes:
 3. **Top-K selection** of teacher predictions based on confidence scores.
 4. Matching student and teacher predictions using the selected top-K indices.
 5. Computing the loss:
-   -Detection loss using YOLOv8's native `v8DetectionLoss`
-   -Distillation loss with CIoU (for box) and KL divergence (for class), using softened logits.
+   - Detection loss using YOLOv8's native `v8DetectionLoss`
+   - Distillation loss with CIoU (for box) and KL divergence (for class), using softened logits.
 6. Combining both using weighted sum and backpropagating.
 7. **Validation step** after each epoch with fitness calculation.
 8. **Best model tracking** and early stopping based on validation fitness.
 
 ### Loss Components
 
--**Detection Loss (YOLO native)**
-  -CIoU for box regression
-  -BCE for classification
-  -Distribution Focal Loss (DFL) for box refinement
+- **Detection Loss (YOLO native)**
+  - CIoU for box regression
+  - BCE for classification
+  - Distribution Focal Loss (DFL) for box refinement
 
--**Distillation Loss**
-  -**Box:** CIoU between student and teacher predictions (top-K selected)
-  -**Class:** KL divergence between softened logits (student vs. teacher)
-  -Combined via `lambda_distillation * (λ_ciou * ciou_loss + λ_kl * kl_loss)`
+- **Distillation Loss**
+  - **Box:** CIoU between student and teacher predictions (top-K selected)
+  - **Class:** KL divergence between softened logits (student vs. teacher)
+  - Combined via `lambda_distillation * (λ_ciou * ciou_loss + λ_kl * kl_loss)`
 
 ```python
 total_loss = (
@@ -226,20 +226,20 @@ The Early Stopping criteria computed on the validation data is a weighted combin
 
 ## Model Architecture Considerations
 
--**Student Model:** YOLOv8n (lightweight and fast)
--**Teacher Model:** Larger YOLOv8 variant (e.g., `m`, `l`, or `x`)
--**Freezing:** You may freeze early layers of the student backbone to focus learning on the head. This is because the backbone is already pretrained features that are useful for the student to learn from.
--**Anchor points, feature map resolution:** Kept consistent between student and teacher for compatibility
--**Class count:** Configured for 5 wildfire-specific classes instead of COCO's 80 classes
+- **Student Model:** YOLOv8n (lightweight and fast)
+- **Teacher Model:** Larger YOLOv8 variant (e.g., `m`, `l`, or `x`)
+- **Freezing:** You may freeze early layers of the student backbone to focus learning on the head. This is because the backbone is already pretrained features that are useful for the student to learn from.
+- **Anchor points, feature map resolution:** Kept consistent between student and teacher for compatibility
+- **Class count:** Configured for 5 wildfire-specific classes instead of COCO's 80 classes
 
 ## Training Stability Features
 
--**Gradient Clipping (10.0):** Prevents instability from large gradients
--**Monitoring for NaNs/Infs:** Training loop skips if numerical instability is detected
--**Loss logging per batch/epoch:** Helps isolate spikes or anomalies in distillation loss
--**Temperature scaling:** Avoids overly confident logits that could destabilize KL divergence
--**Model copying for validation:** Prevents training mode conflicts during validation
--**Best model state tracking:** Maintains the best performing model throughout training
+- **Gradient Clipping (10.0):** Prevents instability from large gradients
+- **Monitoring for NaNs/Infs:** Training loop skips if numerical instability is detected
+- **Loss logging per batch/epoch:** Helps isolate spikes or anomalies in distillation loss
+- **Temperature scaling:** Avoids overly confident logits that could destabilize KL divergence
+- **Model copying for validation:** Prevents training mode conflicts during validation
+- **Best model state tracking:** Maintains the best performing model throughout training
 
 ## Final Remarks
 
