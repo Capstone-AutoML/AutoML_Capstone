@@ -6,5 +6,3 @@ Our pipeline processes incoming data through a semi-automated labeling system th
 Key outputs include a labeled dataset, fine-tuned and compressed models, and versioned metadata to support traceability and reproducibility. Although the system currently runs locally, it provides a strong foundation for scalable wildfire detection workflows.
 
 Overall, this solution streamlines model updates and prepares models for real-time deployment on edge devices in wildfire detection scenarios.
-
-Words: 175

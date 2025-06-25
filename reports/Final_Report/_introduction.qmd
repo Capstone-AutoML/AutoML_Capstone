@@ -9,5 +9,3 @@ To address these challenges, we developed an automated and modular machine learn
 The pipeline begins with a semi-automated labeling system that uses predictions from YOLOv8 and Grounding DINO. When the models agree, their outputs are accepted automatically; when they disagree, the images are routed to a human-in-the-loop review process using Label Studio. The labeled images are then augmented to improve diversity and robustness. A YOLOv8 model is fine-tuned on the resulting dataset, and the trained model is compressed through knowledge distillation and quantization to meet edge device constraints.
 
 This system reduces labeling time, enables regular model updates, and improves deployment readiness. It provides Bayes Studio with a scalable and reproducible approach for fine-tuning and compressing models to edge devices. This enables timely and accurate wildfire detection directly on edge devices, supporting early intervention in high-risk environments.
-
-words: 295

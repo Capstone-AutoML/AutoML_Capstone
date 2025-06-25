@@ -1,18 +1,16 @@
-The input to the pipeline consists of image files in standard formats such as `.jpg`, paired with YOLO-formatted `.txt` label files. 
-Each label file corresponds to a single image and contains one line per object instance. 
-These lines specify the object’s class ID and normalized bounding box coordinates in the following format: `x_center`, `y_center`, `width`, `height`. 
-For example: `"1 0.757593 0.34663 0.06101 0.3655"`.
+To develop and evaluate the pipeline, we used a dataset provided by Bayes Studio consisting of environmental imagery and corresponding object labels. The images were in standard formats such as `.jpg`, accompanied by YOLO-formatted `.txt` label files. Each label file corresponds to a single image and contains one line per object instance, with the format: `class_id x_center y_center width height`, where all bounding box values are normalized. For example:
 
-This line represents an object of class ID 1 with a bounding box centered at (0.757593, 0.34663) and a normalized width and height of 0.06101 and 0.3655, respectively.
+`1 0.757593 0.34663 0.06101 0.3655`
 
-The object detection task focuses on five relevant classes:
+This line indicates an object of class ID 1 with a bounding box centered at (0.757593, 0.34663) and a normalized width and height of 0.06101 and 0.3655, respectively.
 
+The object detection task focuses on five wildfire-relevant categories:  
 1. Fire  
 2. Smoke  
 3. Lightning  
 4. Vehicle  
 5. Person  
 
-These categories were selected based on their relevance to early wildfire detection and response.
+These categories were selected for their importance in early wildfire detection and response scenarios.
 
-In terms of volume, the partner anticipates receiving approximately 500 new images per month. This stream of incoming data forms the basis for the pipeline’s three core stages.
+While the pipeline is designed to ingest raw, unlabeled images as input, this labeled dataset played a key role in building the initial components, testing functionality, and validating performance. The partner expects approximately 500 new images per month, which the pipeline is designed to process through labeling, training, and deployment stages.
