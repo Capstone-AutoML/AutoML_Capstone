@@ -48,11 +48,13 @@ names: [FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI]
 The distillation process follows these main steps:
 
 1. **Model Initialization**
+
    - Loads the pre-trained teacher model
    - Initializes the student model with **pretrained weights (on default COCO 80 classes dataset)**.
    - Configures model parameters and training settings
 
 2. **Data Preparation**
+
    - Sets up training and validation datasets
    - Configures data loaders with appropriate batch sizes and augmentations
    - Automatically creates dataset directories and YAML configuration files
@@ -67,7 +69,7 @@ The distillation process follows these main steps:
 
 ### Outputs
 
-- **Trained Student Model**: A compressed model that maintains detection performance
+- **Trained Student Model**: A compressed model that maintains detection performance. It will be saved in the `automl_workspace/model_registry/distilled/latest` directory as `model.pt`.
 - **Training Logs**: Detailed metrics including:
   - Total loss
   - Bounding box loss
@@ -97,10 +99,10 @@ The distillation process follows these main steps:
 This method distills the final outputs of the teacher model—bounding boxes and class confidence scores—into the student model. The key innovation is using **Top-K selection** instead of NMS filtering to identify the most confident teacher predictions for distillation.
 
 **Why Top-K selection instead of NMS?**
-  Top-K selection provides more stable and predictable distillation targets by selecting the K most confident predictions from the teacher, regardless of spatial overlap. This approach ensures consistent distillation signal and avoids the complexity of NMS parameter tuning.
+Top-K selection provides more stable and predictable distillation targets by selecting the K most confident predictions from the teacher, regardless of spatial overlap. This approach ensures consistent distillation signal and avoids the complexity of NMS parameter tuning.
 
 **Why response-based?**
-  This avoids needing to align intermediate representations, which is especially useful when teacher and student have different depths or backbones. Instead, we treat the teacher's predictions as refined pseudo-labels. This is a good baseline for distillation setup.
+This avoids needing to align intermediate representations, which is especially useful when teacher and student have different depths or backbones. Instead, we treat the teacher's predictions as refined pseudo-labels. This is a good baseline for distillation setup.
 
 ### Loss Weight Hyperparameters
 
@@ -150,18 +152,18 @@ hyperparams = {
 
 These training settings are defined in `distillation_config.yaml` and chosen to ensure stable, effective knowledge transfer. Only the important ones are listed here, the rest are default YOLOv8 settings:
 
-| Parameter      | Value          | Reason                                                                        |
-| -- | -- | -- |
-| `imgsz`        | 640            | Balanced choice for stability and memory usage                                |
-| `lr0`          | 0.01          | Good default learning rate |
-| `lrf`          | 0.01          | Good default learning rate |
-| `momentum`     | 0.937          | Good default momentum |
-| `optimizer`    | auto | Good default optimizer |
-| `batch`        | 32             | Balanced choice for stability and memory usage                                |
-| `epochs`       | 200            | Allows enough time for full knowledge transfer                                |
-| `patience`     | 100 epochs     | Prevents unnecessary overfitting if student plateaus                          |
-| `optimizer`    | SGD + momentum | Well-tested in for default YOLOv8, works well for distillation settings                               |
-| Other parameters | Default YOLOv8 settings | Default YOLOv8 settings |
+| Parameter        | Value                   | Reason                                                                  |
+| ---------------- | ----------------------- | ----------------------------------------------------------------------- |
+| `imgsz`          | 640                     | Balanced choice for stability and memory usage                          |
+| `lr0`            | 0.01                    | Good default learning rate                                              |
+| `lrf`            | 0.01                    | Good default learning rate                                              |
+| `momentum`       | 0.937                   | Good default momentum                                                   |
+| `optimizer`      | auto                    | Good default optimizer                                                  |
+| `batch`          | 32                      | Balanced choice for stability and memory usage                          |
+| `epochs`         | 200                     | Allows enough time for full knowledge transfer                          |
+| `patience`       | 100 epochs              | Prevents unnecessary overfitting if student plateaus                    |
+| `optimizer`      | SGD + momentum          | Well-tested in for default YOLOv8, works well for distillation settings |
+| Other parameters | Default YOLOv8 settings | Default YOLOv8 settings                                                 |
 
 ## Distillation Deep Dive
 
@@ -183,6 +185,7 @@ Each training step includes:
 ### Loss Components
 
 - **Detection Loss (YOLO native)**
+
   - CIoU for box regression
   - BCE for classification
   - Distribution Focal Loss (DFL) for box refinement
@@ -222,7 +225,6 @@ The Early Stopping criteria computed on the validation data is a weighted combin
 - `Recall (R)`: The ability of the model to identify all instances of objects in the images.
 - `mAP50`: Mean average precision calculated at an intersection over union (IoU) threshold of 0.50. It's a measure of the model's accuracy considering only the "easy" detections.
 - `mAP50-95`: The average of the mean average precision calculated at varying IoU thresholds, ranging from 0.50 to 0.95. It gives a comprehensive view of the model's performance across different levels of detection difficulty.
-
 
 ## Model Architecture Considerations
 
