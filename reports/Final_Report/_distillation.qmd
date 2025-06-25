@@ -1,41 +1,39 @@
 ### Knowledge Distillation
 
-1. **Motivation**
+Large object detection models, while accurate, demand significant computational resources, limiting real-time wildfire detection on edge devices. Knowledge distillation addresses this by transferring expertise from a larger **teacher model** to a smaller, more efficient **student model**. This enables faster inference while maintaining accuracy, making models suitable for resource-constrained environments.
 
-   While large object detection models can achieve high accuracy, they often require significant computational resources that are impractical for real-time wildfire detection on edge devices. Knowledge distillation addresses this challenge by transferring the expertise of a larger, more capable teacher model to a smaller, more efficient student model. This process enables faster inference times while maintaining detection accuracy, making the model suitable for deployment in resource-constrained environments.
+1.  **Input**
+    * **Teacher model:** The latest fine-tuned, high-performing YOLOv8 model for wildfire detection, larger than YOLOv8 nano.
+    * **Student model:** A smaller YOLOv8n architecture initialized with pre-trained weights.
+    * **Distillation dataset:** Contains 5 classes (FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI).
+    * **Configuration file (`distillation_config.yaml`):** Specifies model paths, dataset path, and distillation parameters.
 
-2. **Input**
-   - Teacher model: The latest fine-tuned YOLOv8 model from the fine-tuning step, which has demonstrated strong performance in wildfire detection. This model should be larger than the YOLOv8 nano model.
-   - Student model: A smaller YOLOv8n architecture model initialized with pre-trained weights from COCO 80 classes.
-   - Distillation dataset with 5 classes (FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI)
-   - The configuration file `distillation_config.yaml` specifying teacher model path, dataset path, and distillation parameters/hyperparameters.
+2.  **Workflow Steps**
 
-3. **Workflow Steps**
+    The distillation workflow ensures effective knowledge transfer:
 
-   The distillation workflow follows a structured approach to ensure effective knowledge transfer:
+    * **Step 1:** Load and prepare both teacher and student models.
+    * **Step 2:** Freeze the first 10 layers (backbone) of the student model to preserve pre-trained features.
+    * **Step 3:** Train the student model using a balanced **combined loss function**:
+        * **Detection loss:** Direct supervision from ground truth labels.
+        * **Distillation loss:** Facilitates knowledge transfer from the teacher, comprising:
+            * **Bounding box distillation:** Ensures accurate localization.
+            * **Classification distillation:** Preserves class prediction.
+    * **Step 4:** The student model is trained/distilled in a loop with regular saving and logging. **Early Stopping** triggers if validation performance does not improve after a set number of epochs, exiting the loop and preserving the best weights.
+    * **Step 5:** Save the final best weights of the distilled model for downstream tasks and deployment.
 
-   - **Step 1**: Load and prepare both the teacher and student models for the distillation process.
-   - **Step 2**: Freeze the first 10 layers of the student model (backbone) to retain useful pretrained features.
-   - **Step 3**: Train the student model using a carefully balanced combined loss function:
-     - Detection loss (`lambda_detection = 2.0`) provides direct supervision from ground truth labels
-     - Distillation loss (`lambda_distillation = 1.0`) facilitates knowledge transfer from the teacher model:
-       * Bounding box distillation (`lambda_dist_ciou = 1.0`) ensures accurate localization
-       * Classification distillation (`lambda_dist_kl = 1.0`) preserves class prediction capabilities
-   - **Step 4**: Student model is train/distill in the training loop, with regular model saving/checkpointing and diagnostic logging. If the performance on the validation data does not improve after `patience` number of epochs have passed, `EarlyStopping` triggers and the training loop exits, preserving the best weights.
-   - **Step 5**: After training loop completes, save the final best weights of the distilled model for use in downstream tasks and deployment.
+    Early Stopping's validation criteria (`fitness`) combine these 4 metrics:
 
-   The validation criteria for Early Stopping is `fitness`, which is a weighted combination of these 4 metrics:
-   - `Precision (P)`: The accuracy of the detected objects, indicating how many detections were correct.
-   - `Recall (R)`: The ability of the model to identify all instances of objects in the images.
-   - `mAP50`: Mean average precision calculated at an intersection over union (IoU) threshold of 0.50. It's a measure of the model's accuracy considering only the "easy" detections.
-   - `mAP50-95`: The average of the mean average precision calculated at varying IoU thresholds, ranging from 0.50 to 0.95. It gives a comprehensive view of the model's performance across different levels of detection difficulty.
+    * **Precision (P):** Accuracy of detected objects (correct detections).
+    * **Recall (R):** Model's ability to identify all object instances.
+    * **mAP50:** Mean average precision at 0.50 IoU, measuring accuracy for "easy" detections.
+    * **mAP50-95:** Average mAP across IoU thresholds (0.50 to 0.95), offering comprehensive performance view.
 
-4. **Output**
-   - Distilled YOLOv8n model with reduced size and complexity
-   - Training logs and metrics for performance analysis
-   - Checkpoint files for training resumption
-   - Final model saved in `automl_workspace/model_registry/distilled/latest/`
+3.  **Output**
+    * Distilled YOLOv8n model, reduced in size and complexity, saved in a user-specified directory.
+    * Training logs and metrics for performance analysis.
+    * Checkpoint files for training resumption.
 
-5. **Impact**
+4.  **Impact**
 
-   Knowledge distillation provides a practical solution for deploying wildfire detection models by significantly reducing model size and computational load. While some performance drop is inevitable during the distillation process, effective knowledge transfer from the teacher model helps minimize this loss. The resulting model achieves faster inference, making it well-suited for real-time applications on edge devices.
+    Knowledge distillation offers a practical solution for deploying wildfire detection models by significantly reducing model size and computational load. While some performance drop is inherent, effective knowledge transfer minimizes this loss. The resulting model achieves faster inference, ideal for real-time edge device applications.
