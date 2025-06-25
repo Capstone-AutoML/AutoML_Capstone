@@ -8,6 +8,16 @@ This script performs model quantization to reduce model size and improve inferen
 
 ---
 
+## IMX Quantization Issues
+
+Due to ongoing compatibility issues between required packages (such as `imx500-converter`, `uni-pytorch`, and `model-compression-toolkit`), we are currently unable to support IMX quantization in this pipeline. The dependency conflicts make it impossible to install all necessary packages together in a single environment, and attempts to resolve this automatically have not been successful.
+
+We are temporarily relying on the ONNX Dynamic Quantization and FP16 Quantization options for model export and deployment. If you require IMX quantization, you may need to experiment with manual package pinning or use a separate, isolated environment.
+
+- See: [Sony IMX500 Export for Ultralytics YOLO](https://docs.ultralytics.com/integrations/sony-imx500/)
+
+---
+
 ## Key Functions
 
 ### `quantize_model(model_path, quantize_config_path)`

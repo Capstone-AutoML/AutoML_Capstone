@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Data Fetching" href="fetch_data.html" />
-    <link rel="prev" title="Quantization" href="../quantization.html" /> 
+    <link rel="next" title="Directory Setup" href="directory_setup.html" />
+    <link rel="prev" title="File Cleaning and Archiving" href="../clean_pipeline.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -52,11 +52,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../clean_pipeline.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Unit Tests</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="fetch_data.html">Data Fetching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
@@ -67,7 +69,6 @@
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
-<li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
@@ -104,6 +105,12 @@
 <p>This section provides documentation for the unit tests that verify the functionality and reliability of the core Python modules used in the AutoML wildfire detection pipeline.</p>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="directory_setup.html">Directory Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#function-tests">Function Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="fetch_data.html">Data Fetching</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="fetch_data.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="fetch_data.html#fixtures">Fixtures</a></li>
@@ -165,11 +172,7 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#coverage-overview">Coverage Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#fixtures">Fixtures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#function-tests">Function Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantization.html#id1">Coverage Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantization.html#id2">Fixtures</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantization.html#id5">Function Tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#summary">Summary</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quantization.html#id10">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a><ul>
@@ -177,12 +180,6 @@
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html#fixtures">Fixtures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html#function-tests">Function Tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html#summary">Summary</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="directory_setup.html">Directory Setup</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#coverage-overview">Coverage Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#function-tests">Function Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="directory_setup.html#summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utility Functions</a><ul>
@@ -199,8 +196,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../quantization.html" class="btn btn-neutral float-left" title="Quantization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="fetch_data.html" class="btn btn-neutral float-right" title="Data Fetching" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../clean_pipeline.html" class="btn btn-neutral float-left" title="File Cleaning and Archiving" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="directory_setup.html" class="btn btn-neutral float-right" title="Directory Setup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

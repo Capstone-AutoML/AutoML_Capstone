@@ -42,6 +42,20 @@ This command will:
 
 ---
 
+If you want to run the auto-labeling part of the pipeline separately, do:
+
+```bash
+docker compose run auto_labeling
+```
+
+> This step should always come first.
+
+Then, to run the augmentation, training, and compression steps, use:
+
+```bash
+docker compose run train_compress
+```
+
 ### 💻 If You Have a CPU-Only Machine (No NVIDIA GPU)
 
 Before running, **replace** your `docker-compose.yaml` file with:
@@ -50,6 +64,7 @@ Before running, **replace** your `docker-compose.yaml` file with:
 services:
   capstone:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     platform: linux/x86_64
     container_name: automl_capstone
     ipc: host
@@ -61,24 +76,38 @@ services:
 
   generate_box:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/generate_boxed_images.py"
     volumes:
       - .:/app
-
-  human_intervention:
+  
+  auto_labeling:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
-    command: -c "source activate capstone_env && python src/pipeline/human_intervention.py"
+    command: -c "source activate capstone_env && ./fetch_dataset.sh && python src/label_main.py"
+    volumes:
+      - .:/app
+
+
+  train_compress:
+    image: celt313/automl_capstone:v0.0.3
+    ipc: host
+    platform: linux/x86_64
+    profiles: ["optional"]
+    entrypoint: bash
+    command: -c "source activate capstone_env && python src/train_compress.py"
     volumes:
       - .:/app
 
   test:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
@@ -93,6 +122,21 @@ Then run:
 docker compose up
 ```
 
+to run the entire pipeline.
+
+If you want to run the auto-labeling part of the pipeline separately, do:
+
+```bash
+docker compose run auto_labeling
+```
+
+> This step should always come first.
+
+Then, to run the augmentation, training, and compression steps, use:
+
+```bash
+docker compose run train_compress
+```
 ---
 
 ## 3. Run Tests (Optional)
@@ -127,9 +171,10 @@ This will:
 
 ## 5. Configuration Files
 
-These two onfig files control pipeline behavior:
+These config files control pipeline behavior:
 
-- `pipeline_config.json`: Process options, augmentation, and distillation settings.
+- `pipeline_config.json`: Process options and distillation settings.
+- `augmentation_config.json`: Augmentation parameters and seed.
 - `train_config.json`: Training parameters, dataset paths, and device.
 - `distillation_config.yaml`: Distillation settings (model paths, epochs, patience, etc.)
 - `quantize_config.json` : Model quantization settings (labeled images paths, quantization method, etc.)
@@ -180,3 +225,23 @@ To start fresh with your own dataset:
    ```
 
 Make sure the images are in `.jpg`, `.jpeg`, or `.png` format.
+
+## 7. Workspace Directory Structure
+
+The data and model directories should be structured as follows:
+
+```text
+automl_workspace/
+├── config/           # All config files
+├── data_pipeline/
+│   ├── input/        # Add your images here
+│   ├── labeled/      # Labeled images and annotations
+│   ├── augmented/    # Augmented images
+│   ├── label_studio/ # Label Studio related files
+│   └── ...
+├── model_registry/
+│   ├── model/        # Model weights
+│   ├── distilled/    # Distilled model outputs
+│   └── quantized/    # Quantized model outputs
+└── master_dataset/   # Archived labeled datasets
+```

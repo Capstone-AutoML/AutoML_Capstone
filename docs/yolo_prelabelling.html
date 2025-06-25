@@ -67,10 +67,11 @@
 <li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clean_pipeline.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
@@ -109,7 +110,7 @@
 <li><p><strong>Input</strong>: Directory of raw images</p></li>
 <li><p><strong>Output</strong>: JSON files with bounding boxes, confidence scores, and class labels</p></li>
 <li><p><strong>Model</strong>: YOLO (from <code class="docutils literal notranslate"><span class="pre">ultralytics</span></code>)</p></li>
-<li><p><strong>Device Handling</strong>: Automatically selects CPU/GPU/MPS</p></li>
+<li><p><strong>Device Handling</strong>: Configurable via <code class="docutils literal notranslate"><span class="pre">config/pipeline_config.json</span></code> to select CPU, GPU, or MPS</p></li>
 <li><p><strong>Logging</strong>: Summary of processed/failed images</p></li>
 </ul>
 </section>

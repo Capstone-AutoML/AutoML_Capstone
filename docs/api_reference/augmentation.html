@@ -52,10 +52,11 @@
 <li class="toctree-l1"><a class="reference internal" href="../gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../clean_pipeline.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Code Reference</a><ul class="current">
@@ -70,6 +71,7 @@
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="clean_pipeline.html">File Cleaning &amp; Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Scripts</a></li>
 </ul>
 </li>
@@ -105,23 +107,96 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="src.pipeline.augmentation.augment_dataset">
 <span class="sig-prename descclassname"><span class="pre">src.pipeline.augmentation.</span></span><span class="sig-name descname"><span class="pre">augment_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/pipeline/augmentation.html#augment_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.augmentation.augment_dataset" title="Link to this definition"></a></dt>
-<dd><p>Orchestrates augmentation pipeline.
-image_dir: path to labeled images
-output_dir: root output directory (will contain ‘images’ and ‘labels’)
-config: dictionary of augmentation settings</p>
+<dd><p>Orchestrates the full augmentation pipeline for a labeled image dataset.</p>
+<p>This function matches labeled JSON files with their corresponding images,
+builds the augmentation pipeline from the provided config, and applies
+augmentations using <cite>augment_images</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_dir</strong> (<em>Path</em>) – Directory containing the original labeled images.</p></li>
+<li><p><strong>output_dir</strong> (<em>Path</em>) – Root directory where augmented ‘images/’ and ‘labels/’ will be saved.</p></li>
+<li><p><strong>config</strong> (<em>dict</em>) – Dictionary containing augmentation settings, including
+number of augmentations and optional transform parameters.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Behavior:</dt><dd><ul class="simple">
+<li><p>Loads label files from a <cite>labeled_json_dir</cite> (‘automl_workspace/data_pipeline/labeled’)</p></li>
+<li><p>Matches JSON labels to image files by filename stem</p></li>
+<li><p>Builds an Albumentations transform pipeline using <cite>build_augmentation_transform</cite></p></li>
+<li><p>Applies the transform using <cite>augment_images</cite> with <cite>num_augmentations</cite> per image</p></li>
+<li><p>Logs counts of label files, image files, and successful matches</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="src.pipeline.augmentation.augment_images">
 <span class="sig-prename descclassname"><span class="pre">src.pipeline.augmentation.</span></span><span class="sig-name descname"><span class="pre">augment_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matched_pairs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Compose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_img_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_json_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_augmentations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/src/pipeline/augmentation.html#augment_images"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.augmentation.augment_images" title="Link to this definition"></a></dt>
-<dd><p>Applies augmentations to each image N times and saves results.
-Also saves un-augmented images with no predictions into separate folders.</p>
+<dd><p>Apply augmentations to each labeled image and save the results.</p>
+<p>For each (image, label) pair, this function applies the given transformation
+pipeline <cite>num_augmentations</cite> times. It saves the augmented images and their
+updated prediction labels (in JSON format) to the specified output directories.</p>
+<p>If an image has no predictions (empty bounding box list), the original image
+is saved separately in a dedicated ‘no_prediction_images’ folder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matched_pairs</strong> (<em>list</em>) – List of tuples, each containing a Path to a JSON file
+and its corresponding image file.</p></li>
+<li><p><strong>transform</strong> (<em>A.Compose</em>) – Albumentations transformation pipeline.</p></li>
+<li><p><strong>output_img_dir</strong> (<em>Path</em>) – Directory to save augmented images.</p></li>
+<li><p><strong>output_json_dir</strong> (<em>Path</em>) – Directory to save augmented label files.</p></li>
+<li><p><strong>num_augmentations</strong> (<em>int</em>) – Number of times to apply augmentations per image.</p></li>
+<li><p><strong>config</strong> (<em>dict</em>) – Configuration dictionary that may include a base random seed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="src.pipeline.augmentation.build_augmentation_transform">
 <span class="sig-prename descclassname"><span class="pre">src.pipeline.augmentation.</span></span><span class="sig-name descname"><span class="pre">build_augmentation_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Compose</span></span></span><a class="reference internal" href="../_modules/src/pipeline/augmentation.html#build_augmentation_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.pipeline.augmentation.build_augmentation_transform" title="Link to this definition"></a></dt>
-<dd><p>Build the augmentation transform pipeline from config.</p>
+<dd><p>Build the augmentation transform pipeline from the given configuration.</p>
+<p>This function constructs an Albumentations Compose object with a sequence of
+image augmentation transforms. Each transform is applied with a configurable
+probability and parameter set drawn from the <cite>config</cite> dictionary.</p>
+<p>Supported transforms:
+- HorizontalFlip
+- RandomBrightnessContrast
+- HueSaturationValue
+- Blur
+- GaussNoise
+- ToGray
+- Rotate</p>
+<p>The transform also ensures bounding box alignment using ‘pascal_voc’ format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<em>dict</em>) – Dictionary containing probability values and parameters
+for each augmentation transform.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>An Albumentations Compose object with the specified transformations</dt><dd><p>and bounding box handling.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A.Compose</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
