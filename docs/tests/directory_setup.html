@@ -20,7 +20,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Configuration" href="configuration.html" />
+    <link rel="next" title="Utility Functions" href="utils.html" />
     <link rel="prev" title="File Cleaning and Archiving" href="cleaning.html" /> 
 </head>
 
@@ -67,11 +67,24 @@
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Directory Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#function-tests">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#test-create-automl-workspace-default-path"><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_default_path</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-create-automl-workspace-custom-path"><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_custom_path</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-create-automl-workspace-already-exists"><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_already_exists</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-create-automl-workspace-permission-error"><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_permission_error</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-create-automl-workspace-nested-structure"><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_nested_structure</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-create-automl-workspace-makedirs-called-correctly"><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_makedirs_called_correctly</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +115,52 @@
              
   <section id="directory-setup">
 <h1>Directory Setup<a class="headerlink" href="#directory-setup" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">directory_setup.py</span></code> module, which is responsible for initializing the <code class="docutils literal notranslate"><span class="pre">automl_workspace</span></code> directory structure.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>The tests validate that the function <code class="docutils literal notranslate"><span class="pre">create_automl_workspace()</span></code>:</p>
+<ul class="simple">
+<li><p>Creates a well-defined directory tree for data pipeline, model registry, config, and label studio</p></li>
+<li><p>Supports custom base paths</p></li>
+<li><p>Gracefully handles already existing directories</p></li>
+<li><p>Responds to permission errors with informative messages</p></li>
+<li><p>Properly constructs nested directories as intended</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="function-tests">
+<h2>Function Tests<a class="headerlink" href="#function-tests" title="Link to this heading"></a></h2>
+<section id="test-create-automl-workspace-default-path">
+<h3><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_default_path</span></code><a class="headerlink" href="#test-create-automl-workspace-default-path" title="Link to this heading"></a></h3>
+<p>Verifies that the default workspace is created correctly when no custom path is provided.</p>
+</section>
+<section id="test-create-automl-workspace-custom-path">
+<h3><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_custom_path</span></code><a class="headerlink" href="#test-create-automl-workspace-custom-path" title="Link to this heading"></a></h3>
+<p>Checks that the workspace is created under a user-specified base directory.</p>
+</section>
+<section id="test-create-automl-workspace-already-exists">
+<h3><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_already_exists</span></code><a class="headerlink" href="#test-create-automl-workspace-already-exists" title="Link to this heading"></a></h3>
+<p>Confirms the function does not overwrite existing files and directories when re-run.</p>
+</section>
+<section id="test-create-automl-workspace-permission-error">
+<h3><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_permission_error</span></code><a class="headerlink" href="#test-create-automl-workspace-permission-error" title="Link to this heading"></a></h3>
+<p>Simulates a <code class="docutils literal notranslate"><span class="pre">PermissionError</span></code> during directory creation and verifies that the error is logged appropriately.</p>
+</section>
+<section id="test-create-automl-workspace-nested-structure">
+<h3><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_nested_structure</span></code><a class="headerlink" href="#test-create-automl-workspace-nested-structure" title="Link to this heading"></a></h3>
+<p>Ensures that deeply nested directories like <code class="docutils literal notranslate"><span class="pre">label_studio/pending</span></code> are created as expected.</p>
+</section>
+<section id="test-create-automl-workspace-makedirs-called-correctly">
+<h3><code class="docutils literal notranslate"><span class="pre">test_create_automl_workspace_makedirs_called_correctly</span></code><a class="headerlink" href="#test-create-automl-workspace-makedirs-called-correctly" title="Link to this heading"></a></h3>
+<p>Mocks <code class="docutils literal notranslate"><span class="pre">os.makedirs</span></code> and asserts it is called for all required subdirectories.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>These tests guarantee that <code class="docutils literal notranslate"><span class="pre">create_automl_workspace()</span></code> reliably sets up the workspace environment in various conditions, making the AutoML pipeline reproducible and structured across different setups.</p>
+</section>
 </section>
 
 
@@ -109,7 +168,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="cleaning.html" class="btn btn-neutral float-left" title="File Cleaning and Archiving" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="configuration.html" class="btn btn-neutral float-right" title="Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utility Functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -64,14 +64,31 @@
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Distillation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Distillation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixtures">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#test-config"><code class="docutils literal notranslate"><span class="pre">test_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mock-teacher-model"><code class="docutils literal notranslate"><span class="pre">mock_teacher_model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mock-student-model"><code class="docutils literal notranslate"><span class="pre">mock_student_model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#function-tests">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#calculate-gradient-norm"><code class="docutils literal notranslate"><span class="pre">calculate_gradient_norm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeze-layers"><code class="docutils literal notranslate"><span class="pre">freeze_layers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#head-features-decoder"><code class="docutils literal notranslate"><span class="pre">head_features_decoder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compute-distillation-loss"><code class="docutils literal notranslate"><span class="pre">compute_distillation_loss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +119,82 @@
              
   <section id="distillation">
 <h1>Distillation<a class="headerlink" href="#distillation" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">distillation.py</span></code> module, which handles knowledge distillation between YOLO teacher and student models. The tests focus on validating loss computation, feature decoding, gradient monitoring, and layer freezing utilities.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>This test suite includes coverage for:</p>
+<ul class="simple">
+<li><p>Loading model components and datasets</p></li>
+<li><p>Calculating distillation loss</p></li>
+<li><p>Decoding head features into bounding boxes</p></li>
+<li><p>Computing gradient norms</p></li>
+<li><p>Freezing model layers</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fixtures">
+<h2>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h2>
+<section id="test-config">
+<h3><code class="docutils literal notranslate"><span class="pre">test_config</span></code><a class="headerlink" href="#test-config" title="Link to this heading"></a></h3>
+<p>Loads a distillation-specific YAML configuration file from <code class="docutils literal notranslate"><span class="pre">src/distillation_config.yaml</span></code>.</p>
+</section>
+<section id="mock-teacher-model">
+<h3><code class="docutils literal notranslate"><span class="pre">mock_teacher_model</span></code><a class="headerlink" href="#mock-teacher-model" title="Link to this heading"></a></h3>
+<p>Returns a mock convolutional teacher model using PyTorch <code class="docutils literal notranslate"><span class="pre">nn.Sequential</span></code>.</p>
+</section>
+<section id="mock-student-model">
+<h3><code class="docutils literal notranslate"><span class="pre">mock_student_model</span></code><a class="headerlink" href="#mock-student-model" title="Link to this heading"></a></h3>
+<p>Returns a simplified convolutional student model for testing distillation and gradient behavior.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="function-tests">
+<h2>Function Tests<a class="headerlink" href="#function-tests" title="Link to this heading"></a></h2>
+<section id="calculate-gradient-norm">
+<h3><code class="docutils literal notranslate"><span class="pre">calculate_gradient_norm</span></code><a class="headerlink" href="#calculate-gradient-norm" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_calculate_gradient_norm</span></code>:<br />
+Computes the L2 norm of gradients after a backward pass on a dummy model. Asserts the value is positive and a float.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="freeze-layers">
+<h3><code class="docutils literal notranslate"><span class="pre">freeze_layers</span></code><a class="headerlink" href="#freeze-layers" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_freeze_layers</span></code>:<br />
+Confirms that specified layers in the model are frozen (i.e., <code class="docutils literal notranslate"><span class="pre">requires_grad</span> <span class="pre">=</span> <span class="pre">False</span></code>) while others remain trainable.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="head-features-decoder">
+<h3><code class="docutils literal notranslate"><span class="pre">head_features_decoder</span></code><a class="headerlink" href="#head-features-decoder" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_head_features_decoder</span></code>:<br />
+Passes dummy head feature maps and simulates decoding into bounding boxes using a mocked detection criterion. Ensures the result is a tensor of the expected shape.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="compute-distillation-loss">
+<h3><code class="docutils literal notranslate"><span class="pre">compute_distillation_loss</span></code><a class="headerlink" href="#compute-distillation-loss" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_compute_distillation_loss</span></code>:<br />
+Computes the loss between teacher and student predictions with matching shape and format. Confirms the result is a scalar tensor greater than zero.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This page outlines a focused test suite that ensures:</p>
+<ul class="simple">
+<li><p>Distillation loss calculations are stable and positive</p></li>
+<li><p>Bounding box decoding works across feature map scales</p></li>
+<li><p>Model layers can be frozen selectively for fine-tuning</p></li>
+<li><p>Gradient norms are measurable during training</p></li>
+</ul>
+<p>These tests support reliable implementation of student-teacher training in the AutoML pipeline.</p>
+</section>
 </section>
 
 

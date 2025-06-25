@@ -57,7 +57,24 @@
 <li class="toctree-l1"><a class="reference internal" href="../distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quantization.html">Quantization</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Unit Tests</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Data Fetching</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Data Fetching</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixtures">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#temp-dirs-tmp-path"><code class="docutils literal notranslate"><span class="pre">temp_dirs(tmp_path)</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#test-cases">Test Cases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#test-validate-input-images-success"><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_success</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-validate-input-images-empty-directory"><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_empty_directory</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-validate-input-images-no-valid-images"><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_no_valid_images</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-validate-input-images-mixed-files"><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_mixed_files</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-validate-input-images-different-extensions"><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_different_extensions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-validate-input-images-nonexistent-directory"><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_nonexistent_directory</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
@@ -68,10 +85,10 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +119,104 @@
              
   <section id="data-fetching">
 <h1>Data Fetching<a class="headerlink" href="#data-fetching" title="Link to this heading"></a></h1>
+<p>This page outlines the unit tests for the <code class="docutils literal notranslate"><span class="pre">validate_input_images()</span></code> function in the <code class="docutils literal notranslate"><span class="pre">fetch_data</span></code> module, which ensures that the input directory contains valid image files before the pipeline proceeds.</p>
+<hr class="docutils" />
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">validate_input_images</span></code> function performs the following validations:</p>
+<ul class="simple">
+<li><p>Confirms the existence of the input directory</p></li>
+<li><p>Checks for at least one valid image file (<code class="docutils literal notranslate"><span class="pre">.jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">.jpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">.png</span></code>, <code class="docutils literal notranslate"><span class="pre">.bmp</span></code>, <code class="docutils literal notranslate"><span class="pre">.tiff</span></code>, <code class="docutils literal notranslate"><span class="pre">.gif</span></code>)</p></li>
+<li><p>Raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if the input directory is empty, nonexistent, or contains no valid images</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fixtures">
+<h2>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h2>
+<section id="temp-dirs-tmp-path">
+<h3><code class="docutils literal notranslate"><span class="pre">temp_dirs(tmp_path)</span></code><a class="headerlink" href="#temp-dirs-tmp-path" title="Link to this heading"></a></h3>
+<p>Creates a temporary directory and populates it with a few dummy <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> and <code class="docutils literal notranslate"><span class="pre">.png</span></code> files for positive test cases. Automatically cleaned up after test execution.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="test-cases">
+<h2>Test Cases<a class="headerlink" href="#test-cases" title="Link to this heading"></a></h2>
+<section id="test-validate-input-images-success">
+<h3><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_success</span></code><a class="headerlink" href="#test-validate-input-images-success" title="Link to this heading"></a></h3>
+<p><strong>Purpose:</strong><br />
+Confirms that the function passes silently when valid image files are present.</p>
+<p><strong>Input:</strong><br />
+A directory with <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> and <code class="docutils literal notranslate"><span class="pre">.png</span></code> files.</p>
+<p><strong>Expected Result:</strong><br />
+No exception is raised.</p>
+</section>
+<hr class="docutils" />
+<section id="test-validate-input-images-empty-directory">
+<h3><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_empty_directory</span></code><a class="headerlink" href="#test-validate-input-images-empty-directory" title="Link to this heading"></a></h3>
+<p><strong>Purpose:</strong><br />
+Checks behavior when the input directory is empty.</p>
+<p><strong>Input:</strong><br />
+An empty directory.</p>
+<p><strong>Expected Result:</strong><br />
+Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> with message:<br />
+<code class="docutils literal notranslate"><span class="pre">&quot;No</span> <span class="pre">images</span> <span class="pre">found</span> <span class="pre">in</span> <span class="pre">input</span> <span class="pre">directory&quot;</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="test-validate-input-images-no-valid-images">
+<h3><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_no_valid_images</span></code><a class="headerlink" href="#test-validate-input-images-no-valid-images" title="Link to this heading"></a></h3>
+<p><strong>Purpose:</strong><br />
+Validates that directories containing only non-image files are flagged.</p>
+<p><strong>Input:</strong><br />
+Files like <code class="docutils literal notranslate"><span class="pre">.txt</span></code>, <code class="docutils literal notranslate"><span class="pre">.csv</span></code>, and <code class="docutils literal notranslate"><span class="pre">.json</span></code>.</p>
+<p><strong>Expected Result:</strong><br />
+Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> with message:<br />
+<code class="docutils literal notranslate"><span class="pre">&quot;No</span> <span class="pre">images</span> <span class="pre">found</span> <span class="pre">in</span> <span class="pre">input</span> <span class="pre">directory&quot;</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="test-validate-input-images-mixed-files">
+<h3><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_mixed_files</span></code><a class="headerlink" href="#test-validate-input-images-mixed-files" title="Link to this heading"></a></h3>
+<p><strong>Purpose:</strong><br />
+Tests behavior when both image and non-image files are present.</p>
+<p><strong>Input:</strong><br />
+A mix of image files and other files.</p>
+<p><strong>Expected Result:</strong><br />
+No exception is raised.</p>
+</section>
+<hr class="docutils" />
+<section id="test-validate-input-images-different-extensions">
+<h3><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_different_extensions</span></code><a class="headerlink" href="#test-validate-input-images-different-extensions" title="Link to this heading"></a></h3>
+<p><strong>Purpose:</strong><br />
+Ensures support for multiple common image file extensions.</p>
+<p><strong>Input:</strong><br />
+Files with extensions: <code class="docutils literal notranslate"><span class="pre">.jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">.jpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">.png</span></code>, <code class="docutils literal notranslate"><span class="pre">.bmp</span></code>, <code class="docutils literal notranslate"><span class="pre">.tiff</span></code>, <code class="docutils literal notranslate"><span class="pre">.gif</span></code>.</p>
+<p><strong>Expected Result:</strong><br />
+No exception is raised.</p>
+</section>
+<hr class="docutils" />
+<section id="test-validate-input-images-nonexistent-directory">
+<h3><code class="docutils literal notranslate"><span class="pre">test_validate_input_images_nonexistent_directory</span></code><a class="headerlink" href="#test-validate-input-images-nonexistent-directory" title="Link to this heading"></a></h3>
+<p><strong>Purpose:</strong><br />
+Handles the case when the input directory does not exist.</p>
+<p><strong>Input:</strong><br />
+A non-existent directory path.</p>
+<p><strong>Expected Result:</strong><br />
+Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> with message:<br />
+<code class="docutils literal notranslate"><span class="pre">&quot;No</span> <span class="pre">images</span> <span class="pre">found</span> <span class="pre">in</span> <span class="pre">input</span> <span class="pre">directory&quot;</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>These tests ensure the robustness of the input image validation logic by covering a variety of directory states:</p>
+<ul class="simple">
+<li><p>Valid input</p></li>
+<li><p>Empty folders</p></li>
+<li><p>Nonexistent folders</p></li>
+<li><p>Mixed or incorrect file types</p></li>
+<li><p>Broad image extension support</p></li>
+</ul>
+<p>All cases are automatically managed using <code class="docutils literal notranslate"><span class="pre">pytest</span></code> and <code class="docutils literal notranslate"><span class="pre">tmp_path</span></code> for isolation and reproducibility.</p>
+</section>
 </section>
 
 

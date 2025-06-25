@@ -63,15 +63,24 @@
 <li class="toctree-l2"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Training</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Training</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#function-tests">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#load-train-config"><code class="docutils literal notranslate"><span class="pre">load_train_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#find-latest-model"><code class="docutils literal notranslate"><span class="pre">find_latest_model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +111,54 @@
              
   <section id="training">
 <h1>Training<a class="headerlink" href="#training" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">train.py</span></code> module, which handles loading model training configurations and selecting the most recent trained model based on filename timestamps.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>The tests focus on the following functions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">load_train_config</span></code>: Loads and validates a training configuration file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">find_latest_model</span></code>: Identifies the latest YOLO model file based on naming pattern or falls back to a default model.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="function-tests">
+<h2>Function Tests<a class="headerlink" href="#function-tests" title="Link to this heading"></a></h2>
+<section id="load-train-config">
+<h3><code class="docutils literal notranslate"><span class="pre">load_train_config</span></code><a class="headerlink" href="#load-train-config" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_load_valid_config</span></code>:<br />
+Ensures a valid training config JSON file loads correctly and includes all expected keys and values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_missing_file_raises_error</span></code>:<br />
+Confirms that a missing config file raises a <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_missing_required_keys</span></code>:<br />
+Validates that missing required config fields trigger an <code class="docutils literal notranslate"><span class="pre">AssertionError</span></code>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="find-latest-model">
+<h3><code class="docutils literal notranslate"><span class="pre">find_latest_model</span></code><a class="headerlink" href="#find-latest-model" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_returns_latest_model</span></code>:<br />
+Identifies the most recent YOLO model using timestamped filenames matching the pattern <code class="docutils literal notranslate"><span class="pre">*_updated_yolo.pt</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_returns_fallback_if_no_model</span></code>:<br />
+Returns the fallback path if no matching model is found in the directory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_model_pattern_only_matches_updated</span></code>:<br />
+Verifies that only files with <code class="docutils literal notranslate"><span class="pre">_updated_yolo.pt</span></code> are considered valid candidates for latest model selection.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This page outlines a focused and reliable test suite that ensures:</p>
+<ul class="simple">
+<li><p>Training configuration files are present, valid, and complete</p></li>
+<li><p>Only appropriately named model files are selected for retraining or fine-tuning</p></li>
+<li><p>Robust fallback behavior in the absence of model artifacts</p></li>
+</ul>
+<p>These tests help safeguard the training pipeline from misconfiguration or missing artifacts, ensuring repeatable and predictable training runs.</p>
+</section>
 </section>
 
 

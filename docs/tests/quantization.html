@@ -65,13 +65,45 @@
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixtures">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#mock-model"><code class="docutils literal notranslate"><span class="pre">mock_model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sample-quantize-config"><code class="docutils literal notranslate"><span class="pre">sample_quantize_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#function-tests">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#imx-quantization"><code class="docutils literal notranslate"><span class="pre">imx_quantization()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fp16-quantization"><code class="docutils literal notranslate"><span class="pre">fp16_quantization()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#onnx-quantization"><code class="docutils literal notranslate"><span class="pre">onnx_quantization()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">mock_model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">sample_quantize_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">imx_quantization()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7"><code class="docutils literal notranslate"><span class="pre">fp16_quantization()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">onnx_quantization()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#quantize-model"><code class="docutils literal notranslate"><span class="pre">quantize_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id9"><code class="docutils literal notranslate"><span class="pre">quantize_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +134,163 @@
              
   <section id="quantization">
 <h1>Quantization<a class="headerlink" href="#quantization" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">quantization.py</span></code> module, which implements three quantization strategies (IMX, FP16, and ONNX) for YOLO models, including model preparation, export, and configuration management.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>The tests cover:</p>
+<ul class="simple">
+<li><p>IMX quantization logic (platform-dependent)</p></li>
+<li><p>FP16 quantization success and failure paths</p></li>
+<li><p>ONNX export and quantization with subprocess</p></li>
+<li><p>Fallback behavior for unsupported or misconfigured cases</p></li>
+<li><p>The complete <code class="docutils literal notranslate"><span class="pre">quantize_model()</span></code> dispatcher logic</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fixtures">
+<h2>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h2>
+<section id="mock-model">
+<h3><code class="docutils literal notranslate"><span class="pre">mock_model</span></code><a class="headerlink" href="#mock-model" title="Link to this heading"></a></h3>
+<p>Returns a mock YOLO model with <code class="docutils literal notranslate"><span class="pre">.export()</span></code>, <code class="docutils literal notranslate"><span class="pre">.save()</span></code>, and <code class="docutils literal notranslate"><span class="pre">.half()</span></code> methods stubbed for isolated testing.</p>
+</section>
+<section id="sample-quantize-config">
+<h3><code class="docutils literal notranslate"><span class="pre">sample_quantize_config</span></code><a class="headerlink" href="#sample-quantize-config" title="Link to this heading"></a></h3>
+<p>Creates a dummy config dictionary with values for output paths, methods, and calibration settings used in dispatcher tests.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="function-tests">
+<h2>Function Tests<a class="headerlink" href="#function-tests" title="Link to this heading"></a></h2>
+<section id="imx-quantization">
+<h3><code class="docutils literal notranslate"><span class="pre">imx_quantization()</span></code><a class="headerlink" href="#imx-quantization" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_imx_quantization_non_linux</span></code>:<br />
+Ensures IMX quantization exits cleanly on unsupported platforms like Windows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_imx_quantization_success</span></code>:<br />
+Simulates successful export and model file movement on a Linux environment using mocks and patches.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fp16-quantization">
+<h3><code class="docutils literal notranslate"><span class="pre">fp16_quantization()</span></code><a class="headerlink" href="#fp16-quantization" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_fp16_quantization_success</span></code>:<br />
+Confirms the model is saved as expected when no errors occur.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_fp16_quantization_failure</span></code>:<br />
+Handles exceptions during saving and returns <code class="docutils literal notranslate"><span class="pre">None</span></code> when failure occurs.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="onnx-quantization">
+<h3><code class="docutils literal notranslate"><span class="pre">onnx_quantization()</span></code><a class="headerlink" href="#onnx-quantization" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_onnx_quantization_success</span></code>:<br />
+Validates ONNX export and qu# <code class="docutils literal notranslate"><span class="pre">quantization</span></code> Module – Unit Tests</p></li>
+</ul>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">quantization.py</span></code> module, which implements three quantization strategies (IMX, FP16, and ONNX) for YOLO models, including model preparation, export, and configuration management.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id1">
+<h2>Coverage Overview<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>The tests cover:</p>
+<ul class="simple">
+<li><p>IMX quantization logic (platform-dependent)</p></li>
+<li><p>FP16 quantization success and failure paths</p></li>
+<li><p>ONNX export and quantization with subprocess</p></li>
+<li><p>Fallback behavior for unsupported or misconfigured cases</p></li>
+<li><p>The complete <code class="docutils literal notranslate"><span class="pre">quantize_model()</span></code> dispatcher logic</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="id2">
+<h2>Fixtures<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3><code class="docutils literal notranslate"><span class="pre">mock_model</span></code><a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>Returns a mock YOLO model with <code class="docutils literal notranslate"><span class="pre">.export()</span></code>, <code class="docutils literal notranslate"><span class="pre">.save()</span></code>, and <code class="docutils literal notranslate"><span class="pre">.half()</span></code> methods stubbed for isolated testing.</p>
+</section>
+<section id="id4">
+<h3><code class="docutils literal notranslate"><span class="pre">sample_quantize_config</span></code><a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>Creates a dummy config dictionary with values for output paths, methods, and calibration settings used in dispatcher tests.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id5">
+<h2>Function Tests<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id6">
+<h3><code class="docutils literal notranslate"><span class="pre">imx_quantization()</span></code><a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_imx_quantization_non_linux</span></code>:<br />
+Ensures IMX quantization exits cleanly on unsupported platforms like Windows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_imx_quantization_success</span></code>:<br />
+Simulates successful export and model file movement on a Linux environment using mocks and patches.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="id7">
+<h3><code class="docutils literal notranslate"><span class="pre">fp16_quantization()</span></code><a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_fp16_quantization_success</span></code>:<br />
+Confirms the model is saved as expected when no errors occur.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_fp16_quantization_failure</span></code>:<br />
+Handles exceptions during saving and returns <code class="docutils literal notranslate"><span class="pre">None</span></code> when failure occurs.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="id8">
+<h3><code class="docutils literal notranslate"><span class="pre">onnx_quantization()</span></code><a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_onnx_quantization_success</span></code>:<br />
+Validates ONNX export and quantization pipeline, including subprocess calls and dynamic quantization.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="quantize-model">
+<h3><code class="docutils literal notranslate"><span class="pre">quantize_model()</span></code><a class="headerlink" href="#quantize-model" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_quantize_model_imx</span></code>:<br />
+Simulates an end-to-end quantization call using the IMX method with config and YAML preparation patched.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_quantize_model_unsupported_method</span></code>:<br />
+Verifies that unsupported quantization types raise a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_quantize_model_missing_yaml</span></code>:<br />
+Ensures an error is raised when the quantization YAML file is missing from the config.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This test suite confirms robust handling of edge cases and method-specific branches in model quantization. It validates export success paths, platform constraints, and configuration-based logic for:</p>
+<ul class="simple">
+<li><p>IMX</p></li>
+<li><p>FP16</p></li>
+<li><p>ONNX<br />
+antization pipeline, including subprocess calls and dynamic quantization.</p></li>
+</ul>
+<hr class="docutils" />
+<section id="id9">
+<h3><code class="docutils literal notranslate"><span class="pre">quantize_model()</span></code><a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_quantize_model_imx</span></code>:<br />
+Simulates an end-to-end quantization call using the IMX method with config and YAML preparation patched.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_quantize_model_unsupported_method</span></code>:<br />
+Verifies that unsupported quantization types raise a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_quantize_model_missing_yaml</span></code>:<br />
+Ensures an error is raised when the quantization YAML file is missing from the config.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id10">
+<h2>Summary<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<p>This test suite confirms robust handling of edge cases and method-specific branches in model quantization. It validates export success paths, platform constraints, and configuration-based logic for:</p>
+<ul class="simple">
+<li><p>IMX</p></li>
+<li><p>FP16</p></li>
+<li><p>ONNX</p></li>
+</ul>
+</section>
 </section>
 
 

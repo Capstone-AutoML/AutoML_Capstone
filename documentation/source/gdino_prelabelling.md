@@ -73,13 +73,13 @@ These values can be overridden or adjusted in the configuration dictionary passe
 
 ```python
 generate_gd_prelabelling(
-    raw_dir=Path("data/raw/images"),
-    output_dir=Path("data/predictions/dino"),
+    raw_dir=Path("data_pipeline/input/"),
+    output_dir=Path("data_pipeline/prelabeled/gdino/"),
     config={
         "torch_device": "cuda",
         "dino_box_threshold": 0.3,
         "dino_text_threshold": 0.25
     },
-    model_weights=Path("weights/groundingdino.pth"),
-    config_path=Path("configs/GroundingDINO_SwinT_config.py")
+    model_weights=Path("model_registry/model/groundingdino_swinb_cogcoor.pth"),
+    config_path=Path("model_registry/model/GroundingDINO_SwinB_cfg.py")
 )

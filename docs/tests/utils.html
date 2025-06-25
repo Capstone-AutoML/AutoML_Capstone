@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Code Reference" href="../api_reference/index.html" />
-    <link rel="prev" title="Configuration" href="configuration.html" /> 
+    <link rel="next" title="Database Schema Overview" href="../database.html" />
+    <link rel="prev" title="Directory Setup" href="directory_setup.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -68,10 +68,20 @@
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Utility Functions</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Utility Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#function-tests">Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#device-detection">Device Detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuration-loading">Configuration Loading</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#yaml-file-creation">YAML File Creation</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,14 +112,60 @@
              
   <section id="utility-functions">
 <h1>Utility Functions<a class="headerlink" href="#utility-functions" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">utils.py</span></code> module, which provides utility functions for configuration management, device detection, and YAML file generation.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>The following utilities are tested:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">detect_device()</span></code>: Determines available hardware (CUDA, MPS, or CPU)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">load_config()</span></code>: Loads and validates configuration from a JSON file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create_data_yaml()</span></code>: Generates a standard <code class="docutils literal notranslate"><span class="pre">data.yaml</span></code> for YOLO training</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create_quantize_yaml()</span></code>: Creates a <code class="docutils literal notranslate"><span class="pre">quantize.yaml</span></code> file with placeholder values</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="function-tests">
+<h2>Function Tests<a class="headerlink" href="#function-tests" title="Link to this heading"></a></h2>
+<section id="device-detection">
+<h3>Device Detection<a class="headerlink" href="#device-detection" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_detect_device_cuda</span></code>: Asserts CUDA is returned when available.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_detect_device_mps</span></code>: Asserts MPS is returned if CUDA is unavailable.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_detect_device_cpu</span></code>: Falls back to CPU when neither CUDA nor MPS is available.</p></li>
+</ul>
+</section>
+<section id="configuration-loading">
+<h3>Configuration Loading<a class="headerlink" href="#configuration-loading" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_load_config_valid_file</span></code>: Loads a valid JSON config file and checks its content.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_load_config_file_not_found</span></code>: Raises <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> for a missing file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_load_config_invalid_json</span></code>: Raises <code class="docutils literal notranslate"><span class="pre">JSONDecodeError</span></code> for malformed JSON.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_load_config_invalid_distillation_prop</span></code>: Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="docutils literal notranslate"><span class="pre">distillation_image_prop</span></code> is negative.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_load_config_default_path</span></code>: Validates fallback behavior using a mocked default path.</p></li>
+</ul>
+</section>
+<section id="yaml-file-creation">
+<h3>YAML File Creation<a class="headerlink" href="#yaml-file-creation" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_create_data_yaml</span></code>: Asserts creation and content of a valid <code class="docutils literal notranslate"><span class="pre">data.yaml</span></code> file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_create_quantize_yaml</span></code>: Confirms <code class="docutils literal notranslate"><span class="pre">quantize.yaml</span></code> file is created in the expected location with placeholder structure.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>These unit tests ensure that utility functions used across the AutoML pipeline behave predictably and handle edge cases gracefully. They support robustness in configuration, hardware compatibility, and file generation workflows.</p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="configuration.html" class="btn btn-neutral float-left" title="Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../api_reference/index.html" class="btn btn-neutral float-right" title="Code Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="directory_setup.html" class="btn btn-neutral float-left" title="Directory Setup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../database.html" class="btn btn-neutral float-right" title="Database Schema Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

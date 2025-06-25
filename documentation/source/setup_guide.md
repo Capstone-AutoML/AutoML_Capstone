@@ -49,7 +49,8 @@ Before running, **replace** your `docker-compose.yaml` file with:
 ```yaml
 services:
   capstone:
-    image: celt313/automl_capstone:v0.0.2
+    image: celt313/automl_capstone:v0.0.3
+    platform: linux/x86_64
     container_name: automl_capstone
     ipc: host
     working_dir: /app
@@ -59,7 +60,8 @@ services:
       - .:/app
 
   generate_box:
-    image: celt313/automl_capstone:v0.0.2
+    image: celt313/automl_capstone:v0.0.3
+    platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/generate_boxed_images.py"
@@ -67,7 +69,8 @@ services:
       - .:/app
 
   human_intervention:
-    image: celt313/automl_capstone:v0.0.2
+    image: celt313/automl_capstone:v0.0.3
+    platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/pipeline/human_intervention.py"
@@ -75,7 +78,8 @@ services:
       - .:/app
 
   test:
-    image: celt313/automl_capstone:v0.0.2
+    image: celt313/automl_capstone:v0.0.3
+    platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && pytest tests/"

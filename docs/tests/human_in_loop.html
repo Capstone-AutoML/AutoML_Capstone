@@ -61,17 +61,37 @@
 <li class="toctree-l2"><a class="reference internal" href="yolo_prelabelling.html">YOLO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Human-in-the-Loop</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Human-in-the-Loop</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#coverage-overview">Coverage Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixtures">Fixtures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#temp-dirs"><code class="docutils literal notranslate"><span class="pre">temp_dirs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mock-global-directories"><code class="docutils literal notranslate"><span class="pre">mock_global_directories</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#key-function-tests">Key Function Tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#image-and-file-utilities">Image and File Utilities</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bounding-box-conversion">Bounding Box Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#task-generation">Task Generation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#processed-file-status">Processed File Status</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#label-studio-integration">Label Studio Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#project-setup">Project Setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exporting-and-transforming-results">Exporting and Transforming Results</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#full-workflow-run-human-review">Full Workflow: <code class="docutils literal notranslate"><span class="pre">run_human_review()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleaning.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="directory_setup.html">Directory Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -102,6 +122,116 @@
              
   <section id="human-in-the-loop">
 <h1>Human-in-the-Loop<a class="headerlink" href="#human-in-the-loop" title="Link to this heading"></a></h1>
+<p>This page outlines the unit test coverage for the <code class="docutils literal notranslate"><span class="pre">human_intervention.py</span></code> script, which manages the human-in-the-loop review process using Label Studio. It includes utilities for task preparation, status tracking, project setup, and final result transformation.</p>
+<hr class="docutils" />
+<section id="coverage-overview">
+<h2>Coverage Overview<a class="headerlink" href="#coverage-overview" title="Link to this heading"></a></h2>
+<p>This suite tests key internal functions as well as the high-level <code class="docutils literal notranslate"><span class="pre">run_human_review()</span></code> workflow. It verifies behavior related to:</p>
+<ul class="simple">
+<li><p>Image and JSON handling</p></li>
+<li><p>Bounding box transformation</p></li>
+<li><p>Task generation and import</p></li>
+<li><p>Label Studio integration</p></li>
+<li><p>Export and transformation of reviewed results</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fixtures">
+<h2>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h2>
+<section id="temp-dirs">
+<h3><code class="docutils literal notranslate"><span class="pre">temp_dirs</span></code><a class="headerlink" href="#temp-dirs" title="Link to this heading"></a></h3>
+<p>Creates test directories for:</p>
+<ul class="simple">
+<li><p>Raw images (<code class="docutils literal notranslate"><span class="pre">images/</span></code>)</p></li>
+<li><p>Prediction JSONs (<code class="docutils literal notranslate"><span class="pre">json/</span></code>)</p></li>
+<li><p>Task outputs (<code class="docutils literal notranslate"><span class="pre">output/</span></code>)</p></li>
+<li><p>Final labeled data (<code class="docutils literal notranslate"><span class="pre">labeled/</span></code>)</p></li>
+</ul>
+<p>Also generates test image and JSON files.</p>
+</section>
+<section id="mock-global-directories">
+<h3><code class="docutils literal notranslate"><span class="pre">mock_global_directories</span></code><a class="headerlink" href="#mock-global-directories" title="Link to this heading"></a></h3>
+<p>Patches global directory variables in the module to avoid side effects during testing.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="key-function-tests">
+<h2>Key Function Tests<a class="headerlink" href="#key-function-tests" title="Link to this heading"></a></h2>
+<section id="image-and-file-utilities">
+<h3>Image and File Utilities<a class="headerlink" href="#image-and-file-utilities" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_find_image_path</span></code>: Validates lookup of <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> or <code class="docutils literal notranslate"><span class="pre">.png</span></code> image by name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_update_label_status</span></code>, <code class="docutils literal notranslate"><span class="pre">test_update_label_status_file_not_found</span></code>: Updates the <code class="docutils literal notranslate"><span class="pre">label_status</span></code> in prediction JSONs and handles missing files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_initialize_json_files</span></code>: Adds <code class="docutils literal notranslate"><span class="pre">label_status</span> <span class="pre">=</span> <span class="pre">0</span></code> to uninitialized prediction files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_initialize_json_files_invalid_json</span></code>: Handles corrupt or non-parsable JSON gracefully.</p></li>
+</ul>
+</section>
+<section id="bounding-box-conversion">
+<h3>Bounding Box Conversion<a class="headerlink" href="#bounding-box-conversion" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_convert_bbox_to_percent</span></code>: Converts pixel coordinates to percentages for Label Studio.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_convert_bbox_from_percent</span></code>: Converts normalized coordinates back to absolute pixels.</p></li>
+</ul>
+</section>
+<section id="task-generation">
+<h3>Task Generation<a class="headerlink" href="#task-generation" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_generate_ls_tasks</span></code>: Generates Label Studio tasks from predictions and images, including prediction overlays.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_generate_ls_tasks_empty_dir</span></code>, <code class="docutils literal notranslate"><span class="pre">test_generate_ls_tasks_missing_images</span></code>: Validates behavior when source files are missing or empty.</p></li>
+</ul>
+</section>
+<section id="processed-file-status">
+<h3>Processed File Status<a class="headerlink" href="#processed-file-status" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_update_processed_files_status</span></code>: Marks all JSONs as imported by setting <code class="docutils literal notranslate"><span class="pre">label_status</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p></li>
+</ul>
+</section>
+<section id="label-studio-integration">
+<h3>Label Studio Integration<a class="headerlink" href="#label-studio-integration" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_ensure_label_studio_running</span></code>, <code class="docutils literal notranslate"><span class="pre">test_ensure_label_studio_running_needs_start</span></code>: Verifies Label Studio is running or starts it if needed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_find_or_create_project</span></code>: Finds or creates a project via API.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_configure_interface</span></code>: Updates the labeling interface for the selected project.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_import_tasks_to_project</span></code>: Posts generated tasks to Label Studio.</p></li>
+</ul>
+</section>
+<section id="project-setup">
+<h3>Project Setup<a class="headerlink" href="#project-setup" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_setup_label_studio</span></code>: Sets up the project and returns configuration for further API use.</p></li>
+</ul>
+</section>
+<section id="exporting-and-transforming-results">
+<h3>Exporting and Transforming Results<a class="headerlink" href="#exporting-and-transforming-results" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_export_versioned_results</span></code>: Downloads reviewed results and removes base64-encoded image data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_transform_ls_result_to_original_format</span></code>: Converts reviewed annotations back to the format expected by the labeling pipeline.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_extract_confidence_from_results</span></code>: Extracts model confidence and reviewer flags from results.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_transform_reviewed_results_to_labeled</span></code>: Moves approved predictions to the <code class="docutils literal notranslate"><span class="pre">labeled/</span></code> directory and deletes pending files.</p></li>
+</ul>
+</section>
+<section id="full-workflow-run-human-review">
+<h3>Full Workflow: <code class="docutils literal notranslate"><span class="pre">run_human_review()</span></code><a class="headerlink" href="#full-workflow-run-human-review" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_run_human_review</span></code>: Executes the entire human review loop (task generation, upload, status updates).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_run_human_review_with_export</span></code>: Includes export flow and transformation of reviewed annotations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_run_human_review_setup_failure</span></code>: Handles failed setup conditions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_run_human_review_no_label_studio</span></code>: Aborts workflow if Label Studio is not running.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>This page outlines a comprehensive test suite covering:</p>
+<ul class="simple">
+<li><p>File preparation and cleanup</p></li>
+<li><p>Label Studio setup and API interactions</p></li>
+<li><p>Status tracking and prediction transformation</p></li>
+<li><p>Edge cases such as empty inputs, bad JSONs, or API failures</p></li>
+</ul>
+<p>Together, these tests ensure that the human-in-the-loop review flow is robust, traceable, and safe to integrate into automated pipelines.</p>
+</section>
 </section>
 
 

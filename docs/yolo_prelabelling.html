@@ -72,6 +72,7 @@
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
 </ul>
 
@@ -173,9 +174,9 @@
 <section id="example-usage">
 <h2>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">generate_yolo_prelabelling</span><span class="p">(</span>
-    <span class="n">raw_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/raw/images&quot;</span><span class="p">),</span>
-    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/predictions/yolo&quot;</span><span class="p">),</span>
-    <span class="n">model_path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;models/yolo.pt&quot;</span><span class="p">),</span>
+    <span class="n">raw_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data_pipeline/input/&quot;</span><span class="p">),</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data_pipeline/prelabeled/yolo/&quot;</span><span class="p">),</span>
+    <span class="n">model_path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;model_registry/model/yolo.pt&quot;</span><span class="p">),</span>
     <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;torch_device&quot;</span><span class="p">:</span> <span class="s2">&quot;auto&quot;</span><span class="p">},</span>
     <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>

@@ -4,7 +4,7 @@
   "quantization_data_path": "automl_workspace/data_pipeline/quantization",
   "quantize_yaml_path": "src/quantize.yaml",
 
-  "quantization_method": "IMX",
+  "quantization_method": "FP16",
   "calibration_samples": 20,
   "output_dir": "automl_workspace/model_registry/quantized"
 }
