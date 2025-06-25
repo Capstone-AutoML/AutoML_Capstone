@@ -9,12 +9,12 @@
 
 2. **Workflow Steps**
 
-   - **Step 1:** Set quantization method in `config/quantize_config.json` (`"FP16"`, `"ONNX"`, or `"IMX"`)
+   - **Step 1:** Set quantization method in `quantize_config.json` (`"FP16"`, `"ONNX"`, or `"IMX"`)
    - **Step 2:** Based on method:
      - **FP16**: Converts weights to float16, fast and accurate, saved as `_fp16.pt`
      - **ONNX**: Converts to ONNX and applies dynamic quantization, saved as `_onnx_quantized.onnx`
      - **IMX**: Uses Ultralytics export with calibration data to create IMX-ready format (Linux only), saved as `_imx.onnx`
-   - **Step 3:** Quantized model is saved in `model_registry/quantized/`
+   - **Step 3:** Quantized model is saved in quantized model directory
 
 3. **Output**
 
