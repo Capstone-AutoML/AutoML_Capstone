@@ -1,6 +1,6 @@
 ### Quantization
 
-   Even after model distillation, running inference on edge devices can still be too slow or resource-intensive. To address this, quantization is used to reduce the size of the model and improve inference speed by lowering the numerical precision of model weights. This makes the model more efficient and suitable for real-time wildfire detection in the field.
+Even after model distillation, running inference on edge devices can still be too slow or resource-intensive. To address this, quantization is used to reduce the size of the model and improve inference speed by lowering the numerical precision of model weights. This makes the model more efficient and suitable for real-time wildfire detection in the field.
 
 1. **Input**
 

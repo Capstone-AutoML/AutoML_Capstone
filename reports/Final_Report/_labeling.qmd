@@ -1,14 +1,12 @@
 ### Automated Labeling and Matching
 
-Manual annotation is time-consuming and prone to inconsistencies. To streamline this process, we employ a dual-model pre-labeling strategy using YOLOv8 [@yolov8_ultralytics] and Grounding DINO [@grounding_dino]. This setup leverages model agreement to reduce manual labeling needs while preserving uncertain cases for human review. The goal is to automatically generate accurate labels with minimal intervention.
+Manual annotation is time-consuming and inconsistent. To streamline this process, we employ a dual-model pre-labeling strategy using YOLOv8 [@yolov8_ultralytics] and Grounding DINO [@grounding_dino]. This setup leverages model agreement to reduce manual labeling needs while preserving uncertain cases for human review. The goal is to automatically generate accurate labels with minimal intervention.
 
 [Figure 2](#fig-labeling-workflow) below illustrates this labeling and matching process.
 
 ::: {.cell}
 ![Labeling and Matching Workflow](img/labeling_matching_workflow.png){#fig-labeling-workflow width="60%" fig-pos="H"}
 :::
-
-The labeling workflow proceeds as follows:
 
 1. **Input**
 

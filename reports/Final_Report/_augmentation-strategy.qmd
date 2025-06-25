@@ -1,8 +1,8 @@
 ### Data Augmentation
 
-A single scene can look very different depending on external conditions such as lighting, weather, occlusion, and the angle or position of the camera.
-To help the model generalize better to these real-world variations, we apply data augmentation techniques to artificially increase the diversity of the training dataset. 
-This process improves robustness and reduces the risk of overfitting, especially in low-data or imbalanced class scenarios.
+A single scene can look very different depending on external conditions such as weather, occlusion, and the angle or position of the camera.
+To help the model generalize better to these real-world variations, we apply data augmentation to increase the diversity of the training dataset. 
+This process improves robustness and reduces the risk of overfitting.
 
 In this project, the partner specifically requested that augmentations be applied prior to training, rather than using in-training augmentation. This decision was motivated by the need to minimize computational overhead and training time.
 

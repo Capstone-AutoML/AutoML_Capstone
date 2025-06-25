@@ -4,13 +4,11 @@ To develop and evaluate the pipeline, we used a dataset provided by Bayes Studio
 
 This line indicates an object of class ID 1 with a bounding box centered at (0.757593, 0.34663) and a normalized width and height of 0.06101 and 0.3655, respectively.
 
-The object detection task focuses on five wildfire-relevant categories:  
+The object detection task focuses on five categories:  
 1. Fire  
 2. Smoke  
 3. Lightning  
 4. Vehicle  
 5. Person  
 
-These categories were selected for their importance in early wildfire detection and response scenarios.
-
-While the pipeline is designed to ingest raw, unlabeled images as input, this labeled dataset played a key role in building the initial components, testing functionality, and validating performance. The partner expects approximately 500 new images per month, which the pipeline is designed to process through labeling, training, and deployment stages.
+The partner expects approximately 500 new images per month, which the pipeline is designed to process through labeling, training, and deployment stages.
