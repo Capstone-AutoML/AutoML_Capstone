@@ -1,19 +1,13 @@
 Wildfires represent a significant and growing environmental threat, with the potential to cause widespread ecological and economic damage. @drdc2022 emphasizes the importance of early detection in mitigating the impact and spread of these events.
 
-Our Capstone partner, Bayes Studio, is a Vancouver-based startup developing advanced AI-driven tools for environmental monitoring and wildfire detection. 
-They deploy specialized camera systems equipped with lightweight models that operate as edge devices, allowing for real-time and on-site inference.
+Our Capstone partner, Bayes Studio, is a Vancouver-based startup developing advanced AI-driven tools for environmental monitoring and wildfire detection. They deploy specialized camera systems equipped with lightweight models that operate as edge devices, allowing for real-time and on-site inference.
 
+At the outset of the project, Bayes Studio's workflow for updating their wildfire detection models involved several manual steps: labeling new environmental imagery, fine-tuning a base object detection model, and compressing it for edge deployment. This process is time-consuming and constrained their ability to quickly respond to changing conditions in wildfire imagery.
 
-At the outset of the project, Bayes Studio's workflow for updating their wildfire detection models involved several manual steps: labeling new environmental imagery, fine-tuning a base object detection model, and compressing it for edge deployment. This process was time-consuming and constrained their ability to quickly respond to changing conditions in wildfire imagery.
+To address these challenges, we developed an automated and modular machine learning pipeline that supports continuous updates to wildfire detection models. The system is designed to handle incoming image data, generate high-quality object labels, retrain detection models, and compress them for edge deployment—with minimal manual effort.
 
-The available data for our project consisted of open-source image datasets labeled across five wildfire-relevant classes. These images served as the foundation for developing and evaluating the pipeline components.
+The pipeline begins with a semi-automated labeling system that uses predictions from YOLOv8 and Grounding DINO. When the models agree, their outputs are accepted automatically; when they disagree, the images are routed to a human-in-the-loop review process using Label Studio. The labeled images are then augmented to improve diversity and robustness. A YOLOv8 model is fine-tuned on the resulting dataset, and the trained model is compressed through knowledge distillation and quantization to meet edge device constraints.
 
-Over the course of the project, we refined the original problem statement into three concrete objectives:
+This system reduces labeling time, enables regular model updates, and improves deployment readiness. It provides Bayes Studio with a scalable and reproducible approach for fine-tuning and compressing models to edge devices. This enables timely and accurate wildfire detection directly on edge devices, supporting early intervention in high-risk environments.
 
-1. **Semi-automated labeling**: To accelerate data annotation, we implemented a semi-automated labeling approach supported by a human-in-the-loop process. This ensures that uncertain or edge cases are reviewed and corrected by human annotators while reducing the overall labeling effort.
-
-2. **Model fine-tuning**: We used the YOLOv8 object detection model as a base and fine-tuned it on the newly labeled data, allowing the model to adapt to updated image distributions and maintain detection performance over time.
-
-3. **Model compression**: To meet the hardware constraints of edge devices, we applied model compression techniques, including knowledge distillation and quantization.
-
-These objectives were designed to address key operational challenges faced by our partner. By reducing manual effort in labeling, streamlining model fine-tuning, and supporting hardware-efficient deployment, the system enables faster iteration and improved version control over detection models. This provides the partner with a more scalable and maintainable workflow for real-time wildfire detection.
+words: 295

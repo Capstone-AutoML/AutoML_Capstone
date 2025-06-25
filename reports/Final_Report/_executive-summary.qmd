@@ -7,3 +7,4 @@ Key outputs include a labeled dataset, fine-tuned and compressed models, and ver
 
 Overall, this solution streamlines model updates and prepares models for real-time deployment on edge devices in wildfire detection scenarios.
 
+Words: 175
