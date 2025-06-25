@@ -29,20 +29,41 @@ services:
 
   auto_labeling:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && ./fetch_dataset.sh && python src/label_main.py"
     volumes:
       - .:/app
-
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   train_compress:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     profiles: ["optional"]
     entrypoint: bash
-    command: -c "source activate capstone_env && python src/train_compress.py"
+    command: -c "source activate capstone_env && python src/train_compress_main.py"
     volumes:
       - .:/app
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   test:
     image: celt313/automl_capstone:v0.0.3

@@ -7,7 +7,7 @@ format:
     toc-depth: 2
     number-sections: true
     embed-resources: true
-bibliography: ../../references.bib
+bibliography: ../references.bib
 execute:
   echo: false
   warning: false
