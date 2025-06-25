@@ -165,8 +165,7 @@ def augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None:
                        number of augmentations and optional transform parameters.
 
     Behavior:
-        - Loads label files from a hardcoded `labeled_json_dir`
-          ('automl_workspace/data_pipeline/labeled')
+        - Loads label files from a `labeled_json_dir` (‘automl_workspace/data_pipeline/labeled’)
         - Matches JSON labels to image files by filename stem
         - Builds an Albumentations transform pipeline using `build_augmentation_transform`
         - Applies the transform using `augment_images` with `num_augmentations` per image
