@@ -1,15 +1,13 @@
 ### Human-in-the-loop
 
-1. **Motivation**
-
    A high-performing model relies on a high-quality labeled dataset While YOLOv8 and GroundingDINO agree on many predictions, there are still mismatches that need correction. Instead of discarding these potentially valuable samples, we introduce a human-in-the-loop workflow to verify and fix labeling errors with Label Studio [@labelstudio]. This process improves data quality with minimal manual effort, streamlining the correction process and reducing the need for manual file editing.
 
-2. **Input**
+1. **Input**
 
    - JSON files with incorrect or uncertain predictions from YOLO, containing labels, bounding box coordinates, and confidence score
    - Corresponding image files referenced in those predictions
 
-3. **Workflow Steps**
+2. **Workflow Steps**
 
     @fig-human-review summarizes the overall human-in-the-loop workflow.
 
@@ -28,12 +26,12 @@
 
    The script automatically tracks review status throughout the process.
 
-1. **Output**
+3. **Output**
 
    - Corrected label files (JSON), ready for training
    - The file names of Label Studio outputs are versioned with timestamps automatically for easy tracking
 
-2. **Impact**
+4. **Impact**
 
    The human-in-the-loop workflow makes better use of mismatched data. Reviewers can easily correct labels through an intuitive interface, without editing raw files manually. The reviewed results are saved in a consistent format, ready for training. Overall, this workflow improves the quality of the training dataset, allowing the model to learn from a wider range of examples.
 
