@@ -11,5 +11,6 @@
   "gauss_noise_var_max": 50.0,
   "grayscale_prob": 0.2,
   "rotate_prob": 0.4,
-  "rotate_limit": 15
+  "rotate_limit": 15,
+  "label_dir": "automl_workspace/data_pipeline/labeled"
   }
