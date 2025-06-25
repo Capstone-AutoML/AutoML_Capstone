@@ -1,27 +1,29 @@
-Our AutoML pipeline is designed for wildfire object detection, with a focus on automation, configurability, and efficiency. The system continuously processes new data and improves model performance through an iterative loop of labeling, training, distillation, and quantization. Below is a high-level summary of the core components:
+Our AutoML pipeline is designed for wildfire object detection, emphasizing automation, configurability, and efficiency. The pipeline operates in a continuous loop, processing new data and improving model performance through sequential stages of labeling, training, distillation, and quantization.
 
-### End-to-End Pipeline Flow
-
-![Pipeline Overview Diagram](img/pipeline_overview.png){width="100%"} 
-
-### Pipeline Stages
+The pipeline consists of the following key stages:
 
 1. **Automated Labeling and Matching**  
-   Automatically generates object labels using two models (YOLOv8 and Grounding DINO). If both models agree, the label is accepted. Disagreements are routed for human review.
+   Object labels are automatically generated using two models: YOLOv8 and Grounding DINO. If both models agree, the prediction is accepted. Disagreements are flagged and routed for manual review.
 
-2. **Human-in-the-Loop**  
-   Mismatched cases are corrected through a Label Studio interface. This step ensures that there are no dropped mismatched images, thus enriching a high-quality training dataset.
+2. **Human-in-the-Loop Review**  
+   Discrepant cases are corrected through a Label Studio interface. This ensures no mismatches are discarded, resulting in a high-quality training dataset.
 
-3. **Augmentation**  
-   Labeled data is augmented using transformations such as flipping, rotation, and brightness changes. This step increases dataset diversity and robustness.
+3. **Data Augmentation**  
+   The labeled dataset is expanded using transformations such as flipping, rotation, brightness changes, and noise addition. This step increases data diversity and helps prevent overfitting.
 
 4. **Model Training**  
-   A YOLOv8 model is trained on the labeled and augmented dataset. Training is guided by configuration files that allow reproducible tuning and GPU/CPU flexibility.
+   A YOLOv8 model is trained on the combined labeled and augmented dataset. Training is controlled via a configuration file that supports reproducible experiments and CPU/GPU flexibility.
 
 5. **Model Distillation**  
-   The trained model is distilled into a smaller version for faster inference, reducing model size while preserving performance.
+   The trained model is compressed into a lightweight version using knowledge distillation. This improves inference speed while preserving detection accuracy.
 
-6. **Quantization**  
-   The distilled model is quantized to further reduce its size for edge device deployment.
+6. **Model Quantization**  
+   The distilled model is further quantized to reduce size and enable deployment on edge devices with limited resources.
 
-Each component is explained in more detail in the following sections.
+To visually summarize this workflow, [Figure 1](#fig-pipeline) provides an overview of the complete pipeline architecture.
+
+::: {.cell}
+![End-to-End Pipeline Overview](img/pipeline_overview.png){#fig-pipeline width="100%" fig-pos="H"}
+:::
+
+Each of these components is discussed in more detail in the following sections.
