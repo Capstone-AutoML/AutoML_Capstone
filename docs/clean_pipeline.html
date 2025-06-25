@@ -19,7 +19,9 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Unit Tests" href="tests/index.html" />
+    <link rel="prev" title="Quantization" href="quantization.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,7 +44,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="setup_guide.html">Setup Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
@@ -50,10 +52,21 @@
 <li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">File Cleaning and Archiving</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#function-clean-pipeline-workspace">Function: <code class="docutils literal notranslate"><span class="pre">clean_pipeline_workspace</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arguments">Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#folder-structure-after-cleaning">Folder Structure After Cleaning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#archive-output-example">Archive Output Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#notes">Notes</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
@@ -164,7 +177,10 @@
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quantization.html" class="btn btn-neutral float-left" title="Quantization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tests/index.html" class="btn btn-neutral float-right" title="Unit Tests" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

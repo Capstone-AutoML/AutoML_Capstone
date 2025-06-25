@@ -52,12 +52,15 @@
 <li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Distillation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#assumptions">Assumptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#inputs">Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inputs">Inputs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#distillation-dataset">Distillation Dataset</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#processing">Processing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#outputs">Outputs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#key-features">Key Features</a></li>
@@ -71,19 +74,22 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#training-configuration">Training Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#distillation-configuration">Distillation Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#distillation-deep-dive">Distillation Deep Dive</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#training-loop-summary">Training Loop Summary</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#loss-components">Loss Components</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#top-k-selection-process">Top-K Selection Process</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#early-stoppping-criteria">Early Stoppping criteria</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#model-architecture-considerations">Model Architecture Considerations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#training-stability-features">Training Stability Features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#final-remarks">Final Remarks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#further-readings">Further readings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clean_pipeline.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
@@ -135,6 +141,27 @@
 <li><p><strong>Training Data</strong>: Images and their corresponding annotations for wildfire detection (5 classes: FireBSI, LightningBSI, PersonBSI, SmokeBSI, VehicleBSI)</p></li>
 <li><p><strong>Configuration</strong>: Training parameters defined in <code class="docutils literal notranslate"><span class="pre">student_model_cfg.yaml</span></code></p></li>
 </ul>
+<section id="distillation-dataset">
+<h4>Distillation Dataset<a class="headerlink" href="#distillation-dataset" title="Link to this heading"></a></h4>
+<p>The distillation dataset is a subset of labeled images, which is used to train the student model. It is a folder that contains the train images/labels and validation images/labels. The folder should have the following name &amp; structure:</p>
+<div class="highlight-txt notranslate"><div class="highlight"><pre><span></span>distillation_dataset/
+   train/
+     images/
+     labels/
+   val/
+     images/
+     labels/
+</pre></div>
+</div>
+<p>It is currently assumed to be located in the <code class="docutils literal notranslate"><span class="pre">automl_workspace/data_pipeline/distillation</span></code> directory. When a new custom distillation dataset is provided, the user can overwrite the <code class="docutils literal notranslate"><span class="pre">distillation_dataset</span></code> attribute in <code class="docutils literal notranslate"><span class="pre">distillation_config.yaml</span></code> with the either relative or absolute path to the <strong>directory</strong> of the new custom distillation dataset.</p>
+<p>When the distillation step is run, it will automatically create the <code class="docutils literal notranslate"><span class="pre">distillation_data.yaml</span></code> file in the <code class="docutils literal notranslate"><span class="pre">distillation</span></code> directory (or the directory specified in <code class="docutils literal notranslate"><span class="pre">distillation_dataset</span></code> attribute in <code class="docutils literal notranslate"><span class="pre">distillation_config.yaml</span></code>). YOLOv8 internally uses this file to load the dataset from the correct path. If this file is not created, it can be manually created, with the following format:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">train</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/path/to/distillation_dataset/train</span><span class="w"> </span><span class="c1"># highly recommended to use absolute path</span>
+<span class="nt">val</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/path/to/distillation_dataset/valid</span><span class="w"> </span><span class="c1"># highly recommended to use absolute path</span>
+<span class="nt">nc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="nt">names</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">FireBSI</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">LightningBSI</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">PersonBSI</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SmokeBSI</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">VehicleBSI</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="processing">
 <h3>Processing<a class="headerlink" href="#processing" title="Link to this heading"></a></h3>
@@ -215,44 +242,59 @@ This avoids needing to align intermediate representations, which is especially u
 <section id="loss-weight-hyperparameters">
 <h3>Loss Weight Hyperparameters<a class="headerlink" href="#loss-weight-hyperparameters" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hyperparams</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;lambda_distillation&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
-    <span class="s2">&quot;lambda_detection&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="s2">&quot;lambda_distillation&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="s2">&quot;lambda_detection&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
     <span class="s2">&quot;lambda_dist_ciou&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
-    <span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="s2">&quot;lambda_dist_kl&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="s2">&quot;temperature&quot;</span><span class="p">:</span> <span class="mf">2.0</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <section id="explanation-of-each-weight">
 <h4>Explanation of Each Weight<a class="headerlink" href="#explanation-of-each-weight" title="Link to this heading"></a></h4>
-<ol class="arabic">
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">lambda_distillation</span> <span class="pre">=</span> <span class="pre">2.0</span></code></strong></p>
-<p>-This global weight amplifies the entire distillation loss relative to the standard detection loss.
--Since the goal is to make the student mimic the teacher, this slightly higher weight promotes more attention on distillation without overpowering ground-truth learning.</p>
+<ol class="arabic simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">lambda_distillation</span> <span class="pre">=</span> <span class="pre">1.0</span></code></strong></p>
+<ul class="simple">
+<li><p>Controls the overall strength of distillation loss compared to detection loss</p></li>
+<li><p>Balanced weight ensures student learns from both teacher and ground truth</p></li>
+<li><p>Higher values risk overfitting to teacher’s predictions</p></li>
+<li><p>Lower values may result in insufficient knowledge transfer</p></li>
+</ul>
 </li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">lambda_detection</span> <span class="pre">=</span> <span class="pre">1.0</span></code></strong></p>
-<p>-This ensures the student still respects ground-truth labels.
--Helps avoid cases where the teacher may be confidently wrong (e.g., due to domain shift or noisy training).</p>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">lambda_detection</span> <span class="pre">=</span> <span class="pre">2.0</span></code></strong></p>
+<ul class="simple">
+<li><p>Prioritizes learning from ground truth labels over teacher predictions</p></li>
+<li><p>Higher weight helps maintain model accuracy on labeled data</p></li>
+<li><p>Critical for preventing propagation of teacher model errors</p></li>
+<li><p>Empirically determined optimal value for wildfire detection</p></li>
+</ul>
 </li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">lambda_dist_ciou</span> <span class="pre">=</span> <span class="pre">1.0</span></code></strong></p>
-<p>-This balances the bounding box alignment with the classification component.
--CIoU (Complete IoU) already provides strong geometric supervision; no need to overweight it unless box alignment is especially poor.</p>
+<ul class="simple">
+<li><p>This balances the bounding box alignment with the classification component.</p></li>
+<li><p>CIoU (Complete IoU) already provides strong geometric supervision; no need to overweight it unless box alignment is especially poor.</p></li>
+</ul>
 </li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">lambda_dist_kl</span> <span class="pre">=</span> <span class="pre">2.0</span></code></strong></p>
-<p>-A higher weight helps capture the teacher’s soft class probabilities, which encode “dark knowledge” (i.e., relative confidence between classes).
--Especially important for class imbalance scenarios or rare classes.</p>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">lambda_dist_kl</span> <span class="pre">=</span> <span class="pre">1.0</span></code></strong></p>
+<ul class="simple">
+<li><p>Controls the strength of class distillation</p></li>
+<li><p>Balance weight helps capture the teacher’s soft class probabilities, which encode “dark knowledge” (i.e., relative confidence between classes)</p></li>
+<li><p>Especially important for class imbalance scenarios or rare classes</p></li>
+</ul>
 </li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">temperature</span> <span class="pre">=</span> <span class="pre">2.0</span></code></strong></p>
-<p>-Controls the softness of class distributions during distillation.
--A moderate temperature like 2.0 makes logits softer and gradients smoother—helping the student learn inter-class relationships more effectively.</p>
+<ul class="simple">
+<li><p>Controls the softness of class distributions during distillation.</p></li>
+<li><p>A moderate temperature like 2.0 makes logits softer and gradients smoother—helping the student learn inter-class relationships more effectively.</p></li>
+</ul>
 </li>
 </ol>
 </section>
 </section>
 </section>
-<section id="training-configuration">
-<h2>Training Configuration<a class="headerlink" href="#training-configuration" title="Link to this heading"></a></h2>
-<p>These training settings are defined in <code class="docutils literal notranslate"><span class="pre">student_model_cfg.yaml</span></code> and chosen to ensure stable, effective knowledge transfer:</p>
+<section id="distillation-configuration">
+<h2>Distillation Configuration<a class="headerlink" href="#distillation-configuration" title="Link to this heading"></a></h2>
+<p>These training settings are defined in <code class="docutils literal notranslate"><span class="pre">distillation_config.yaml</span></code> and chosen to ensure stable, effective knowledge transfer. Only the important ones are listed here, the rest are default YOLOv8 settings:</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
@@ -266,32 +308,40 @@ This avoids needing to align intermediate representations, which is especially u
 <td><p>Balanced choice for stability and memory usage</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lr0</span></code></p></td>
-<td><p>0.005</p></td>
-<td><p>Lower than YOLO default to slow learning, to compensate for potentially more unstable gradient in distillation</p></td>
+<td><p>0.01</p></td>
+<td><p>Good default learning rate</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">batch</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lrf</span></code></p></td>
+<td><p>0.01</p></td>
+<td><p>Good default learning rate</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">momentum</span></code></p></td>
+<td><p>0.937</p></td>
+<td><p>Good default momentum</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optimizer</span></code></p></td>
+<td><p>auto</p></td>
+<td><p>Good default optimizer</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">batch</span></code></p></td>
 <td><p>32</p></td>
 <td><p>Balanced choice for stability and memory usage</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">epochs</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">epochs</span></code></p></td>
 <td><p>200</p></td>
 <td><p>Allows enough time for full knowledge transfer</p></td>
 </tr>
-<tr class="row-even"><td><p>Early Stopping</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">patience</span></code></p></td>
 <td><p>100 epochs</p></td>
 <td><p>Prevents unnecessary overfitting if student plateaus</p></td>
 </tr>
-<tr class="row-odd"><td><p>Optimizer</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optimizer</span></code></p></td>
 <td><p>SGD + momentum</p></td>
 <td><p>Well-tested in for default YOLOv8, works well for distillation settings</p></td>
 </tr>
-<tr class="row-even"><td><p>LR Scheduler</p></td>
-<td><p>LambdaLR</p></td>
-<td><p>Helps avoid local minima and promotes smooth convergence</p></td>
-</tr>
-<tr class="row-odd"><td><p>Grad Clipping</p></td>
-<td><p>10.0</p></td>
-<td><p>Prevents exploding gradients, improves training stability</p></td>
+<tr class="row-odd"><td><p>Other parameters</p></td>
+<td><p>Default YOLOv8 settings</p></td>
+<td><p>Default YOLOv8 settings</p></td>
 </tr>
 </tbody>
 </table>
@@ -306,9 +356,12 @@ This avoids needing to align intermediate representations, which is especially u
 <li><p>Forward pass of teacher (in <code class="docutils literal notranslate"><span class="pre">eval</span></code> mode) to get stable predictions.</p></li>
 <li><p><strong>Top-K selection</strong> of teacher predictions based on confidence scores.</p></li>
 <li><p>Matching student and teacher predictions using the selected top-K indices.</p></li>
-<li><p>Computing the loss:
--Detection loss using YOLOv8’s native <code class="docutils literal notranslate"><span class="pre">v8DetectionLoss</span></code>
--Distillation loss with CIoU (for box) and KL divergence (for class), using softened logits.</p></li>
+<li><p>Computing the loss:</p>
+<ul class="simple">
+<li><p>Detection loss using YOLOv8’s native <code class="docutils literal notranslate"><span class="pre">v8DetectionLoss</span></code></p></li>
+<li><p>Distillation loss with CIoU (for box) and KL divergence (for class), using softened logits.</p></li>
+</ul>
+</li>
 <li><p>Combining both using weighted sum and backpropagating.</p></li>
 <li><p><strong>Validation step</strong> after each epoch with fitness calculation.</p></li>
 <li><p><strong>Best model tracking</strong> and early stopping based on validation fitness.</p></li>
@@ -316,14 +369,22 @@ This avoids needing to align intermediate representations, which is especially u
 </section>
 <section id="loss-components">
 <h3>Loss Components<a class="headerlink" href="#loss-components" title="Link to this heading"></a></h3>
-<p>-<strong>Detection Loss (YOLO native)</strong>
--CIoU for box regression
--BCE for classification
--Distribution Focal Loss (DFL) for box refinement</p>
-<p>-<strong>Distillation Loss</strong>
--<strong>Box:</strong> CIoU between student and teacher predictions (top-K selected)
--<strong>Class:</strong> KL divergence between softened logits (student vs. teacher)
--Combined via <code class="docutils literal notranslate"><span class="pre">lambda_distillation</span> <span class="pre">*</span> <span class="pre">(λ_ciou</span> <span class="pre">*</span> <span class="pre">ciou_loss</span> <span class="pre">+</span> <span class="pre">λ_kl</span> <span class="pre">*</span> <span class="pre">kl_loss)</span></code></p>
+<ul class="simple">
+<li><p><strong>Detection Loss (YOLO native)</strong></p>
+<ul>
+<li><p>CIoU for box regression</p></li>
+<li><p>BCE for classification</p></li>
+<li><p>Distribution Focal Loss (DFL) for box refinement</p></li>
+</ul>
+</li>
+<li><p><strong>Distillation Loss</strong></p>
+<ul>
+<li><p><strong>Box:</strong> CIoU between student and teacher predictions (top-K selected)</p></li>
+<li><p><strong>Class:</strong> KL divergence between softened logits (student vs. teacher)</p></li>
+<li><p>Combined via <code class="docutils literal notranslate"><span class="pre">lambda_distillation</span> <span class="pre">*</span> <span class="pre">(λ_ciou</span> <span class="pre">*</span> <span class="pre">ciou_loss</span> <span class="pre">+</span> <span class="pre">λ_kl</span> <span class="pre">*</span> <span class="pre">kl_loss)</span></code></p></li>
+</ul>
+</li>
+</ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">total_loss</span> <span class="o">=</span> <span class="p">(</span>
     <span class="n">lambda_detection</span> <span class="o">*</span> <span class="n">detection_loss</span> <span class="o">+</span>
     <span class="n">lambda_distillation</span> <span class="o">*</span> <span class="p">(</span>
@@ -346,27 +407,48 @@ This avoids needing to align intermediate representations, which is especially u
 </ol>
 <p>This approach ensures that distillation focuses on the teacher’s most confident predictions, providing cleaner learning signals to the student.</p>
 </section>
+<section id="early-stoppping-criteria">
+<h3>Early Stoppping criteria<a class="headerlink" href="#early-stoppping-criteria" title="Link to this heading"></a></h3>
+<p>The Early Stopping criteria computed on the validation data is a weighted combination of the following metrics, called <code class="docutils literal notranslate"><span class="pre">fitness</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Precision</span> <span class="pre">(P)</span></code>: The accuracy of the detected objects, indicating how many detections were correct.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Recall</span> <span class="pre">(R)</span></code>: The ability of the model to identify all instances of objects in the images.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mAP50</span></code>: Mean average precision calculated at an intersection over union (IoU) threshold of 0.50. It’s a measure of the model’s accuracy considering only the “easy” detections.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mAP50-95</span></code>: The average of the mean average precision calculated at varying IoU thresholds, ranging from 0.50 to 0.95. It gives a comprehensive view of the model’s performance across different levels of detection difficulty.</p></li>
+</ul>
+</section>
 </section>
 <section id="model-architecture-considerations">
 <h2>Model Architecture Considerations<a class="headerlink" href="#model-architecture-considerations" title="Link to this heading"></a></h2>
-<p>-<strong>Student Model:</strong> YOLOv8n (lightweight and fast)
--<strong>Teacher Model:</strong> Larger YOLOv8 variant (e.g., <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">l</span></code>, or <code class="docutils literal notranslate"><span class="pre">x</span></code>)
--<strong>Freezing:</strong> You may freeze early layers of the student backbone to focus learning on the head. This is because the backbone is already pretrained features that are useful for the student to learn from.
--<strong>Anchor points, feature map resolution:</strong> Kept consistent between student and teacher for compatibility
--<strong>Class count:</strong> Configured for 5 wildfire-specific classes instead of COCO’s 80 classes</p>
+<ul class="simple">
+<li><p><strong>Student Model:</strong> YOLOv8n (lightweight and fast)</p></li>
+<li><p><strong>Teacher Model:</strong> Larger YOLOv8 variant (e.g., <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">l</span></code>, or <code class="docutils literal notranslate"><span class="pre">x</span></code>)</p></li>
+<li><p><strong>Freezing:</strong> You may freeze early layers of the student backbone to focus learning on the head. This is because the backbone is already pretrained features that are useful for the student to learn from.</p></li>
+<li><p><strong>Anchor points, feature map resolution:</strong> Kept consistent between student and teacher for compatibility</p></li>
+<li><p><strong>Class count:</strong> Configured for 5 wildfire-specific classes instead of COCO’s 80 classes</p></li>
+</ul>
 </section>
 <section id="training-stability-features">
 <h2>Training Stability Features<a class="headerlink" href="#training-stability-features" title="Link to this heading"></a></h2>
-<p>-<strong>Gradient Clipping (10.0):</strong> Prevents instability from large gradients
--<strong>Monitoring for NaNs/Infs:</strong> Training loop skips if numerical instability is detected
--<strong>Loss logging per batch/epoch:</strong> Helps isolate spikes or anomalies in distillation loss
--<strong>Temperature scaling:</strong> Avoids overly confident logits that could destabilize KL divergence
--<strong>Model copying for validation:</strong> Prevents training mode conflicts during validation
--<strong>Best model state tracking:</strong> Maintains the best performing model throughout training</p>
+<ul class="simple">
+<li><p><strong>Gradient Clipping (10.0):</strong> Prevents instability from large gradients</p></li>
+<li><p><strong>Monitoring for NaNs/Infs:</strong> Training loop skips if numerical instability is detected</p></li>
+<li><p><strong>Loss logging per batch/epoch:</strong> Helps isolate spikes or anomalies in distillation loss</p></li>
+<li><p><strong>Temperature scaling:</strong> Avoids overly confident logits that could destabilize KL divergence</p></li>
+<li><p><strong>Model copying for validation:</strong> Prevents training mode conflicts during validation</p></li>
+<li><p><strong>Best model state tracking:</strong> Maintains the best performing model throughout training</p></li>
+</ul>
 </section>
 <section id="final-remarks">
 <h2>Final Remarks<a class="headerlink" href="#final-remarks" title="Link to this heading"></a></h2>
 <p>While this setup represents a well-reasoned and empirically grounded starting point for response-based distillation in YOLOv8, it’s important to recognize that distillation is inherently iterative. The balance between detection and distillation losses, temperature scaling, gradient stability, and optimizer configuration often requires substantial trial and error, especially when adapting to different datasets or shifting between teacher and student architectures. Nevertheless, this configuration provides a strong initial baseline that captures key principles of effective knowledge transfer. As the system matures, it can be further refined through advanced techniques such as feature-based distillation, dynamic loss weighting, teacher ensemble methods, or self-training with pseudo-labeling, depending on the application domain and available resources.</p>
+</section>
+<section id="further-readings">
+<h2>Further readings<a class="headerlink" href="#further-readings" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.ultralytics.com/guides/yolo-performance-metrics/#interpreting-the-output">YOLOv8 validation metrics</a></p></li>
+<li><p><a class="reference external" href="https://docs.ultralytics.com/reference/utils/loss/#ultralytics.utils.loss.v8DetectionLoss">YOLOv8 v8DetectionLoss</a>, used for the detection loss part of the total loss</p></li>
+</ul>
 </section>
 </section>
 

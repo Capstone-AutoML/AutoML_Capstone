@@ -51,7 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
@@ -103,6 +103,7 @@
 <li class="toctree-l2"><a class="reference internal" href="setup_guide.html#generate-bounding-box-visualizations-optional">4. Generate Bounding Box Visualizations (Optional)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup_guide.html#configuration-files">5. Configuration Files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup_guide.html#add-your-own-dataset">6. Add Your Own Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup_guide.html#workspace-directory-structure">7. Workspace Directory Structure</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
@@ -135,7 +136,7 @@
 <li class="toctree-l2"><a class="reference internal" href="human_in_loop.html#input-and-output">Input and Output</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html#key-features">Key Features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html#core-components">Core Components</a></li>
 <li class="toctree-l2"><a class="reference internal" href="augmentation.html#configuration-parameters-for-augmentation-from-pipeline-config-json">Configuration Parameters (for Augmentation from <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>)</a></li>
@@ -152,14 +153,16 @@
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html#distillation-method-and-hyperparameter-justification">Distillation Method and Hyperparameter Justification</a></li>
-<li class="toctree-l2"><a class="reference internal" href="distillation.html#training-configuration">Training Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#distillation-configuration">Distillation Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html#distillation-deep-dive">Distillation Deep Dive</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html#model-architecture-considerations">Model Architecture Considerations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html#training-stability-features">Training Stability Features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distillation.html#final-remarks">Final Remarks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distillation.html#further-readings">Further readings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quantization.html#imx-quantization-issues">IMX Quantization Issues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#key-functions">Key Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#supported-methods">Supported Methods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quantization.html#configuration">Configuration</a></li>
@@ -176,6 +179,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tests/directory_setup.html">Directory Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tests/fetch_data.html">Data Fetching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tests/yolo_prelabelling.html">YOLO Prelabeling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tests/dino_prelabelling.html">Grounding DINO Prelabeling</a></li>
@@ -186,7 +190,6 @@
 <li class="toctree-l2"><a class="reference internal" href="tests/distillation.html">Distillation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tests/quantization.html">Quantization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tests/cleaning.html">File Cleaning and Archiving</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tests/directory_setup.html">Directory Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tests/utils.html">Utility Functions</a></li>
 </ul>
 </li>

@@ -1,15 +1,15 @@
-# Augmentation Module
+# Augmentation
 
-This module generates additional training data by applying randomized **image augmentations** to the labeled dataset. It uses the [Albumentations](https://albumentations.ai/docs/) library for robust image transformations while keeping bounding boxes aligned.
+This module applies a range of image augmentations to the labeled dataset to improve model generalization during training. It uses the [Albumentations](https://albumentations.ai/docs/) library for robust image transformations while keeping bounding boxes aligned.
 
 ---
 
 ## Key Features
 
-- Supports flips, brightness changes, noise, rotation, grayscale, and blur
+- Applies a configurable set of augmentations, including horizontal flip, brightness/contrast adjustment, color shift, noise, rotation, grayscale, and blur.
 - Maintains bounding box alignment using `pascal_voc` format
 - Saves augmented images and prediction labels in parallel
-- Handles images with no predictions separately
+- Detects and handles images without predictions to avoid generating invalid annotations.
 
 ---
 
@@ -22,55 +22,72 @@ Creates an augmentation pipeline from a config dictionary.
 Transforms include:
 
 - `HorizontalFlip` (default `p=0.5`)
-- `RandomBrightnessContrast`
-- `HueSaturationValue`
-- `Blur`
-- `GaussNoise`
-- `ToGray`
-- `Rotate`
+- `RandomBrightnessContrast` (default `p=0.5`)
+- `HueSaturationValue` (default `p=0.5`)
+- `Blur`(default `p=0.3` and `blur_limit=3`)
+- `GaussNoise` (default `p=0.3`, min=10, max=50 )
+- `ToGray` (default `p=0.2`)
+- `Rotate` (default `p=0.4` and `rotate_limit=15`)
 
 All parameters and probabilities are configurable.
+> **Note:** YOLO uses upright bounding boxes for training. Modifying `rotate_limit` to larger angle may change the size of the bounding boxes and alter its accuracy.  
+
 
 ---
 
-### `augment_images(...)`
+### `augment_images(matched_pairs: list, transform: A.Compose, output_img_dir: Path, output_json_dir: Path, num_augmentations: int,config: dict)`
 
 Applies the transform pipeline on each image-label pair.
 
 #### Inputs:
 - `matched_pairs`: list of `(json_path, image_path)` tuples
-- `transform`: Albumentations Compose object
-- `output_img_dir`: where augmented images will be saved
-- `output_json_dir`: where labels will be saved
-- `num_augmentations`: how many times to augment each image
+- `transform`: Albumentations `Compose` object
+- `output_img_dir`: Directory to save augmented `.jpg` images
+- `output_json_dir`: Directory to save corresponding `.json` label files
+- `num_augmentations`: Number of augmented versions to generate per image
+- `config`: Dictionary that may include a base `"seed"` key for reproducibility.
 
 #### Behavior:
-- Saves augmented `.jpg` files and `.json` labels side by side
-- Stores no-prediction images in `no_prediction_images/`
+- Saves augmented images as `.jpg` files and `.json` labels with matching filenames
+- Handles images with no predictions by saving them unmodified to `no_prediction_images/`
+- If a base seed is provided in `config`, offsets it by iteration index (`base_seed + i * 2`) to ensure consistent varied results across multiple augmentations per image. Essentially, this avoids applying the exact same augmentation when `num_augmentations` > 1.
 
 ---
 
-### `augment_dataset(...)`
+### `augment_dataset(image_dir: Path, output_dir: Path, config: dict) -> None`
 
 Coordinates the augmentation process end-to-end.
 
 #### Inputs:
-- `image_dir`: input directory with raw images
-- `output_dir`: directory where augmented `images/` and `labels/` go
-- `config`: contains hyperparameters like `num_augmentations`
+- `image_dir`: Directory containing the original input images  
+- `output_dir`: Root directory where augmented `images/` and `labels/` will be saved  
+- `config`: Dictionary of augmentation settings, including:
+  - `num_augmentations`: Number of times each image should be augmented  
+  - Transform parameters (e.g., probabilities and limits for each augmentation)  
+  - `labeled_dir`: Path to the directory containing `.json` label files 
+
+> **Note:** If the `image_dir` is modified, the `labeled_dir` in `augmentation_config.json` should also point to the matching directory that holds the corresponding `.json` label files.  
+> By default, `labeled_dir` is set to `automl_workspace/data_pipeline/labeled`.
 
 #### Workflow:
-1. Loads all `.json` from `mock_io/data/labeled`
-2. Matches them with image files by filename stem
-3. Builds augmentation transform
-4. Calls `augment_images()` to perform the pipeline
-5. Prints processing summary
+1. Loads all `.json` label files from the directory specified by `config["labeled_dir"]`  
+2. Loads image files from `image_dir` and matches them with labels by filename stem  
+3. Builds the augmentation transform using `build_augmentation_transform(config)`  
+4. Calls `augment_images()` to apply the transform and save augmented outputs:
+   - Augmented images are saved to `<output_dir>/images/` as `.jpg` files  
+   - Corresponding augmented labels are saved to `<output_dir>/labels/` as `.json` files  
+   - Original images without any predictions are saved (unmodified) to a separate folder: `<output_dir>/../no_prediction_images/`  
+5. Prints a summary of:
+   - Total label files loaded  
+   - Total image files loaded  
+   - Number of matched image-label pairs processed  
+   - Output directories used for augmented files
 
 ---
 
 ## Configuration Parameters (for Augmentation from `pipeline_config.json`)
 
-The following fields from the `pipeline_config.json` file directly control the **image augmentation pipeline**:
+The following fields from the `augmentation_config.json` file directly control the **image augmentation pipeline**:
 
  | **Key**                      | **Description**                                                                 |
  |-----------------------------|---------------------------------------------------------------------------------|
@@ -96,8 +113,8 @@ These values define how aggressively and in what ways the dataset will be augmen
 
 ```python
 augment_dataset(
-    image_dir=Path("mock_io/data/raw/images"),
-    output_dir=Path("mock_io/data/augmented"),
+    image_dir=Path("automl_workspace/data_pipeline/input"),
+    output_dir=Path("automl_workspace/data_pipeline/labeled"),
     config=config
 )
 ```
@@ -107,12 +124,12 @@ augment_dataset(
 ## Output Structure
 
 ```
-mock_io/
-├── data/
-│   ├── labeled/                # Original labels
-│   ├── raw/images/            # Original images
+automl_workspace/
+├── data_pipeline/
+│   ├── labeled/                     # Original labels
+│   ├── input/                       # Original images
 │   ├── augmented/
-│   │   ├── images/            # Augmented image files
-│   │   ├── labels/            # Augmented JSON files
-│   └── no_prediction_images/  # Skipped originals with no predictions
+│   │   ├── images/                  # Augmented image files
+│   │   ├── labels/                  # Augmented JSON files
+│   │   ├── no_prediction_images/    # Skipped originals with no predictions
 ```

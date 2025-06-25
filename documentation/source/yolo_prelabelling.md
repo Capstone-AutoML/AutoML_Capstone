@@ -7,7 +7,7 @@ This script automates the generation of object detection annotations using a YOL
 - **Input**: Directory of raw images
 - **Output**: JSON files with bounding boxes, confidence scores, and class labels
 - **Model**: YOLO (from `ultralytics`)
-- **Device Handling**: Automatically selects CPU/GPU/MPS
+- **Device Handling**: Configurable via `config/pipeline_config.json` to select CPU, GPU, or MPS
 - **Logging**: Summary of processed/failed images
 
 ## Functions

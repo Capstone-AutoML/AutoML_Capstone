@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Augmentation Module &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
+  <title>Augmentation &mdash; AutoML CI/CD/CT: Continuous Training and Deployment Pipeline 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a49bda7b" />
@@ -52,16 +52,16 @@
 <li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Augmentation Module</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Augmentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#key-features">Key Features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#core-components">Core Components</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#build-augmentation-transform-config-dict-a-compose"><code class="docutils literal notranslate"><span class="pre">build_augmentation_transform(config:</span> <span class="pre">dict)</span> <span class="pre">-&gt;</span> <span class="pre">A.Compose</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#augment-images"><code class="docutils literal notranslate"><span class="pre">augment_images(...)</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#augment-images-matched-pairs-list-transform-a-compose-output-img-dir-path-output-json-dir-path-num-augmentations-int-config-dict"><code class="docutils literal notranslate"><span class="pre">augment_images(matched_pairs:</span> <span class="pre">list,</span> <span class="pre">transform:</span> <span class="pre">A.Compose,</span> <span class="pre">output_img_dir:</span> <span class="pre">Path,</span> <span class="pre">output_json_dir:</span> <span class="pre">Path,</span> <span class="pre">num_augmentations:</span> <span class="pre">int,config:</span> <span class="pre">dict)</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#inputs">Inputs:</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#behavior">Behavior:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#augment-dataset"><code class="docutils literal notranslate"><span class="pre">augment_dataset(...)</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#augment-dataset-image-dir-path-output-dir-path-config-dict-none"><code class="docutils literal notranslate"><span class="pre">augment_dataset(image_dir:</span> <span class="pre">Path,</span> <span class="pre">output_dir:</span> <span class="pre">Path,</span> <span class="pre">config:</span> <span class="pre">dict)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#id1">Inputs:</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#workflow">Workflow:</a></li>
 </ul>
@@ -76,6 +76,7 @@
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clean_pipeline.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
@@ -95,7 +96,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Augmentation Module</li>
+      <li class="breadcrumb-item active">Augmentation</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/augmentation.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -105,17 +106,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="augmentation-module">
-<h1>Augmentation Module<a class="headerlink" href="#augmentation-module" title="Link to this heading"></a></h1>
-<p>This module generates additional training data by applying randomized <strong>image augmentations</strong> to the labeled dataset. It uses the <a class="reference external" href="https://albumentations.ai/docs/">Albumentations</a> library for robust image transformations while keeping bounding boxes aligned.</p>
+  <section id="augmentation">
+<h1>Augmentation<a class="headerlink" href="#augmentation" title="Link to this heading"></a></h1>
+<p>This module applies a range of image augmentations to the labeled dataset to improve model generalization during training. It uses the <a class="reference external" href="https://albumentations.ai/docs/">Albumentations</a> library for robust image transformations while keeping bounding boxes aligned.</p>
 <hr class="docutils" />
 <section id="key-features">
 <h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Supports flips, brightness changes, noise, rotation, grayscale, and blur</p></li>
+<li><p>Applies a configurable set of augmentations, including horizontal flip, brightness/contrast adjustment, color shift, noise, rotation, grayscale, and blur.</p></li>
 <li><p>Maintains bounding box alignment using <code class="docutils literal notranslate"><span class="pre">pascal_voc</span></code> format</p></li>
 <li><p>Saves augmented images and prediction labels in parallel</p></li>
-<li><p>Handles images with no predictions separately</p></li>
+<li><p>Detects and handles images without predictions to avoid generating invalid annotations.</p></li>
 </ul>
 </section>
 <hr class="docutils" />
@@ -127,57 +128,85 @@
 <p>Transforms include:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">HorizontalFlip</span></code> (default <code class="docutils literal notranslate"><span class="pre">p=0.5</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">RandomBrightnessContrast</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">HueSaturationValue</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Blur</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">GaussNoise</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ToGray</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Rotate</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RandomBrightnessContrast</span></code> (default <code class="docutils literal notranslate"><span class="pre">p=0.5</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HueSaturationValue</span></code> (default <code class="docutils literal notranslate"><span class="pre">p=0.5</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Blur</span></code>(default <code class="docutils literal notranslate"><span class="pre">p=0.3</span></code> and <code class="docutils literal notranslate"><span class="pre">blur_limit=3</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GaussNoise</span></code> (default <code class="docutils literal notranslate"><span class="pre">p=0.3</span></code>, min=10, max=50 )</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ToGray</span></code> (default <code class="docutils literal notranslate"><span class="pre">p=0.2</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Rotate</span></code> (default <code class="docutils literal notranslate"><span class="pre">p=0.4</span></code> and <code class="docutils literal notranslate"><span class="pre">rotate_limit=15</span></code>)</p></li>
 </ul>
 <p>All parameters and probabilities are configurable.</p>
+<blockquote>
+<div><p><strong>Note:</strong> YOLO uses upright bounding boxes for training. Modifying <code class="docutils literal notranslate"><span class="pre">rotate_limit</span></code> to larger angle may change the size of the bounding boxes and alter its accuracy.</p>
+</div></blockquote>
 </section>
 <hr class="docutils" />
-<section id="augment-images">
-<h3><code class="docutils literal notranslate"><span class="pre">augment_images(...)</span></code><a class="headerlink" href="#augment-images" title="Link to this heading"></a></h3>
+<section id="augment-images-matched-pairs-list-transform-a-compose-output-img-dir-path-output-json-dir-path-num-augmentations-int-config-dict">
+<h3><code class="docutils literal notranslate"><span class="pre">augment_images(matched_pairs:</span> <span class="pre">list,</span> <span class="pre">transform:</span> <span class="pre">A.Compose,</span> <span class="pre">output_img_dir:</span> <span class="pre">Path,</span> <span class="pre">output_json_dir:</span> <span class="pre">Path,</span> <span class="pre">num_augmentations:</span> <span class="pre">int,config:</span> <span class="pre">dict)</span></code><a class="headerlink" href="#augment-images-matched-pairs-list-transform-a-compose-output-img-dir-path-output-json-dir-path-num-augmentations-int-config-dict" title="Link to this heading"></a></h3>
 <p>Applies the transform pipeline on each image-label pair.</p>
 <section id="inputs">
 <h4>Inputs:<a class="headerlink" href="#inputs" title="Link to this heading"></a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">matched_pairs</span></code>: list of <code class="docutils literal notranslate"><span class="pre">(json_path,</span> <span class="pre">image_path)</span></code> tuples</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">transform</span></code>: Albumentations Compose object</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">output_img_dir</span></code>: where augmented images will be saved</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">output_json_dir</span></code>: where labels will be saved</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code>: how many times to augment each image</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">transform</span></code>: Albumentations <code class="docutils literal notranslate"><span class="pre">Compose</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_img_dir</span></code>: Directory to save augmented <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> images</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_json_dir</span></code>: Directory to save corresponding <code class="docutils literal notranslate"><span class="pre">.json</span></code> label files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code>: Number of augmented versions to generate per image</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config</span></code>: Dictionary that may include a base <code class="docutils literal notranslate"><span class="pre">&quot;seed&quot;</span></code> key for reproducibility.</p></li>
 </ul>
 </section>
 <section id="behavior">
 <h4>Behavior:<a class="headerlink" href="#behavior" title="Link to this heading"></a></h4>
 <ul class="simple">
-<li><p>Saves augmented <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> files and <code class="docutils literal notranslate"><span class="pre">.json</span></code> labels side by side</p></li>
-<li><p>Stores no-prediction images in <code class="docutils literal notranslate"><span class="pre">no_prediction_images/</span></code></p></li>
+<li><p>Saves augmented images as <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> files and <code class="docutils literal notranslate"><span class="pre">.json</span></code> labels with matching filenames</p></li>
+<li><p>Handles images with no predictions by saving them unmodified to <code class="docutils literal notranslate"><span class="pre">no_prediction_images/</span></code></p></li>
+<li><p>If a base seed is provided in <code class="docutils literal notranslate"><span class="pre">config</span></code>, offsets it by iteration index (<code class="docutils literal notranslate"><span class="pre">base_seed</span> <span class="pre">+</span> <span class="pre">i</span> <span class="pre">*</span> <span class="pre">2</span></code>) to ensure consistent varied results across multiple augmentations per image. Essentially, this avoids applying the exact same augmentation when <code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code> &gt; 1.</p></li>
 </ul>
 </section>
 </section>
 <hr class="docutils" />
-<section id="augment-dataset">
-<h3><code class="docutils literal notranslate"><span class="pre">augment_dataset(...)</span></code><a class="headerlink" href="#augment-dataset" title="Link to this heading"></a></h3>
+<section id="augment-dataset-image-dir-path-output-dir-path-config-dict-none">
+<h3><code class="docutils literal notranslate"><span class="pre">augment_dataset(image_dir:</span> <span class="pre">Path,</span> <span class="pre">output_dir:</span> <span class="pre">Path,</span> <span class="pre">config:</span> <span class="pre">dict)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code><a class="headerlink" href="#augment-dataset-image-dir-path-output-dir-path-config-dict-none" title="Link to this heading"></a></h3>
 <p>Coordinates the augmentation process end-to-end.</p>
 <section id="id1">
 <h4>Inputs:<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">image_dir</span></code>: input directory with raw images</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code>: directory where augmented <code class="docutils literal notranslate"><span class="pre">images/</span></code> and <code class="docutils literal notranslate"><span class="pre">labels/</span></code> go</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">config</span></code>: contains hyperparameters like <code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">image_dir</span></code>: Directory containing the original input images</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code>: Root directory where augmented <code class="docutils literal notranslate"><span class="pre">images/</span></code> and <code class="docutils literal notranslate"><span class="pre">labels/</span></code> will be saved</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config</span></code>: Dictionary of augmentation settings, including:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_augmentations</span></code>: Number of times each image should be augmented</p></li>
+<li><p>Transform parameters (e.g., probabilities and limits for each augmentation)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code>: Path to the directory containing <code class="docutils literal notranslate"><span class="pre">.json</span></code> label files</p></li>
 </ul>
+</li>
+</ul>
+<blockquote>
+<div><p><strong>Note:</strong> If the <code class="docutils literal notranslate"><span class="pre">image_dir</span></code> is modified, the <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code> in <code class="docutils literal notranslate"><span class="pre">augmentation_config.json</span></code> should also point to the matching directory that holds the corresponding <code class="docutils literal notranslate"><span class="pre">.json</span></code> label files.<br />
+By default, <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code> is set to <code class="docutils literal notranslate"><span class="pre">automl_workspace/data_pipeline/labeled</span></code>.</p>
+</div></blockquote>
 </section>
 <section id="workflow">
 <h4>Workflow:<a class="headerlink" href="#workflow" title="Link to this heading"></a></h4>
 <ol class="arabic simple">
-<li><p>Loads all <code class="docutils literal notranslate"><span class="pre">.json</span></code> from <code class="docutils literal notranslate"><span class="pre">mock_io/data/labeled</span></code></p></li>
-<li><p>Matches them with image files by filename stem</p></li>
-<li><p>Builds augmentation transform</p></li>
-<li><p>Calls <code class="docutils literal notranslate"><span class="pre">augment_images()</span></code> to perform the pipeline</p></li>
-<li><p>Prints processing summary</p></li>
+<li><p>Loads all <code class="docutils literal notranslate"><span class="pre">.json</span></code> label files from the directory specified by <code class="docutils literal notranslate"><span class="pre">config[&quot;labeled_dir&quot;]</span></code></p></li>
+<li><p>Loads image files from <code class="docutils literal notranslate"><span class="pre">image_dir</span></code> and matches them with labels by filename stem</p></li>
+<li><p>Builds the augmentation transform using <code class="docutils literal notranslate"><span class="pre">build_augmentation_transform(config)</span></code></p></li>
+<li><p>Calls <code class="docutils literal notranslate"><span class="pre">augment_images()</span></code> to apply the transform and save augmented outputs:</p>
+<ul class="simple">
+<li><p>Augmented images are saved to <code class="docutils literal notranslate"><span class="pre">&lt;output_dir&gt;/images/</span></code> as <code class="docutils literal notranslate"><span class="pre">.jpg</span></code> files</p></li>
+<li><p>Corresponding augmented labels are saved to <code class="docutils literal notranslate"><span class="pre">&lt;output_dir&gt;/labels/</span></code> as <code class="docutils literal notranslate"><span class="pre">.json</span></code> files</p></li>
+<li><p>Original images without any predictions are saved (unmodified) to a separate folder: <code class="docutils literal notranslate"><span class="pre">&lt;output_dir&gt;/../no_prediction_images/</span></code></p></li>
+</ul>
+</li>
+<li><p>Prints a summary of:</p>
+<ul class="simple">
+<li><p>Total label files loaded</p></li>
+<li><p>Total image files loaded</p></li>
+<li><p>Number of matched image-label pairs processed</p></li>
+<li><p>Output directories used for augmented files</p></li>
+</ul>
+</li>
 </ol>
 </section>
 </section>
@@ -185,7 +214,7 @@
 <hr class="docutils" />
 <section id="configuration-parameters-for-augmentation-from-pipeline-config-json">
 <h2>Configuration Parameters (for Augmentation from <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>)<a class="headerlink" href="#configuration-parameters-for-augmentation-from-pipeline-config-json" title="Link to this heading"></a></h2>
-<p>The following fields from the <code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code> file directly control the <strong>image augmentation pipeline</strong>:</p>
+<p>The following fields from the <code class="docutils literal notranslate"><span class="pre">augmentation_config.json</span></code> file directly control the <strong>image augmentation pipeline</strong>:</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p><strong>Key</strong></p></th>
@@ -237,8 +266,8 @@
 <section id="example-call">
 <h2>Example Call<a class="headerlink" href="#example-call" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">augment_dataset</span><span class="p">(</span>
-    <span class="n">image_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/raw/images&quot;</span><span class="p">),</span>
-    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;mock_io/data/augmented&quot;</span><span class="p">),</span>
+    <span class="n">image_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/input&quot;</span><span class="p">),</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;automl_workspace/data_pipeline/labeled&quot;</span><span class="p">),</span>
     <span class="n">config</span><span class="o">=</span><span class="n">config</span>
 <span class="p">)</span>
 </pre></div>
@@ -247,14 +276,14 @@
 <hr class="docutils" />
 <section id="output-structure">
 <h2>Output Structure<a class="headerlink" href="#output-structure" title="Link to this heading"></a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>mock_io/
-├── data/
-│   ├── labeled/                # Original labels
-│   ├── raw/images/            # Original images
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>automl_workspace/
+├── data_pipeline/
+│   ├── labeled/                     # Original labels
+│   ├── input/                       # Original images
 │   ├── augmented/
-│   │   ├── images/            # Augmented image files
-│   │   ├── labels/            # Augmented JSON files
-│   └── no_prediction_images/  # Skipped originals with no predictions
+│   │   ├── images/                  # Augmented image files
+│   │   ├── labels/                  # Augmented JSON files
+│   │   ├── no_prediction_images/    # Skipped originals with no predictions
 </pre></div>
 </div>
 </section>

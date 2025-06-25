@@ -9,8 +9,8 @@ This script compares YOLO and Grounding DINO predictions for the same image and 
   - DINO-generated JSON files
 
 - **Output**:  
-  - Matched files → saved to `labeled_dir`  
-  - Mismatched files → saved to `pending_dir`
+  - Matched files → saved to labeled directory  
+  - Mismatched files → saved to pending directory
 
 ---
 
@@ -96,7 +96,7 @@ match_and_filter(
     yolo_dir=Path("data_pipeline/prelabeled/yolo/"),
     dino_dir=Path("data_pipeline/prelabeled/gdino/"),
     labeled_dir=Path("data_pipeline/labeled/"),
-    pending_dir=Path("data_pipeline/mismatched/pending/"),
+    pending_dir=Path("data_pipeline/label_studio/pending/"),
     config=config
 )
 ```

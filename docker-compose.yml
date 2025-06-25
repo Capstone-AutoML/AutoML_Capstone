@@ -27,11 +27,20 @@ services:
     volumes:
       - .:/app
 
-  human_intervention:
+  auto_labeling:
     image: celt313/automl_capstone:v0.0.3
     profiles: ["optional"]
     entrypoint: bash
-    command: -c "source activate capstone_env && python src/pipeline/human_intervention.py"
+    command: -c "source activate capstone_env && ./fetch_dataset.sh && python src/label_main.py"
+    volumes:
+      - .:/app
+
+
+  train_compress:
+    image: celt313/automl_capstone:v0.0.3
+    profiles: ["optional"]
+    entrypoint: bash
+    command: -c "source activate capstone_env && python src/train_compress.py"
     volumes:
       - .:/app
 

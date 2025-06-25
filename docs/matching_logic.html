@@ -69,10 +69,11 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clean_pipeline.html">File Cleaning and Archiving</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tests/index.html">Unit Tests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="database.html">Database Schema Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">Code Reference</a></li>
@@ -116,8 +117,8 @@
 </li>
 <li><p><strong>Output</strong>:</p>
 <ul>
-<li><p>Matched files → saved to <code class="docutils literal notranslate"><span class="pre">labeled_dir</span></code></p></li>
-<li><p>Mismatched files → saved to <code class="docutils literal notranslate"><span class="pre">pending_dir</span></code></p></li>
+<li><p>Matched files → saved to labeled directory</p></li>
+<li><p>Mismatched files → saved to pending directory</p></li>
 </ul>
 </li>
 </ul>
@@ -232,7 +233,7 @@
     <span class="n">yolo_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data_pipeline/prelabeled/yolo/&quot;</span><span class="p">),</span>
     <span class="n">dino_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data_pipeline/prelabeled/gdino/&quot;</span><span class="p">),</span>
     <span class="n">labeled_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data_pipeline/labeled/&quot;</span><span class="p">),</span>
-    <span class="n">pending_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data_pipeline/mismatched/pending/&quot;</span><span class="p">),</span>
+    <span class="n">pending_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data_pipeline/label_studio/pending/&quot;</span><span class="p">),</span>
     <span class="n">config</span><span class="o">=</span><span class="n">config</span>
 <span class="p">)</span>
 </pre></div>

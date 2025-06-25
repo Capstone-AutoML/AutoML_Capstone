@@ -61,6 +61,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#add-your-own-dataset">6. Add Your Own Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workspace-directory-structure">7. Workspace Directory Structure</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="pipeline_overview.html">Pipeline Overview</a></li>
@@ -68,7 +69,7 @@
 <li class="toctree-l1"><a class="reference internal" href="gdino_prelabelling.html">Grounding DINO Prelabeling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="matching_logic.html">Matching Logic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="human_in_loop.html">Human-in-the-Loop</a></li>
-<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augmentation.html">Augmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distillation.html">Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quantization.html">Quantization</a></li>
@@ -138,14 +139,26 @@
 <blockquote>
 <div><p>Default is <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code>, which will force CPU-only execution.</p>
 </div></blockquote>
-</section>
 <hr class="docutils" />
+<p>If you want to run the auto-labeling part of the pipeline separately, do:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>run<span class="w"> </span>auto_labeling
+</pre></div>
+</div>
+<blockquote>
+<div><p>This step should always come first.</p>
+</div></blockquote>
+<p>Then, to run the augmentation, training, and compression steps, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>run<span class="w"> </span>train_compress
+</pre></div>
+</div>
+</section>
 <section id="if-you-have-a-cpu-only-machine-no-nvidia-gpu">
 <h3>💻 If You Have a CPU-Only Machine (No NVIDIA GPU)<a class="headerlink" href="#if-you-have-a-cpu-only-machine-no-nvidia-gpu" title="Link to this heading"></a></h3>
 <p>Before running, <strong>replace</strong> your <code class="docutils literal notranslate"><span class="pre">docker-compose.yaml</span></code> file with:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">services</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">capstone</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.3</span>
+<span class="w">    </span><span class="nt">ipc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span>
 <span class="w">    </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux/x86_64</span>
 <span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">automl_capstone</span>
 <span class="w">    </span><span class="nt">ipc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span>
@@ -157,24 +170,38 @@
 
 <span class="w">  </span><span class="nt">generate_box</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.3</span>
+<span class="w">    </span><span class="nt">ipc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span>
 <span class="w">    </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux/x86_64</span>
 <span class="w">    </span><span class="nt">profiles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;optional&quot;</span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
 <span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; python src/generate_boxed_images.py&quot;</span>
 <span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.:/app</span>
-
-<span class="w">  </span><span class="nt">human_intervention</span><span class="p">:</span>
+<span class="w">  </span>
+<span class="w">  </span><span class="nt">auto_labeling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.3</span>
+<span class="w">    </span><span class="nt">ipc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span>
 <span class="w">    </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux/x86_64</span>
 <span class="w">    </span><span class="nt">profiles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;optional&quot;</span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
-<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; python src/pipeline/human_intervention.py&quot;</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; ./fetch_dataset.sh &amp;&amp; python src/label_main.py&quot;</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.:/app</span>
+
+
+<span class="w">  </span><span class="nt">train_compress</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.3</span>
+<span class="w">    </span><span class="nt">ipc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span>
+<span class="w">    </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux/x86_64</span>
+<span class="w">    </span><span class="nt">profiles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;optional&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c &quot;source activate capstone_env &amp;&amp; python src/train_compress.py&quot;</span>
 <span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.:/app</span>
 
 <span class="w">  </span><span class="nt">test</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">celt313/automl_capstone:v0.0.3</span>
+<span class="w">    </span><span class="nt">ipc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span>
 <span class="w">    </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux/x86_64</span>
 <span class="w">    </span><span class="nt">profiles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;optional&quot;</span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash</span>
@@ -185,6 +212,18 @@
 </div>
 <p>Then run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up
+</pre></div>
+</div>
+<p>to run the entire pipeline.</p>
+<p>If you want to run the auto-labeling part of the pipeline separately, do:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>run<span class="w"> </span>auto_labeling
+</pre></div>
+</div>
+<blockquote>
+<div><p>This step should always come first.</p>
+</div></blockquote>
+<p>Then, to run the augmentation, training, and compression steps, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>run<span class="w"> </span>train_compress
 </pre></div>
 </div>
 </section>
@@ -215,9 +254,10 @@
 <hr class="docutils" />
 <section id="configuration-files">
 <h2>5. Configuration Files<a class="headerlink" href="#configuration-files" title="Link to this heading"></a></h2>
-<p>These two onfig files control pipeline behavior:</p>
+<p>These config files control pipeline behavior:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>: Process options, augmentation, and distillation settings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pipeline_config.json</span></code>: Process options and distillation settings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">augmentation_config.json</span></code>: Augmentation parameters and seed.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">train_config.json</span></code>: Training parameters, dataset paths, and device.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">distillation_config.yaml</span></code>: Distillation settings (model paths, epochs, patience, etc.)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">quantize_config.json</span></code> : Model quantization settings (labeled images paths, quantization method, etc.)</p></li>
@@ -264,6 +304,25 @@
 </li>
 </ol>
 <p>Make sure the images are in <code class="docutils literal notranslate"><span class="pre">.jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">.jpeg</span></code>, or <code class="docutils literal notranslate"><span class="pre">.png</span></code> format.</p>
+</section>
+<section id="workspace-directory-structure">
+<h2>7. Workspace Directory Structure<a class="headerlink" href="#workspace-directory-structure" title="Link to this heading"></a></h2>
+<p>The data and model directories should be structured as follows:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>automl_workspace/
+├── config/           # All config files
+├── data_pipeline/
+│   ├── input/        # Add your images here
+│   ├── labeled/      # Labeled images and annotations
+│   ├── augmented/    # Augmented images
+│   ├── label_studio/ # Label Studio related files
+│   └── ...
+├── model_registry/
+│   ├── model/        # Model weights
+│   ├── distilled/    # Distilled model outputs
+│   └── quantized/    # Quantized model outputs
+└── master_dataset/   # Archived labeled datasets
+</pre></div>
+</div>
 </section>
 </section>
 
