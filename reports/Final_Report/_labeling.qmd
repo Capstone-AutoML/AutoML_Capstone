@@ -1,38 +1,37 @@
 ### Automated Labeling and Matching
 
-1. **Motivation**
+Manual annotation is time-consuming and prone to inconsistencies. To streamline this process, we employ a dual-model pre-labeling strategy using YOLOv8 [@yolov8_ultralytics] and Grounding DINO [@grounding_dino]. This setup leverages model agreement to reduce manual labeling needs while preserving uncertain cases for human review. The goal is to automatically generate accurate labels with minimal intervention.
 
-   Manual annotation is time-consuming and prone to inconsistencies. To streamline this process, we employ a dual-model pre-labeling strategy using YOLOv8[@yolov8_ultralytics] and Grounding DINO[@grounding_dino]. This setup leverages model agreement to reduce manual labeling needs, while preserving uncertain cases for review. The goal is to automatically generate accurate labels with minimal human intervention.
+[Figure 2](#fig-labeling-workflow) below illustrates this labeling and matching process.
 
-2. **Input**
+::: {.cell}
+![Labeling and Matching Workflow](img/labeling_matching_workflow.png){#fig-labeling-workflow width="60%" fig-pos="H"}
+:::
 
-   - Unlabeled images placed in  
-     `automl_workspace/data_pipeline/input/`
-   - Two pre-trained object detection models:
-     - **YOLOv8**: Trained specifically on our five wildfire-related categories – `Fire, Smoke, Lightning, Human, Vehicle`.
-     - **Grounding DINO**: Uses the same 5 categories as prompts to localize objects with open-vocabulary detection, since models like GroundingDINO rely on prompts to identify target objects.
+The labeling workflow proceeds as follows:
 
-3. **Workflow Steps**
+1. **Input**
 
-   ![Labeling and Matching Workflow](img/labeling_matching_workflow.png){width="45%"}
+   - Unlabeled images are passed through the pipeline.
+   - Two object detection models are used:
+     - **YOLOv8**: Trained specifically on five wildfire-related categories – Fire, Smoke, Lightning, Human, and Vehicle.
+     - **Grounding DINO**: Uses the same categories as prompts to perform open-vocabulary detection.
 
-   - **Step 1:** YOLOv8 runs on the images and predicts bounding boxes and class labels
-   - **Step 2:** Grounding DINO runs on the same images using the same 5 categories as prompts (`Fire, Smoke, Lightning, Human, Vehicle`)
-   - **Step 3:** Our matching script compares predicted labels for each image from both models using Intersection over Union (IoU) thresholds:
-     - If both models agree on the predicted labels, store the results in  
-       `automl_workspace/data_pipeline/labeled/`
-     - If they disagree on any of the predicted labels, send files to  
-       `automl_workspace/data_pipeline/label_studio/pending/` for human review
+2. **Workflow Steps**
 
-   - **Step 4:** Matched labels are saved in YOLO-compatible JSON format for augmentation and training
+   - **Step 1:** YOLOv8 predicts bounding boxes and class labels.
+   - **Step 2:** Grounding DINO makes independent predictions using the same category prompts.
+   - **Step 3:** A matching script compares predictions using an Intersection over Union (IoU) threshold:
+     - If predictions align, the image is automatically labeled.
+     - If predictions disagree, the image is flagged for human review.
+   - **Step 4:** Confirmed matches are saved in a standardized format for downstream use.
 
-4. **Output**
+3. **Output**
 
-   - A curated dataset of confidently labeled images saved in  
-     `automl_workspace/data_pipeline/labeled/`
-   - Uncertain cases routed to the human-in-the-loop step for correction
-   - Each labeled file includes bounding box coordinates, class name, and confidence score
+   - A curated dataset of confidently labeled images.
+   - Uncertain cases routed for human-in-the-loop review.
+   - Each labeled file contains bounding boxes, class names, and confidence scores.
 
-5. **Impact**
+4. **Impact**
 
-   This automated labeling workflow reduces reliance on full manual annotation, ensures consistent labeling across large batches of images, leading to faster dataset preparation while maintaining label accuracy.
+   This automated labeling workflow reduces reliance on full manual annotation, ensures consistent labeling across large batches, and accelerates dataset preparation while maintaining label accuracy.
