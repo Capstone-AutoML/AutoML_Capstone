@@ -1,7 +1,5 @@
 ### Model Training
 
-**Motivation**
-
 Once labeled and augmented data is available, the detection model must be re-trained to incorporate new information. Continuous re-training enables the model to adapt to evolving wildfire conditions and the characteristics of newly collected data. The goal of this stage is to automate the fine-tuning of a base YOLOv8 model using the most recent dataset, minimizing the need for manual effort.
 
 1. **Input**

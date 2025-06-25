@@ -4,7 +4,7 @@ Our Capstone partner, Bayes Studio, is a Vancouver-based startup developing adva
 
 At the outset of the project, Bayes Studio's workflow for updating their wildfire detection models involved several manual steps: labeling new environmental imagery, fine-tuning a base object detection model, and compressing it for edge deployment. This process is time-consuming and constrained their ability to quickly respond to changing conditions in wildfire imagery.
 
-To address these challenges, we developed an automated and modular machine learning pipeline that supports continuous updates to wildfire detection models. The system is designed to handle incoming image data, generate high-quality object labels, retrain detection models, and compress them for edge deployment—with minimal manual effort.
+To address these challenges, we developed an automated and modular machine learning pipeline that supports continuous updates to wildfire detection models. The system is designed to handle incoming image data, generate high-quality object labels, retrain detection models, and compress them for edge deployment with minimal manual effort.
 
 The pipeline begins with a semi-automated labeling system that uses predictions from YOLOv8 and Grounding DINO. When the models agree, their outputs are accepted automatically; when they disagree, the images are routed to a human-in-the-loop review process using Label Studio. The labeled images are then augmented to improve diversity and robustness. A YOLOv8 model is fine-tuned on the resulting dataset, and the trained model is compressed through knowledge distillation and quantization to meet edge device constraints.
 
