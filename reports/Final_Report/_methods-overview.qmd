@@ -27,7 +27,7 @@ Key features of the pipeline include:
 - **Dynamic**: Easy to plug in new models or modules as requirements change.
 - **Efficient**: Greatly reduces time across key stages including labeling, fine-tuning, and compression, resulting in faster end-to-end model iteration cycles.
 
-To visually summarize this workflow, [Figure 1](#fig-pipeline) provides an overview of the complete pipeline architecture.
+To visually summarize this workflow, @fig-pipeline provides an overview of the complete pipeline architecture.
 
 ::: {.cell}
 ![End-to-End Pipeline Overview](img/pipeline_overview.png){#fig-pipeline width="100%" fig-pos="H"}
