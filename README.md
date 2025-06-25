@@ -80,6 +80,20 @@ This command will:
 
 ---
 
+If you want to run the auto-labeling part of the pipeline separately, do:
+
+```bash
+docker compose run auto_labeling
+```
+
+> This step should always come first.
+
+Then, to run the augmentation, training, and compression steps, use:
+
+```bash
+docker compose run train_compress
+```
+
 #### 💻 If You Have a CPU-Only Machine (No NVIDIA GPU)
 
 Before running, **replace** your `docker-compose.yaml` file with:
@@ -88,6 +102,7 @@ Before running, **replace** your `docker-compose.yaml` file with:
 services:
   capstone:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     platform: linux/x86_64
     container_name: automl_capstone
     ipc: host
@@ -99,15 +114,38 @@ services:
 
   generate_box:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
     command: -c "source activate capstone_env && python src/generate_boxed_images.py"
     volumes:
       - .:/app
+  
+  auto_labeling:
+    image: celt313/automl_capstone:v0.0.3
+    ipc: host
+    platform: linux/x86_64
+    profiles: ["optional"]
+    entrypoint: bash
+    command: -c "source activate capstone_env && ./fetch_dataset.sh && python src/label_main.py"
+    volumes:
+      - .:/app
+
+
+  train_compress:
+    image: celt313/automl_capstone:v0.0.3
+    ipc: host
+    platform: linux/x86_64
+    profiles: ["optional"]
+    entrypoint: bash
+    command: -c "source activate capstone_env && python src/train_compress.py"
+    volumes:
+      - .:/app
 
   test:
     image: celt313/automl_capstone:v0.0.3
+    ipc: host
     platform: linux/x86_64
     profiles: ["optional"]
     entrypoint: bash
@@ -120,6 +158,22 @@ Then run:
 
 ```bash
 docker compose up
+```
+
+to run the entire pipeline.
+
+If you want to run the auto-labeling part of the pipeline separately, do:
+
+```bash
+docker compose run auto_labeling
+```
+
+> This step should always come first.
+
+Then, to run the augmentation, training, and compression steps, use:
+
+```bash
+docker compose run train_compress
 ```
 
 ---
