@@ -11,4 +11,4 @@ The object detection task focuses on five categories:
 4. Vehicle  
 5. Person  
 
-The partner expects approximately 500 new images per month, which the pipeline is designed to process through labeling, training, and deployment stages.
+The partner expects approximately 500 new images per month, which the pipeline is designed to process through labeling, training, and compression stages.
