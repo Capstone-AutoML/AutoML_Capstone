@@ -20,6 +20,13 @@ The pipeline consists of the following key stages:
 6. **Model Quantization**  
    The distilled model is further quantized to reduce size and enable deployment on edge devices with limited resources.
 
+Key features of the pipeline include:
+
+- **Automated**: From labeling to training and compression, everything flows with minimal manual effort.
+- **Continuous**: Updated models help label data in future runs, improving over time.
+- **Dynamic**: Easy to plug in new models or modules as requirements change.
+- **Efficient**: Greatly reduces time across key stages including labeling, fine-tuning, and compression, resulting in faster end-to-end model iteration cycles.
+
 To visually summarize this workflow, [Figure 1](#fig-pipeline) provides an overview of the complete pipeline architecture.
 
 ::: {.cell}
