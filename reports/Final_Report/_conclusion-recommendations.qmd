@@ -1,15 +1,12 @@
 ### Problem Recap
 
-Our partner needed a continuous pipeline to keep their machine learning models accurate and up to date as new image data comes in. Their existing process relied heavily on manual labeling, training, and deployment, which slowed down model updates and made it difficult to scale. A more automated and flexible solution was required to support timely updates and edge deployment.
+Our partner needed a continuous pipeline to keep their machine learning models accurate and up to date as new image data comes in. Their existing process relied heavily on manual labeling, training, and deployment, which slowed down model updates and made it difficult to scale. A more automated and flexible solution is required to support timely updates and edge deployment.
 
-### Our Product
+### Our Results
 
-To address our partner's need, we developed an automated, continuous dynamic, and efficient pipeline that streamlines labeling, human-in-the-loop review, model training, optimization, and deployment.
+We developed a Python-based, modular pipeline that streamlines the entire workflow.
 
-- **Automated**: From labeling to training and compression, everything flows with minimal manual effort.
-- **Continuous**: Updated models help label data in future runs, improving over time.
-- **Dynamic**: Easy to plug in new models or modules as requirements change.
-- **Efficient**: Greatly reduces time across key stages including labeling, fine-tuning, and compression, resulting in faster end-to-end model iteration cycles.
+All options, paths, and process steps are set in centralized configuration files. The pipeline reads these files at runtime to decide which steps to run, which folders to use, and what parameters to apply. This makes the workflow reproducible, portable, and easy to update for new needs.
 
 ### Limitations & Recommendations
 
@@ -24,9 +21,3 @@ Hence, we propose the following three recommendations for future development:
 - **Add cloud support**: Integrating cloud storage and remote triggering to allow the pipeline to run in more flexible environments.
 - **Integrate a lightweight database**: Using a small database (e.g., SQLite) to store metadata for images, labels, and model versions would improve organization, enable easier tracking, and support more complex queries and analysis. As an additional task, we have designed a simplified and scalable database schema to support the core components of our wildfire detection pipeline. The structure is designed to be future-proof and manageable by the partner team.
 - **Develop a simple monitoring dashboard**: A lightweight dashboard would help users monitor pipeline runs, track model status, and show performance in real time.
-
-| **Limitation**                    | **Recommendation**                                                                 |
-|-----------------------------------|------------------------------------------------------------------------------------|
-| Local-first design                | Add cloud storage and remote triggering for better scalability                     |
-| Scattered data and model files    | Integrate a lightweight database to centralize images, labels, and model metadata  |
-| No monitoring interface           | Build a simple dashboard to track pipeline runs and model performance in real time |
