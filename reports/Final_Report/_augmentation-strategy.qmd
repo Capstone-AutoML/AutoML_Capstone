@@ -8,7 +8,7 @@ In this project, the partner specifically requested that augmentations be applie
 
 1. **Input**
 
-The augmentation process uses labeled images along with their corresponding YOLO-formatted annotation files. 
+  The augmentation process uses labeled images along with their corresponding YOLO-formatted annotation files. 
 These images are sourced from the matched outputs of the pre-labeling pipeline and are stored in the `labeled` directory. 
 Augmentation behavior is controlled via the `augmentation_config.json` file, which allows customization of parameters such as the number of augmentations per image, transformation probabilities, and limits for effects like blur intensity.
 
@@ -29,8 +29,8 @@ Augmentation behavior is controlled via the `augmentation_config.json` file, whi
 
 3. **Output**
 
-The result is a larger and more varied labeled dataset prepared for training. This includes both the augmented images with associated annotation files and the original non-augmented images. Images without any predicted or labeled objects are stored separately in the `no_prediction_images` folder.
+  The result is a larger and more varied labeled dataset prepared for training. This includes both the augmented images with associated annotation files and the original non-augmented images. Images without any predicted or labeled objects are stored separately in the `no_prediction_images` folder.
 
 4. **Impact**
 
-By augmenting the data prior to training, the model is exposed to a wider range of visual conditions without requiring additional manual data collection or labeling. This helps reduce overfitting and improves generalization performance, particularly under different lighting conditions, weather variations, and camera viewpoints.
+  By augmenting the data prior to training, the model is exposed to a wider range of visual conditions without requiring additional manual data collection or labeling. This helps reduce overfitting and improves generalization performance, particularly under different lighting conditions, weather variations, and camera viewpoints.

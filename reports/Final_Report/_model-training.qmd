@@ -4,7 +4,7 @@ Once labeled and augmented data is available, the detection model must be re-tra
 
 1. **Input**
 
-The training stage uses the full set of labeled images, including both augmented and non-augmented examples. Images without any labeled objects are also included as true negatives. The model to be fine-tuned is selected from the model registry. By default, this is the most recently updated model yolo model from previous iteration of the pipeline, though users can also specify a custom path or fall back to an initial base model such as `nano_trained_model.pt`.
+  The training stage uses the full set of labeled images, including both augmented and non-augmented examples. Images without any labeled objects are also included as true negatives. The model to be fine-tuned is selected from the model registry. By default, this is the most recently updated model yolo model from previous iteration of the pipeline, though users can also specify a custom path or fall back to an initial base model such as `nano_trained_model.pt`.
 
 Training hyperparameters including settings like the number of epochs, learning rate, and input image size are defined in the `train_config.json` file. This configuration supports any training argument compatible with the YOLOv8 framework.
 
@@ -20,7 +20,7 @@ Training hyperparameters including settings like the number of epochs, learning 
 
 3. **Output**
 
-The training stage produces a fine-tuned YOLOv8 model that reflects the latest available data. 
+  The training stage produces a fine-tuned YOLOv8 model that reflects the latest available data. 
 The model is saved with a filename that follows the pattern `[YYYY-MM-DD]_[HH_MM]_updated_yolo.pt`, and is stored in the model registry.
 A metadata file with the same name is generated with records of the  training hyperparameters to reproducibility.
 The metadata file also includes the following test metrics: `map_50`, `map_75`, `map_50_95`.
@@ -29,4 +29,4 @@ Additional output includes evaluation artifacts such as the confusion matrix, F1
 
 4. **Impact**
 
-This process enables regular fine-tuning as new data becomes available, helping ensure that the detection model remains accurate and up-to-date. The modular structure also allows users to experiment with different hyperparameters or revisit older models for retraining as needed. Over time, this approach supports continual improvement in model performance and maintainability.
+  This process enables regular fine-tuning as new data becomes available, helping ensure that the detection model remains accurate and up-to-date. The modular structure also allows users to experiment with different hyperparameters or revisit older models for retraining as needed. Over time, this approach supports continual improvement in model performance and maintainability.

@@ -29,4 +29,4 @@ Large object detection models, while accurate, demand significant computational 
 
 4.  **Impact**
 
-Knowledge distillation offers a practical solution for deploying wildfire detection models by significantly reducing model size and computational load. While some performance drop is inherent, effective knowledge transfer minimizes this loss. The resulting model achieves faster inference, ideal for real-time edge device applications.
+    Knowledge distillation offers a practical solution for deploying wildfire detection models by significantly reducing model size and computational load. While some performance drop is inherent, effective knowledge transfer minimizes this loss. The resulting model achieves faster inference, ideal for real-time edge device applications.
